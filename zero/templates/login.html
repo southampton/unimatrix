@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.ico') }}">
+		<title>login</title>
+		<link href="//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+		<script src="//netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+		<script>
+		$(document).ready(function ()
+		{
+			$('#loginUsername').focus();
+			$('#loginUsername').select();
+			$('[data-toggle="popover"]').popover()
+		});
+		</script>
+	</head>
+	<body>
+
+		<div class="container">
+			<div id="loginbox">
+				<h1>Login</h1>
+				{% for category, message in get_flashed_messages(with_categories=true) %}
+				<div class="alert {{ category }}">
+					<a data-dismiss="alert" class="close" href="#">×</a>
+					{{ message }}
+				</div>
+				{% endfor %}
+
+				<form id="loginform" role="form" action="{{ url_for('login') }}" method="POST" class="text-left">
+					<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+					{% if next %}
+					<input name="next" type="hidden" value="{{next}}"/>
+					{% endif %}
+					<div class="form-group">
+						<label for="username">Username:</label>
+						<input type="text" class="login-input form-control" id="loginUsername" name="username">
+					</div>
+					<div class="form-group">
+						<label for="password">Password:</label>
+						<input type="password" class="login-input form-control" id="loginPassword" name="password">
+					</div>
+					<div class="checkbox hidden-xs">
+						<label>
+							<input type="checkbox" class="" value="sec" id="sec" name="sec"> Keep me logged in on this computer <span class="glyphicon glyphicon-question-sign" data-toggle="popover" data-placement="bottom" title="Login Security" data-trigger="hover" data-content="If you are on a private computer you trust then selecting this option will keep you logged in even if you close the browser window. Do not use this on public or shared computers."></span>
+						</label>
+					</div>
+					<div class="form-group text-center submit-box">
+						<button class="btn btn-default btn-lg" type="submit">Login</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</body>
+</html>
