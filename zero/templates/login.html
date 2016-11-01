@@ -7,6 +7,7 @@
 		<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.ico') }}">
 		<title>login</title>
 		<link href="//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+		<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
 		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
 		<script src="//netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 		<script>
@@ -17,12 +18,23 @@
 			$('[data-toggle="popover"]').popover()
 		});
 		</script>
+		<style type="text/css">
+		@media (min-width: 768px)
+		{
+			body
+			{
+				background-color: none;
+				background-image: url('/static/img/rhel.jpg');
+				background-size: cover;	
+			}
+		}
+		</style>
 	</head>
 	<body>
 
 		<div class="container">
-			<div id="loginbox">
-				<h1>Login</h1>
+			<div id="loginbox" class="loginbox">
+				<h1>linux desktops</h1>
 				{% for category, message in get_flashed_messages(with_categories=true) %}
 				<div class="alert {{ category }}">
 					<a data-dismiss="alert" class="close" href="#">×</a>

@@ -26,7 +26,7 @@ def error400(error):
 
 @app.errorhandler(403)
 def error403(error):
-	return stderr("Permission Denied","You do not have permission to access that page or perform that action.",403,template="no.html")
+	return stderr("Permission Denied","You do not have permission to access that page or perform that action.",403)
 
 @app.errorhandler(404)
 def error404(error):

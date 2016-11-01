@@ -40,9 +40,9 @@ def login():
 			else:
 				session.permanent = False
 
-			# Cache user real name
+			# Cache user groups
 			try:
-				zero.lib.user.get_user_realname(session['username'],from_cache=False)
+				zero.lib.user.get_users_groups(session['username'],from_cache=False)
 			except Exception as ex:
 				pass
 			

@@ -107,10 +107,10 @@ def get_users_groups(username, from_cache=True):
 		curd = g.db.cursor(mysql.cursors.DictCursor)
 
 		## Get from the cache (if it hasn't expired)
-		curd.execute('SELECT 1 FROM `ldap_group_cache_expire` WHERE `username` = %s AND `expiry_date` > CURDATE()', (username))
+		curd.execute('SELECT 1 FROM `ldap_group_cache_expire` WHERE `username` = %s AND `expiry_date` > CURDATE()', (username,))
 		if curd.fetchone() is not None:
 			## The cache has not expired, return the list
-			curd.execute('SELECT `group` FROM `ldap_group_cache` WHERE `username` = %s', (username))
+			curd.execute('SELECT `group` FROM `ldap_group_cache` WHERE `username` = %s', (username,))
 			groupdict = curd.fetchall()
 			groups = []
 			for group in groupdict:
@@ -119,5 +119,14 @@ def get_users_groups(username, from_cache=True):
 			return groups
 
 		else:
-			## teh cache has expired, return them from LDAP directly (but also cache)
+			## teh cache has expired, return them from LDAP directly (but also cache again)
 			return zero.lib.ldapc.get_users_groups_from_ldap(username)
+
+################################################################################
+
+def is_user_in_group(username,group,from_cache=True):
+	groups = get_users_groups(username,from_cache=from_cache)
+	if group.lower() in groups:
+		return True
+
+	return False
