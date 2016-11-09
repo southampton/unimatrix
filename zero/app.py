@@ -252,8 +252,18 @@ Username:             %s
 		  `create_date` datetime DEFAULT NULL,
 		  `register_date` datetime DEFAULT NULL,
 		  `last_seen_date` datetime DEFAULT NULL,
+          `ssh_public_key` TEXT,
+          `ssh_private_key` TEXT,
+          `backup_key` varchar(128),
 		  PRIMARY KEY (`id`),
 		  KEY `name` (`name`(255))
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
+
+		cursor.execute("""CREATE TABLE IF NOT EXISTS `systems_backup_ports` (
+		  `port` mediumint(11) NOT NULL,
+		  `sid` mediumint(11),
+          PRIMARY KEY(port),
+          CONSTRAINT `systems_link` FOREIGN KEY (`sid`) REFERENCES `systems` (`id`) ON DELETE SET NULL ON UPDATE SET NULL
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
 
 		cursor.execute("""CREATE TABLE IF NOT EXISTS `ldap_group_cache` (

@@ -2,6 +2,7 @@
 
 from zero import app
 from zero.lib.user import is_logged_in, authenticate, is_user_in_group
+from zero.lib.systems import register_system_backup_port, get_system_backup_port
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import MySQLdb as mysql
 import re
@@ -14,7 +15,7 @@ import StringIO
 
 ################################################################################
 
-@app.route('/api/register', methods=['POST'])
+@app.route('/api/v1/register', methods=['POST'])
 @app.disable_csrf_check
 def api_register():
 	"""Simple REST API endpoint to allow workstations to register"""
@@ -26,9 +27,6 @@ def api_register():
 	## the JSON has an 'error' variable set with the problem
 
 	username = request.form['username']
-	#os_ident = request.form['ident']
-	#metadata = request.form['metadata']
-	#facts    = request.form['facts']
 
 	app.logger.debug("api_register: username sent was " + username)
 
@@ -53,30 +51,65 @@ def api_register():
 		app.logger.debug("api_register: request failed, the hostname " + hostname + " is invalid")
 		return jsonify({'error': True, 'reason': "The hostname is invalid, it must be the uos-number of the system"})
 
-	## TODO Validate metadata
+	try:
+		## Generate an SSH RSA private key
+		private_key = RSAKey.generate(bits=2048)
+		fakefile    = StringIO.StringIO()
+		private_key.write_private_key(fakefile)
+		private_key_str = fakefile.getvalue()
 
-	## TODO check facts
+		## Reseek to 0 in our fake StringIO file
+		fakefile.seek(0)
 
-	## TODO Check if the system was already registered
+		## Generate an SSH RSA public key
+		public_key = RSAKey.from_private_key(fakefile)
 
-	## Generate an SSH RSA private key
-	private_key = RSAKey.generate(bits=2048)
-	fakefile    = StringIO.StringIO()
-	private_key.write_private_key(fakefile)
+		## Turn it into a more usual output format
+		public_key_str = public_key.get_name() + " " + public_key.get_base64()
 
-	## Reseek to 0 in our fake StringIO file
-	fakefile.seek(0)
+	except Exception as ex:
+		app.logger.debug("api_register: failed to generate ssh public/private keypair: " + str(type(ex)) + " - " + str(ex))
+		return jsonify({'error': True, 'reason': "The server was unable to generate a ssh keypair"})		
 
-	## Generate an SSH RSA public key
-	public_key = RSAKey.from_private_key(fakefile)
+	## Generate a secret key 
+	backup_key = app.token(128)
 
-	## Turn it into a more usual output format
-	public_key_str = public_key.get_name() + " " + public_key.get_base64()
+	## Check if the system already exists in the database
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	
+	curd.execute('SELECT `id` FROM `systems` WHERE `name` = %s', (hostname,))
+	sysid = curd.fetchone()
+	if sysid is None:
+		## System does not exist, create a new one
+		try:
+			curd.execute("INSERT INTO `systems` (`name`, `create_date`, `register_date`, `last_seen_date`, `ssh_public_key`, `ssh_private_key`, `backup_key`) VALUES (%s, NOW(), NOW(), NOW(), %s, %s, %s)", (hostname, public_key_str, private_key_str, backup_key,))
+		except Exception as ex:
+			app.logger.debug("api_register: failed to create system record " + str(type(ex)) + " - " + str(ex))
+			return jsonify({'error': True, 'reason': "The server was unable to save the system record"})
 
-	app.logger.debug("api_register: registration succeeded for " + hostname + " using account " + username)
-	return jsonify({'private_key': fakefile.getvalue(), 'public_key': public_key_str})
+		## Register a port number
+		try:
+			backup_port = register_system_backup_port(curd.lastrowid)
+		except Exception as ex:
+			app.logger.debug("api_register: failed to register system backup port " + str(type(ex)) + " - " + str(ex))
+			return jsonify({'error': True, 'reason': "The server was unable to assign a backup port number"})
 
+	else:
+		try:
+			curd.execute("UPDATE `systems` SET `register_date` = NOW(), `last_seen_date` = NOW(), `ssh_public_key` = %s, `ssh_private_key` = %s, `backup_key` = %s WHERE `id` = %s", (public_key_str, private_key_str, backup_key, sysid['id'],))
+		except Exception as ex:
+			app.logger.debug("api_register: failed to update system record during re-registration: " + str(type(ex)) + " - " + str(ex))
+			return jsonify({'error': True, 'reason': "The server was unable to save the system record"})
 
+		## Get the existing port number
+		backup_port = get_system_backup_port(sysid['id'])
 
+		if backup_port is None:
+			try:
+				backup_port = register_system_backup_port(sysid['id'])
+			except Exception as ex:
+				app.logger.debug("api_register: failed to register system backup port " + str(type(ex)) + " - " + str(ex))
+				return jsonify({'error': True, 'reason': "The server was unable to assign a backup port number"})
 
-
+	app.logger.info("api_register: registration complete for " + hostname + " using account " + username)
+	return jsonify({'private_key': private_key_str, 'public_key': public_key_str, 'backup_key': backup_key, 'backup_port': backup_port})
