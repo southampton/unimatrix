@@ -47,3 +47,7 @@ LDAP_ANON_BIND      = True
 LDAP_BIND_USER      = ''
 LDAP_BIND_PW        = ''
 LDAP_ADMIN_GROUP    = "CN=groupname,OU=localhost,DC=localdomain"
+
+## BACKUP STUFF
+BACKUP_PORT_MIN = 10000
+BACKUP_PORT_MAX = 20000

@@ -253,7 +253,6 @@ Username:             %s
 		  `register_date` datetime DEFAULT NULL,
 		  `last_seen_date` datetime DEFAULT NULL,
           `ssh_public_key` TEXT,
-          `ssh_private_key` TEXT,
           `backup_key` varchar(128),
 		  PRIMARY KEY (`id`),
 		  KEY `name` (`name`(255))

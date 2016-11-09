@@ -71,8 +71,8 @@ def api_register():
 		app.logger.debug("api_register: failed to generate ssh public/private keypair: " + str(type(ex)) + " - " + str(ex))
 		return jsonify({'error': True, 'reason': "The server was unable to generate a ssh keypair"})		
 
-	## Generate a secret key 
-	backup_key = app.token(128)
+	## Generate a secret key (64 bytes = 128 characters)
+	backup_key = app.token(64)
 
 	## Check if the system already exists in the database
 	curd = g.db.cursor(mysql.cursors.DictCursor)
@@ -82,7 +82,7 @@ def api_register():
 	if sysid is None:
 		## System does not exist, create a new one
 		try:
-			curd.execute("INSERT INTO `systems` (`name`, `create_date`, `register_date`, `last_seen_date`, `ssh_public_key`, `ssh_private_key`, `backup_key`) VALUES (%s, NOW(), NOW(), NOW(), %s, %s, %s)", (hostname, public_key_str, private_key_str, backup_key,))
+			curd.execute("INSERT INTO `systems` (`name`, `create_date`, `register_date`, `last_seen_date`, `ssh_public_key`, `backup_key`) VALUES (%s, NOW(), NOW(), NOW(), %s, %s)", (hostname, public_key_str, backup_key,))
 		except Exception as ex:
 			app.logger.debug("api_register: failed to create system record " + str(type(ex)) + " - " + str(ex))
 			return jsonify({'error': True, 'reason': "The server was unable to save the system record"})
@@ -91,12 +91,12 @@ def api_register():
 		try:
 			backup_port = register_system_backup_port(curd.lastrowid)
 		except Exception as ex:
-			app.logger.debug("api_register: failed to register system backup port " + str(type(ex)) + " - " + str(ex))
+			app.logger.error("api_register: failed to register system backup port " + str(type(ex)) + " - " + str(ex))
 			return jsonify({'error': True, 'reason': "The server was unable to assign a backup port number"})
 
 	else:
 		try:
-			curd.execute("UPDATE `systems` SET `register_date` = NOW(), `last_seen_date` = NOW(), `ssh_public_key` = %s, `ssh_private_key` = %s, `backup_key` = %s WHERE `id` = %s", (public_key_str, private_key_str, backup_key, sysid['id'],))
+			curd.execute("UPDATE `systems` SET `register_date` = NOW(), `last_seen_date` = NOW(), `ssh_public_key` = %s, `backup_key` = %s WHERE `id` = %s", (public_key_str, backup_key, sysid['id'],))
 		except Exception as ex:
 			app.logger.debug("api_register: failed to update system record during re-registration: " + str(type(ex)) + " - " + str(ex))
 			return jsonify({'error': True, 'reason': "The server was unable to save the system record"})
@@ -110,6 +110,8 @@ def api_register():
 			except Exception as ex:
 				app.logger.debug("api_register: failed to register system backup port " + str(type(ex)) + " - " + str(ex))
 				return jsonify({'error': True, 'reason': "The server was unable to assign a backup port number"})
+		else:
+			app.logger.info("api_register: Reusing existing allocated backup port number for " + hostname)
 
 	app.logger.info("api_register: registration complete for " + hostname + " using account " + username)
 	return jsonify({'private_key': private_key_str, 'public_key': public_key_str, 'backup_key': backup_key, 'backup_port': backup_port})
