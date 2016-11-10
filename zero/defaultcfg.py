@@ -51,3 +51,10 @@ LDAP_ADMIN_GROUP    = "CN=groupname,OU=localhost,DC=localdomain"
 ## BACKUP STUFF
 BACKUP_PORT_MIN = 10000
 BACKUP_PORT_MAX = 20000
+
+## Accounts to use for SSH connections from workstations
+# the shell for either account can be whatever you like as long as it isn't
+# bin/false or sbin/nologin or whatever. ssh's authorized_keys command 
+# restrictions prevent anything but rsync or the backup command.
+SSH_USERNAME_BACKUP = "backup" 
+SSH_USERNAME_PUPPET = "pull" # probably not a good idea to use 'puppet' account

@@ -1,0 +1,88 @@
+#!/usr/bin/python
+# script for sshd to call to get a list of public keys which are allowed to 
+# login to the system. it supports two usernames - one is for systems to
+# login and allow an rsync backup, and the other is for machines to pull down
+# read-only files via rsync over ssh. the usernames are set in the unixmatrix-zero
+# config file and thus can be changed as required.
+#
+# 
+# sshd expects the system to output lines which meets the 
+# AUTHORIZED_KEYS FILE FORMAT as described in the man page sshd(8)
+# e.g. something like
+#
+#        ssh-rsa AAAAB3Nza...LiPk== user@example.net
+#        from="*.sales.example.net,!pc.sales.example.net" ssh-rsa AAAAB2...19Q== john@example.net
+#        command="dump /home",no-pty,no-port-forwarding ssh-dss AAAAC3...51R== example.net
+#        permitopen="192.0.2.1:80",permitopen="192.0.2.2:25" ssh-dss AAAAB5...21S==
+#        tunnel="0",command="sh /etc/netstart tun0" ssh-rsa AAAA...== jane@example.net
+#
+# EXIT CODES!
+# 0 - success
+# 1 - invalid number of command line arguments
+# 2 - could not load the config file 
+# 3 - missing configuration option in the config file
+# 4 - database error
+
+import os
+import imp
+import sys
+import MySQLdb as mysql
+
+CONFIG_FILE = '/etc/unimatrix/zero.conf'
+
+def load_config(): 
+	d = imp.new_module('config')
+	d.__file__ = CONFIG_FILE
+	try:
+		with open(CONFIG_FILE) as config_file:
+			exec(compile(config_file.read(), CONFIG_FILE, 'exec'), d.__dict__)
+	except IOError as e:
+		sys.stderr.write('Unable to load configuration file ' + CONFIG_FILE + ": " + str(type(e)) + " " + str(e) + "\n")
+		sys.exit(2)
+
+	config = {}
+
+	for key in dir(d):
+		if key.isupper():
+			config[key] = getattr(d, key)
+
+	## ensure we have required config options
+	for wkey in ['MYSQL_USER', 'MYSQL_PASS', 'MYSQL_NAME', 'MYSQL_PORT', 'SSH_USERNAME_BACKUP', 'SSH_USERNAME_PUPPET']:
+		if not wkey in config.keys():
+			sys.stderr.write("Missing configuation option: " + wkey + "\n")
+			sys.exit(3)
+
+	return config
+
+if __name__ == "__main__":
+	if len(sys.argv) != 2:
+		sys.stderr.write("Invalid number of arguments. Usage: get_ssh_keys <username>\n")
+		sys.exit(1)
+
+	username = sys.argv[1]
+
+	# load unixmatrix-zero config
+	config = load_config()
+
+	# We exit quietly if we're being asked for keys for users we don't care about
+	if username not in [config['SSH_USERNAME_BACKUP'], config['SSH_USERNAME_PUPPET']]:
+		sys.exit(0)
+
+	try:
+		# Connect to the database
+		db   = mysql.connect(host=config['MYSQL_HOST'], port=config['MYSQL_PORT'], user=config['MYSQL_USER'], passwd=config['MYSQL_PASS'], db=config['MYSQL_NAME'])
+		curd = db.cursor(mysql.cursors.DictCursor)
+
+		# Pull down all ssh public keys
+		curd.execute('SELECT `name`, `ssh_public_key` FROM `systems` WHERE `ssh_public_key` IS NOT NULL')
+		systems = curd.fetchall()
+	except Exception as ex:
+		sys.stderr.write('Error when communicating with the database: ' + str(type(e)) + " " + str(e) + "\n")
+		sys.exit(4)
+
+	for system in systems:
+		if username == config['SSH_USERNAME_PUPPET']:
+			print """command="/bin/rrsync -ro puppet",no-agent-forwarding,no-port-forwarding,no-user-rc,no-X11-forwarding %s""" % (system['ssh_public_key'],)
+		elif username == config['SSH_USERNAME_BACKUP']:
+			print """command="/bin/zero-backup %s",no-agent-forwarding,no-X11-forwarding,no-user-rc %s""" % (system['name'],system['ssh_public_key'],)
+
