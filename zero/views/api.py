@@ -83,6 +83,7 @@ def api_register():
 		## System does not exist, create a new one
 		try:
 			curd.execute("INSERT INTO `systems` (`name`, `create_date`, `register_date`, `last_seen_date`, `ssh_public_key`, `backup_key`) VALUES (%s, NOW(), NOW(), NOW(), %s, %s)", (hostname, public_key_str, backup_key,))
+			g.db.commit()
 		except Exception as ex:
 			app.logger.debug("api_register: failed to create system record " + str(type(ex)) + " - " + str(ex))
 			return jsonify({'error': True, 'reason': "The server was unable to save the system record"})
@@ -97,6 +98,7 @@ def api_register():
 	else:
 		try:
 			curd.execute("UPDATE `systems` SET `register_date` = NOW(), `last_seen_date` = NOW(), `ssh_public_key` = %s, `backup_key` = %s WHERE `id` = %s", (public_key_str, backup_key, sysid['id'],))
+			g.db.commit()
 		except Exception as ex:
 			app.logger.debug("api_register: failed to update system record during re-registration: " + str(type(ex)) + " - " + str(ex))
 			return jsonify({'error': True, 'reason': "The server was unable to save the system record"})
