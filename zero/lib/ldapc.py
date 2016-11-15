@@ -109,7 +109,7 @@ def get_users_groups_from_ldap(username):
 							continue
 
 						curd.execute('INSERT INTO `ldap_group_cache` (`username`, `group`) VALUES (%s,%s)', (username,group.lower(),))
-						groups.append(group)
+						groups.append(group.lower())
 
 					## Set the cache expiration
 					curd.execute('REPLACE INTO `ldap_group_cache_expire` (`username`, `expiry_date`) VALUES (%s,NOW() + INTERVAL 15 MINUTE)', (username,))

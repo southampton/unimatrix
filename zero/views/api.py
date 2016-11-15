@@ -47,9 +47,11 @@ def api_register():
 	## Validate hostname
 	hostname = request.form['hostname']
 
-	if not re.match(r"^(uos|iss|lnx)\-[0-9]{2,8}$",hostname):
+	if not re.match(r"^(uos|iss|lnx|UOS|ISS|LNX)\-[0-9]{2,8}$",hostname):
 		app.logger.debug("api_register: request failed, the hostname " + hostname + " is invalid")
 		return jsonify({'error': True, 'reason': "The hostname is invalid, it must be the uos-number of the system"})
+	else:
+		hostname = hostname.lower()
 
 	try:
 		## Generate an SSH RSA private key

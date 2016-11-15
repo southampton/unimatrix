@@ -93,22 +93,15 @@ def get_users_groups(username, from_cache=True):
 	be in no groups, and if they are, then they probably shouldn't be using zero.
 	"""
 
-	# We cache the groups a user has in MySQL because Active Directory is VERY
-	# slow and we don't want to have to wait for AD every time a user wants to
-	# access something (or list the systems they have access to). We don't use
-	# REDIS cos we need to do complicated SQL queries to determine a users
-	# systems they can access and its much faster with joins/subqueries than
-	# thousands of queries 'cos the groups are stored in REDIS.
-	# so its in Mysql. So there.
-
 	if from_cache == False:
 		return zero.lib.ldapc.get_users_groups_from_ldap(username)
 	else:
 		curd = g.db.cursor(mysql.cursors.DictCursor)
 
 		## Get from the cache (if it hasn't expired)
-		curd.execute('SELECT 1 FROM `ldap_group_cache_expire` WHERE `username` = %s AND `expiry_date` > CURDATE()', (username,))
+		curd.execute('SELECT 1 FROM `ldap_group_cache_expire` WHERE `username` = %s AND `expiry_date` > NOW()', (username,))
 		if curd.fetchone() is not None:
+			app.logger.debug("Using cached results for LDAP user groups for user " + username)
 			## The cache has not expired, return the list
 			curd.execute('SELECT `group` FROM `ldap_group_cache` WHERE `username` = %s', (username,))
 			groupdict = curd.fetchall()
@@ -119,6 +112,7 @@ def get_users_groups(username, from_cache=True):
 			return groups
 
 		else:
+			app.logger.debug("Cached results expired or don't exist for " + username)
 			## teh cache has expired, return them from LDAP directly (but also cache again)
 			return zero.lib.ldapc.get_users_groups_from_ldap(username)
 
