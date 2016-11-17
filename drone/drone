@@ -1,0 +1,83 @@
+#!/usr/bin/python
+
+CONFIG_FILE = "/etc/soton/drone.conf"
+
+import os
+import sys
+import argparse
+import ConfigParser
+
+def get_config():
+	try:
+		config = ConfigParser.RawConfigParser()
+		config.read(CONFIG_FILE)
+	except Exception as ex:
+		sys.stderr.write("Error: Could not read the config file " + CONFIG_FILE + " - " + str(type(ex)) + " " + str(ex) + "\n")
+		sys.exit(2)
+
+def puppet(parser,args,config):
+	action = args.action
+
+	if action == 'sync':
+		pass
+
+def backup(parser,args):
+	pass
+
+def update(parser,args):
+	pass
+
+def main():
+	## We must be root
+	if not os.geteuid() == 0:
+		sys.stderr.write("Error: You must be root to run that command\n")
+		sys.exit(1)
+
+	## Load the config
+	config = get_config()
+
+	## Deal with command line arguments
+	subcommands = """Available subcommands:
+
+  puppet      manages puppet functions
+    status    show the status of the last puppet apply
+    apply     apply puppet policy to the system
+    sync      download the latest puppet ruleset
+    enable    turn on automatic policy enforcement (default on)
+    disable   turn off automatic policy enforcement
+
+  backup      management of workstation backups
+    status    show the status of the last backup
+    now       perform a backup of this system
+    enable    enable automatic backups (default on)
+    disable   disable automatic backups
+
+  update
+    status    show the update status of the system
+    schedule  schedule updates to be applied at next reboot
+
+  system
+    register  (re-)register this system
+    
+"""
+
+	parser = argparse.ArgumentParser(prog='drone',description='workstation management agent',epilog=subcommands,formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser.add_argument('subcommand', metavar='subcommand', type=str, help='the function to perform')
+	parser.add_argument('action', metavar='action', type=str, help='the action to perform')
+	args = parser.parse_args()
+
+	if args.subcommand == 'puppet':
+		puppet(parser,args,config)
+	elif args.subcommand == 'backup':
+		backup(parser,args,config)
+	elif args.subcommand == 'update':
+		update(parser,args,config)
+	elif args.subcommand == 'system':
+		system(parser,args,config)
+	else:
+		print 'Unrecognised subcommand "' + args.subcommand + '"'
+		parser.print_help()	
+
+
+if __name__ == "__main__":
+	main()
