@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2016-11-17-15"
+VERSION     = "2016-11-17-16"
 
 import os
 import sys
@@ -109,11 +109,11 @@ def puppet(parser,args,config):
 		puppet_sync(parser,args,config)
 
 	elif action == "apply":
-		puppet_apply(parser,args,confg)
+		puppet_apply(parser,args,config)
 
 	elif action == "run":
 		puppet_sync(parser,args,config)
-		puppet_apply(parser,args,confg)
+		puppet_apply(parser,args,config)
 
 	else:
 		print 'Unrecognised or missing action'
