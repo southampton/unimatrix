@@ -2,6 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
+VERSION     = "2016-11-17-15"
 
 import os
 import sys
@@ -9,13 +10,19 @@ import argparse
 import subprocess
 import ConfigParser
 
+################################################################################
+
 def fatal(code,message):
 	sys.stderr.write("Error: " + message + "\n")
 	sys.exit(code)
 
+################################################################################
+
 def fatalex(code,message,exception):
 	sys.stderr.write("Error: " + message + " - " + str(type(ex)) + " " + str(ex) + "\n")
 	sys.exit(code)
+
+################################################################################
 
 def get_config():
 	config = ConfigParser.RawConfigParser()
@@ -36,6 +43,8 @@ def get_config():
 		fatalex(2,"Could not read the config file " + CONFIG_FILE,ex)
 
 	return config
+
+################################################################################
 
 def sysexec(command,shell=False,debug=False):
 	if debug:
@@ -63,42 +72,69 @@ def sysexec(command,shell=False,debug=False):
 	except Exception as ex:
 		return (1,"",str(type(ex)) + " " + str(ex))
 
+################################################################################
+
+def puppet_sync(parser,args,config):
+	if args.verbose: print "starting sync"
+
+	(code, stdout, stderr) = sysexec("""/usr/bin/rsync -e "ssh -i %s/ssh_private_key -o PreferredAuthentications=publickey -oStrictHostKeyChecking=no" -av --delete %s@%s: %s/puppet/""" % (BASE_DIR, config.get('puppet','user'),config.get('puppet','server'),BASE_DIR),shell=True,debug=args.debug)
+
+	if code != 0:
+		fatal(3,"sync failed: \n" + stdout + "\n" + stderr)
+	else:
+		if args.verbose: print "sync complete"
+
+################################################################################
+
+def puppet_apply(parser,args,config):
+	if args.verbose: print "starting puppet apply"
+
+	(code, stdout, stderr) = sysexec("""%s apply --detailed-exitcodes --modulepath %s/puppet/modules/ %s/puppet/manifests/site.pp""" % (config.get('puppet','binary'),BASE_DIR,BASE_DIR),shell=True,debug=args.debug)
+
+	if code == 0:
+		if args.verbose: print "policy applied, no changes were required"
+	elif code == 2:
+		if args.verbose:
+			print "policy applied, changes made to system:"
+			print stdout
+	else:
+		fatal(4,"apply failed: \n" + stdout + "\n" + stderr)
+
+################################################################################
+
 def puppet(parser,args,config):
 	action = args.action
 
 	if action == 'sync':
-		if args.verbose: print "starting sync"
-
-		(code, stdout, stderr) = sysexec("""/usr/bin/rsync -e "ssh -i %s/ssh_private_key -o PreferredAuthentications=publickey -oStrictHostKeyChecking=no" -av --delete %s@%s: %s/puppet/""" % (BASE_DIR, config.get('puppet','user'),config.get('puppet','server'),BASE_DIR),shell=True,debug=args.debug)
-
-		if code != 0:
-			fatal(3,"sync failed: \n" + stdout + "\n" + stderr)
-		else:
-			if args.verbose: print "sync complete"
+		puppet_sync(parser,args,config)
 
 	elif action == "apply":
-		if args.verbose: print "starting puppet apply"
+		puppet_apply(parser,args,confg)
 
-		(code, stdout, stderr) = sysexec("""%s apply --detailed-exitcodes --modulepath %s/puppet/modules/ %s/puppet/manifests/site.pp""" % (config.get('puppet','binary'),BASE_DIR,BASE_DIR),shell=True,debug=args.debug)
-
-		if code == 0:
-			if args.verbose: print "policy applied, no changes were required"
-		elif code == 2:
-			if args.verbose:
-				print "policy applied, changes made to system:"
-				print stdout
-		else:
-			fatal(4,"apply failed: \n" + stdout + "\n" + stderr)
+	elif action == "run":
+		puppet_sync(parser,args,config)
+		puppet_apply(parser,args,confg)
 
 	else:
-		print 'Unrecognised action "' + args.action + '"'
+		print 'Unrecognised or missing action'
 		parser.print_help()
 
-def backup(parser,args):
+################################################################################
+
+def backup(parser,args,config):
 	pass
 
-def update(parser,args):
+################################################################################
+
+def update(parser,args,config):
 	pass
+
+################################################################################
+
+def version(parser,args,config):
+	print "drone agent v" + VERSION
+
+################################################################################
 
 def main():
 	## We must be root
@@ -114,8 +150,9 @@ def main():
 
   puppet      manages puppet functions
     status    show the status of the last puppet apply
-    apply     apply puppet policy to the system
     sync      download the latest puppet ruleset
+    apply     apply puppet policy to the system
+    run       performs a 'sync' and then an 'apply'
     enable    turn on automatic policy enforcement (default on)
     disable   turn off automatic policy enforcement 
 
@@ -131,12 +168,14 @@ def main():
 
   system
     register  (re-)register this system
+
+  version     shows the version of the drone agent
     
 """
 
 	parser = argparse.ArgumentParser(prog='drone',description='workstation management agent',epilog=subcommands,formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument('subcommand', metavar='subcommand', type=str, help='the function to perform')
-	parser.add_argument('action', metavar='action', type=str, help='the action to perform')
+	parser.add_argument('action', metavar='action', type=str, help='the action to perform', nargs="?", default=None)
 	parser.add_argument('-d', '--debug', action='store_true', help='turn on debugging output',dest='debug')
 	parser.add_argument('-v', '--verbose', action='store_true', help='turn on verbose output',dest='verbose')
 
@@ -150,10 +189,13 @@ def main():
 		update(parser,args,config)
 	elif args.subcommand == 'system':
 		system(parser,args,config)
+	elif args.subcommand == 'version':
+		version(parser,args,config)
 	else:
 		print 'Unrecognised subcommand "' + args.subcommand + '"'
 		parser.print_help()
 
+################################################################################
 
 if __name__ == "__main__":
 	main()
