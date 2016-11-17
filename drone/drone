@@ -69,7 +69,7 @@ def puppet(parser,args,config):
 	if action == 'sync':
 		if args.verbose: print "starting sync"
 
-		(code, stdout, stderr) = sysexec("""/usr/bin/rsync -e "ssh -i %s/ssh_private_key -o PreferredAuthentications=publickey -oStrictHostKeyChecking=no" -av %s@%s: %s/puppet/""" % (BASE_DIR, config.get('puppet','user'),config.get('puppet','server'),BASE_DIR),shell=True,debug=args.debug)
+		(code, stdout, stderr) = sysexec("""/usr/bin/rsync -e "ssh -i %s/ssh_private_key -o PreferredAuthentications=publickey -oStrictHostKeyChecking=no" -av --delete %s@%s: %s/puppet/""" % (BASE_DIR, config.get('puppet','user'),config.get('puppet','server'),BASE_DIR),shell=True,debug=args.debug)
 
 		if code != 0:
 			fatal(3,"sync failed: \n" + stdout + "\n" + stderr)
