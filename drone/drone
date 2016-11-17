@@ -18,8 +18,19 @@ def fatalex(code,message,exception):
 	sys.exit(code)
 
 def get_config():
+	config = ConfigParser.RawConfigParser()
+
+	## Set up default sections
+	config.add_section('backup')
+	config.add_section('puppet')
+	config.add_section('server')
+	
+	## Set up default values
+	config.set('puppet','user','puppet')
+	config.set('puppet','binary','/opt/puppetlabs/bin/puppet')
+	config.set('puppet','server','localhost')
+
 	try:
-		config = ConfigParser.RawConfigParser()
 		config.read(CONFIG_FILE)
 	except Exception as ex:
 		fatalex(2,"Could not read the config file " + CONFIG_FILE,ex)
@@ -63,7 +74,25 @@ def puppet(parser,args,config):
 		if code != 0:
 			fatal(3,"sync failed: \n" + stdout + "\n" + stderr)
 		else:
-			if args.verbose: print "sync complete" 
+			if args.verbose: print "sync complete"
+
+	elif action == "apply":
+		if args.verbose: print "starting puppet apply"
+
+		(code, stdout, stderr) = sysexec("""%s apply --detailed-exitcodes --modulepath %s/puppet/modules/ %s/puppet/manifests/site.pp""" % (config.get('puppet','binary'),BASE_DIR,BASE_DIR),shell=True,debug=args.debug)
+
+		if code == 0:
+			if args.verbose: print "policy applied, no changes were required"
+		elif code == 2:
+			if args.verbose:
+				print "policy applied, changes made to system:"
+				print stdout
+		else:
+			fatal(4,"apply failed: \n" + stdout + "\n" + stderr)
+
+	else:
+		print 'Unrecognised action "' + args.action + '"'
+		parser.print_help()
 
 def backup(parser,args):
 	pass
@@ -88,7 +117,7 @@ def main():
     apply     apply puppet policy to the system
     sync      download the latest puppet ruleset
     enable    turn on automatic policy enforcement (default on)
-    disable   turn off automatic policy enforcement
+    disable   turn off automatic policy enforcement 
 
   backup      management of workstation backups
     status    show the status of the last backup
