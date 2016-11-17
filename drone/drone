@@ -1,25 +1,68 @@
 #!/usr/bin/python
 
 CONFIG_FILE = "/etc/soton/drone.conf"
+BASE_DIR    = "/etc/soton"
 
 import os
 import sys
 import argparse
+import subprocess
 import ConfigParser
+
+def fatal(code,message):
+	sys.stderr.write("Error: " + message + "\n")
+	sys.exit(code)
+
+def fatalex(code,message,exception):
+	sys.stderr.write("Error: " + message + " - " + str(type(ex)) + " " + str(ex) + "\n")
+	sys.exit(code)
 
 def get_config():
 	try:
 		config = ConfigParser.RawConfigParser()
 		config.read(CONFIG_FILE)
 	except Exception as ex:
-		sys.stderr.write("Error: Could not read the config file " + CONFIG_FILE + " - " + str(type(ex)) + " " + str(ex) + "\n")
-		sys.exit(2)
+		fatalex(2,"Could not read the config file " + CONFIG_FILE,ex)
+
+	return config
+
+def sysexec(command,shell=False,debug=False):
+	if debug:
+		if type(command) is list:
+			print "Executing command " + str(" ".join(command))
+		else:
+			print "Executing command " + str(command)
+
+	try:
+		proc = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=shell)
+		(stdoutdata, stderrdata) = proc.communicate()
+		if stdoutdata is None:
+			stdoutdata = ""
+		if stderrdata is None:
+			stderrdata = ""
+
+		if debug:
+			print "return code: " + str(proc.returncode)
+			print "---"
+			print stdoutdata
+			print stderrdata
+			print "---"
+			
+		return (proc.returncode,str(stdoutdata),str(stderrdata))
+	except Exception as ex:
+		return (1,"",str(type(ex)) + " " + str(ex))
 
 def puppet(parser,args,config):
 	action = args.action
 
 	if action == 'sync':
-		pass
+		(code, stdout, stderr) = sysexec("""/usr/bin/rsync -e "ssh -i %s/ssh_private_key -o PreferredAuthentications=publickey -oStrictHostKeyChecking=no" -av %s@%s: %s/puppet/""" % (BASE_DIR, config.get('puppet','user'),config.get('puppet','server'),BASE_DIR),shell=True,debug=args.debug)
+
+		if code != 0:
+			fatal(3,"Could not sync puppet policy: \n" + stdout + "\n" + stderr)
+		else:
+			if args.debug:
+				print "sync successful"
 
 def backup(parser,args):
 	pass
@@ -64,6 +107,8 @@ def main():
 	parser = argparse.ArgumentParser(prog='drone',description='workstation management agent',epilog=subcommands,formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument('subcommand', metavar='subcommand', type=str, help='the function to perform')
 	parser.add_argument('action', metavar='action', type=str, help='the action to perform')
+	parser.add_argument('-d', '--debug', action='store_true', help='turn on debugging output',dest='debug')
+
 	args = parser.parse_args()
 
 	if args.subcommand == 'puppet':
@@ -76,7 +121,7 @@ def main():
 		system(parser,args,config)
 	else:
 		print 'Unrecognised subcommand "' + args.subcommand + '"'
-		parser.print_help()	
+		parser.print_help()
 
 
 if __name__ == "__main__":
