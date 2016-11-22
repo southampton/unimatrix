@@ -248,7 +248,7 @@ Username:             %s
 
 		cursor.execute("""CREATE TABLE IF NOT EXISTS `systems` (
 		  `id` mediumint(11) NOT NULL AUTO_INCREMENT,
-		  `name` varchar(256) NOT NULL,
+		  `name` varchar(64) NOT NULL,
 		  `create_date` datetime DEFAULT NULL,
 		  `register_date` datetime DEFAULT NULL,
 		  `last_seen_date` datetime DEFAULT NULL,
@@ -276,6 +276,17 @@ Username:             %s
 		 `expiry_date` datetime DEFAULT NULL,
 		  PRIMARY KEY (`username`)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8""")
+
+		cursor.execute("""CREATE TABLE IF NOT EXISTS `tasks` (
+		  `id` mediumint(11) NOT NULL AUTO_INCREMENT,
+		  `sid` mediumint(11) NOT NULL,
+		  `name` varchar(256) NOT NULL,
+		  `start` datetime NOT NULL,
+		  `end` datetime DEFAULT NULL,
+		  `status` tinyint(4) NOT NULL DEFAULT '0',
+		  PRIMARY KEY (`id`),
+		  CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`sid`) REFERENCES `systems` (`id`) ON DELETE CASCADE
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
 
 		## Close database connection
 		temp_db.close()

@@ -1,0 +1,20 @@
+#!/usr/bin/python
+
+import Pyro4
+import syslog
+import sys
+
+#sys.path.append('/data/unimatrix/plexus')
+sys.path.append('/home/db2z07/projects/unimatrix/zero/')
+from plexus.PlexusDaemon import PlexusDaemon
+
+Pyro4.config.SERVERTYPE = "multiplex"
+Pyro4.config.SOCK_REUSE = True
+
+if __name__ == "__main__":
+	pyro              = Pyro4.Daemon(host='localhost',port=1888)
+	plexus            = PlexusDaemon(pyro)
+	#pyro._pyroHmacKey = plexus.config['PLEXUS_KEY']
+	uri               = pyro.register(plexus,'plexus')
+	syslog.syslog('plexus started')
+	pyro.requestLoop(plexus._onloop)
