@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
+SOCKET_PATH="/run/plexus.sock"
+
 import Pyro4
 import time
 
-plexus = Pyro4.Proxy('PYRO:plexus@localhost:1888')
+plexus = Pyro4.Proxy('PYRO:plexus@./u:' + SOCKET_PATH)
 plexus._pyroTimeout = 5
 task_id = plexus.request_backup("uos-015101")
 time.sleep(5)

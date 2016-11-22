@@ -248,7 +248,7 @@ Username:             %s
 
 		cursor.execute("""CREATE TABLE IF NOT EXISTS `systems` (
 		  `id` mediumint(11) NOT NULL AUTO_INCREMENT,
-		  `name` varchar(64) NOT NULL,
+		  `name` varchar(255) NOT NULL,
 		  `create_date` datetime DEFAULT NULL,
 		  `register_date` datetime DEFAULT NULL,
 		  `last_seen_date` datetime DEFAULT NULL,
@@ -280,7 +280,7 @@ Username:             %s
 		cursor.execute("""CREATE TABLE IF NOT EXISTS `tasks` (
 		  `id` mediumint(11) NOT NULL AUTO_INCREMENT,
 		  `sid` mediumint(11) NOT NULL,
-		  `name` varchar(256) NOT NULL,
+		  `name` varchar(255) NOT NULL,
 		  `start` datetime NOT NULL,
 		  `end` datetime DEFAULT NULL,
 		  `status` tinyint(4) NOT NULL DEFAULT '0',

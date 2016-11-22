@@ -40,6 +40,13 @@ class BackupTask(object):
 		setproctitle("plexus-backup ID " + str(self.task_id) + " for " + self.system['name'])
 
 		try:
+			## 1. make sure the parent directory exists
+			## 2. get the backup port from the DB
+			## 3. run rsync
+			## 4. save backup log
+			## 5. update status
+
+
 			time.sleep(60)
 			syslog.syslog('fake backup finished')
 			self._end_task()

@@ -13,13 +13,55 @@ import json
 from setproctitle import setproctitle #pip install setproctitle
 from plexus.BackupTask import BackupTask
 
-CONFIG_FILE = '/etc/unimatrix/zero.conf'
 # we use multiplex, rather than threading, cos each request only starts a
 # new worker process or simply returning status information. the threaded 
 # model would work fine, its just it means handling locking in python,
 # and it means the GIL, so... no thx.
 Pyro4.config.SERVERTYPE = "multiplex"
 Pyro4.config.SOCK_REUSE = True	
+
+################################################################################
+
+def load_config(filename):
+		d = imp.new_module('config')
+		d.__file__ = filename
+		try:
+			with open(filename) as config_file:
+				exec(compile(config_file.read(), filename, 'exec'), d.__dict__)
+		except IOError as e:
+			sys.stderr.write("Unable to load configuration file (%s)\n" % e.strerror)
+			sys.exit(1)
+		
+		config = {}
+		for key in dir(d):
+			if key.isupper():
+				config[key] = getattr(d, key)
+
+		## ensure we have required config options
+		for wkey in ['MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASS', 'MYSQL_NAME', 'BACKUP_ROOT_DIR', 'PLEXUS_SOCKET_PATH', 'PLEXUS_SOCKET_MODE', 'PLEXUS_SOCKET_UID', 'PLEXUS_SOCKET_GID']:
+			if not wkey in config.keys():
+				sys.stderr.write("Missing configuration option: %s\n" % wkey)
+				sys.exit(1)
+
+		return config
+
+################################################################################
+
+def set_socket_permissions(config):
+	## set perms on the socket path
+	try:
+		os.chown(config['PLEXUS_SOCKET_PATH'],config['PLEXUS_SOCKET_UID'],config['PLEXUS_SOCKET_GID'])
+	except Exception as ex:
+		sys.stderr.write("Could not chown socket: " + str(type(ex)) + " " + str(ex))
+		sys.exit(1)
+
+	try:
+		os.chmod(config['PLEXUS_SOCKET_PATH'],config['PLEXUS_SOCKET_MODE'])
+	except Exception as ex:
+		sys.stderr.write("Could not chmod socket: " + str(type(ex)) + " " + str(ex))
+		sys.exit(1)
+	
+################################################################################
 
 class PlexusDaemon(object):
 
@@ -29,14 +71,18 @@ class PlexusDaemon(object):
 
 	## PRIVATE METHODS #########################################################
 
-	def __init__(self, pyro):
+	def __init__(self, pyro, config):
+		## open syslog as plexus
 		syslog.openlog("plexus", syslog.LOG_PID)
 
 		## rename the process title
 		setproctitle("plexus")
 
-		## Load the config and drop privs
-		self._load_config(CONFIG_FILE)
+		## Store the config
+		self.config = config
+
+		## Check the config
+		self._check_config()
 
 		## Store the copy of the pyro daemon object
 		self.pyro = pyro
@@ -88,32 +134,26 @@ class PlexusDaemon(object):
 		syslog.syslog("Connection to MySQL established")
 		return self.db
 
-	def _load_config(self, filename): 
-		d = imp.new_module('config')
-		d.__file__ = filename
-		try:
-			with open(filename) as config_file:
-				exec(compile(config_file.read(), filename, 'exec'), d.__dict__)
-		except IOError as e:
-			syslog.syslog('Unable to load configuration file (%s)' % e.strerror)
-			sys.exit(1)
-		self.config = {}
-		for key in dir(d):
-			if key.isupper():
-				self.config[key] = getattr(d, key)
-
-		## ensure we have required config options
-		for wkey in ['PLEXUS_KEY', 'MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASS', 'MYSQL_NAME']:
-			if not wkey in self.config.keys():
-				print "Missing configuation option: " + wkey
-				sys.exit(1)
-
+	def _check_config(self): 
 		if 'DEBUG' in self.config.keys():
 			if self.config['DEBUG'] == True:
 				self.debug = True
-				
-		return True
 
+		# Make sure the backup root dir exists
+		if not os.path.isdir(self.config['BACKUP_ROOT_DIR']):
+			syslog.syslog('The path specified in config option BACKUP_ROOT_DIR is not a directory')
+			sys.exit(1)
+
+		# Make sure we can write to it
+		try:
+			path = os.path.join(self.config['BACKUP_ROOT_DIR'],".plexus")
+
+			with open(path, 'a'):
+				os.utime(path, None)
+		except Exception as ex:
+			syslog.syslog('Cannot write to ' + self.config['BACKUP_ROOT_DIR'] + ": " + str(type(ex)) + " " + str(ex))
+			sys.exit(1)
+		
 	## This is called on each pyro loop timeout/run to make sure defunct processes
 	## (finished tasks waiting for us to reap them) are reaped
 	def _onloop(self):

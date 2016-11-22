@@ -1,20 +1,37 @@
 #!/usr/bin/python
 
+import os
 import Pyro4
 import syslog
 import sys
 
+CONFIG_FILE = '/etc/unimatrix/zero.conf'
+
 #sys.path.append('/data/unimatrix/plexus')
 sys.path.append('/home/db2z07/projects/unimatrix/zero/')
-from plexus.PlexusDaemon import PlexusDaemon
+from plexus.Daemon import PlexusDaemon, load_config, set_socket_permissions
+from plexus.Daemon import load_config
+from plexus.Daemon import set_socket_permissions
 
 Pyro4.config.SERVERTYPE = "multiplex"
 Pyro4.config.SOCK_REUSE = True
 
-if __name__ == "__main__":
-	pyro              = Pyro4.Daemon(host='localhost',port=1888)
-	plexus            = PlexusDaemon(pyro)
+if __name__ == "__main__":	
+	## Load config
+	config = load_config(CONFIG_FILE)
+
+	## TODO: we must be root
+	if os.path.exists(config['PLEXUS_SOCKET_PATH']):
+   		os.remove(config['PLEXUS_SOCKET_PATH'])
+
+	## Create the pyro daemon and unix socket
+	pyro              = Pyro4.Daemon(unixsocket=config['PLEXUS_SOCKET_PATH'])
+
+	## Set the socket permissions up
+	set_socket_permissions(config)
+
+	plexus            = PlexusDaemon(pyro,config)
 	#pyro._pyroHmacKey = plexus.config['PLEXUS_KEY']
 	uri               = pyro.register(plexus,'plexus')
-	syslog.syslog('plexus started')
+	syslog.syslog('plexus started at ' + str(uri))
 	pyro.requestLoop(plexus._onloop)

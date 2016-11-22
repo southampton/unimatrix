@@ -51,6 +51,7 @@ LDAP_ADMIN_GROUP    = "CN=groupname,OU=localhost,DC=localdomain"
 ## BACKUP STUFF
 BACKUP_PORT_MIN = 10000
 BACKUP_PORT_MAX = 20000
+BACKUP_ROOT_DIR = "/data/backups"
 
 ## Accounts to use for SSH connections from workstations
 # the shell for either account can be whatever you like as long as it isn't
