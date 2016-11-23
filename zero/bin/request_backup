@@ -17,7 +17,7 @@ if __name__ == "__main__":
 	plexus._pyroTimeout = 5
 
 	try:
-		task_id = plexus.request_backup(sys.arvg[1])
+		task_id = plexus.request_backup(sys.argv[1])
 	except Exception as ex:
 		sys.stderr.write("An error occured whilst requesting a backup: %s - %s\n" % (str(type(ex)),str(ex)))
 		sys.exit(2)
@@ -27,9 +27,12 @@ if __name__ == "__main__":
 	while waiting_for_backup:
 		try:
 			if plexus.is_backup_running(task_id):
-				sleep(30 + random.randint(1,30))
+				time.sleep(30 + random.randint(1,30))
 			else:
 				waiting_for_backup = False
+		except Exception as ex:
+			sys.stderr.write("An error occured whilst waiting for the backup to complete: %s - %s\n" % (str(type(ex)),str(ex)))
+			sys.exit(3)
 
 	print "Backup task complete"
 
