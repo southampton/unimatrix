@@ -1,0 +1,36 @@
+#!/usr/bin/python
+
+SOCKET_PATH="/run/plexus.sock"
+
+import sys
+import Pyro4
+import time
+import random # we're not using this for security, so its fine
+
+if __name__ == "__main__":
+
+	if len(sys.argv) != 2:
+		sys.stderr.write("Invalid number of arguments\n")
+		sys.exit(1)
+
+	plexus = Pyro4.Proxy('PYRO:plexus@./u:' + SOCKET_PATH)
+	plexus._pyroTimeout = 5
+
+	try:
+		task_id = plexus.request_backup(sys.arvg[1])
+	except Exception as ex:
+		sys.stderr.write("An error occured whilst requesting a backup: %s - %s\n" % (str(type(ex)),str(ex)))
+		sys.exit(2)
+
+	waiting_for_backup = True
+
+	while waiting_for_backup:
+		try:
+			if plexus.is_backup_running(task_id):
+				sleep(30 + random.randint(1,30))
+			else:
+				waiting_for_backup = False
+
+	print "Backup task complete"
+
+	## TODO find out the status of the backup once its done???
