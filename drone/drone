@@ -2,13 +2,14 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2016-11-17-16"
+VERSION     = "2016-11-23-1"
 
 import os
 import sys
 import argparse
 import subprocess
 import ConfigParser
+import datetime
 
 ################################################################################
 
@@ -21,6 +22,11 @@ def fatal(code,message):
 def fatalex(code,message,exception):
 	sys.stderr.write("Error: " + message + " - " + str(type(ex)) + " " + str(ex) + "\n")
 	sys.exit(code)
+
+################################################################################
+
+def strtime():
+	return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 ################################################################################
 
@@ -91,14 +97,22 @@ def puppet_apply(parser,args,config):
 
 	(code, stdout, stderr) = sysexec("""%s apply --detailed-exitcodes --modulepath %s/puppet/modules/ %s/puppet/manifests/site.pp""" % (config.get('puppet','binary'),BASE_DIR,BASE_DIR),shell=True,debug=args.debug)
 
+	when = "puppet apply last ran at " + strtime() + "\n"
+
 	if code == 0:
-		if args.verbose: print "policy applied, no changes were required"
+		status = "system complies with policy, no changes were required"
+		if args.verbose: print status
 	elif code == 2:
-		if args.verbose:
-			print "policy applied, changes made to system:"
-			print stdout
+		status = "system complies with policy, changes made to system:"
+		status = status + "\n" + stdout
+		if args.verbose: print status
+
 	else:
-		fatal(4,"apply failed: \n" + stdout + "\n" + stderr)
+		status = "apply failed: \n" + stdout + "\n" + stderr
+		puppet_save_state(when + status)
+		fatal(4,status)
+
+	puppet_save_state(when + status)
 
 ################################################################################
 
@@ -115,9 +129,40 @@ def puppet(parser,args,config):
 		puppet_sync(parser,args,config)
 		puppet_apply(parser,args,config)
 
+	elif action == "status":
+		puppet_get_state(parser,args,config)
+
 	else:
 		print 'Unrecognised or missing action'
 		parser.print_help()
+
+################################################################################
+
+def puppet_save_state(status):
+	try:
+		if not os.path.exists(BASE_DIR + "/state"):
+			os.mkdir(BASE_DIR + "/state")
+	except Exception as ex:
+		sys.stderr.write("Warning! Could not create directory " + BASE_DIR + "/state - unable to save puppet status")
+
+	try:
+		with open(BASE_DIR + "/state/puppet","w") as fp:
+			fp.write(status + "\n")
+	except Exception as ex:
+		sys.stderr.write("Warning! Could not write to " + BASE_DIR + "/state/puppet - unable to save puppet status")
+
+def puppet_get_state(parser,ars,config):
+	status_file = BASE_DIR + "/state/puppet" 
+
+	if os.path.exists(status_file):
+
+		try:
+			with open(status_file,"r") as fp:
+				sys.stdout.write(fp.read())
+		except Exception as ex:
+			fatalex(5,"Could not read from puppet status file " + status_file,ex)
+	else:
+		print "puppet apply has never been run on this system"
 
 ################################################################################
 

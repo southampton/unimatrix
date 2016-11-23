@@ -25,6 +25,19 @@ class BackupTask(object):
 		syslog.syslog('task id ' + str(self.task_id) + ' marked as finished')
 		sys.exit(0)
 
+	def sysexec(self,command,shell=False):
+		try:
+			proc = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=shell)
+			(stdoutdata, stderrdata) = proc.communicate()
+			if stdoutdata is None:
+				stdoutdata = ""
+			if stderrdata is None:
+				stderrdata = ""
+
+			return (proc.returncode,str(stdoutdata),str(stderrdata))
+		except Exception as ex:
+			return (1,"",str(type(ex)) + " " + str(ex))
+
 	def run(self):
 
 		syslog.syslog('backup-task ' + str(self.task_id) + " starting")
@@ -40,8 +53,26 @@ class BackupTask(object):
 		setproctitle("plexus-backup ID " + str(self.task_id) + " for " + self.system['name'])
 
 		try:
-			## 1. make sure the parent directory exists
-			## 2. get the backup port from the DB
+			sysdir = os.path.join(self.config['BACKUP_ROOT_DIR'],system['name'])
+			if not os.path.exists(sysdir):
+				os.mkdir(sysdir)
+
+			sysbackupsdir = os.path.join(sysdir,'backups')
+			if not os.path.exists(sysbackupsdir):
+				os.mkdir(sysbackupsdir)
+
+			self.curd.execute("SELECT * FROM `systems_backup_ports` WHERE `sid` = %s",(self.system['id'],))
+			result = self.curd.fetchone()
+
+			if result is None:
+				raise Exception("No backup port assigned to the chosen system!")
+
+			backup_port = result['port']
+
+			#(code, stdout, stderr) = sysexec("""/usr/bin/rsync -av --delete rsync://%s@%s: %s/puppet/""" % (BASE_DIR, config.get('puppet','user'),config.get('puppet','server'),BASE_DIR),shell=True,debug=args.debug)
+
+			## run rsync
+
 			## 3. run rsync
 			## 4. save backup log
 			## 5. update status
