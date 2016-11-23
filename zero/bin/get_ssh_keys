@@ -74,10 +74,10 @@ if __name__ == "__main__":
 		curd = db.cursor(mysql.cursors.DictCursor)
 
 		# Pull down all ssh public keys
-		curd.execute('SELECT `id, `name`, `ssh_public_key` FROM `systems` WHERE `ssh_public_key` IS NOT NULL')
+		curd.execute('SELECT `id`, `name`, `ssh_public_key` FROM `systems` WHERE `ssh_public_key` IS NOT NULL')
 		systems = curd.fetchall()
 	except Exception as ex:
-		sys.stderr.write('Error when communicating with the database: ' + str(type(e)) + " " + str(e) + "\n")
+		sys.stderr.write('Error when communicating with the database: ' + str(type(ex)) + " " + str(ex) + "\n")
 		sys.exit(4)
 
 	for system in systems:
