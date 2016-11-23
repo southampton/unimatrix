@@ -170,6 +170,7 @@ def puppet(parser,args,config):
 
 def backup_now(parser,args,config):
 	pass
+
 ################################################################################
 
 def backup(parser,args,config):

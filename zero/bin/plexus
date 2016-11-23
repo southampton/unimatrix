@@ -7,7 +7,7 @@ import sys
 
 CONFIG_FILE = '/etc/unimatrix/zero.conf'
 
-#sys.path.append('/data/unimatrix/plexus')
+sys.path.append('/data/unimatrix/zero')
 sys.path.append('/home/db2z07/projects/unimatrix/zero/')
 from plexus.Daemon import PlexusDaemon, load_config, set_socket_permissions
 from plexus.Daemon import load_config
