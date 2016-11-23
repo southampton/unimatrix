@@ -84,5 +84,5 @@ if __name__ == "__main__":
 		if username == config['SSH_USERNAME_PUPPET']:
 			print """command="/bin/rrsync -ro puppet",no-agent-forwarding,no-port-forwarding,no-user-rc,no-X11-forwarding %s""" % (system['ssh_public_key'],)
 		elif username == config['SSH_USERNAME_BACKUP']:
-			print """command="/bin/zero-backup %s",no-agent-forwarding,no-X11-forwarding,no-user-rc %s""" % (system['name'],system['ssh_public_key'],)
+			print """command="/bin/request-backup %s",no-agent-forwarding,no-X11-forwarding,no-user-rc,environment="SYSID=%s" %s""" % (system['name'],system['sid'],system['ssh_public_key'],)
 
