@@ -53,7 +53,7 @@ class BackupTask(object):
 		setproctitle("plexus-backup ID " + str(self.task_id) + " for " + self.system['name'])
 
 		try:
-			sysdir = os.path.join(self.config['BACKUP_ROOT_DIR'],system['name'])
+			sysdir = os.path.join(self.config['BACKUP_ROOT_DIR'],self.system['name'])
 			if not os.path.exists(sysdir):
 				os.mkdir(sysdir)
 
