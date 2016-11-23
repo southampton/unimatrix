@@ -59,3 +59,9 @@ BACKUP_ROOT_DIR = "/data/backups"
 # restrictions prevent anything but rsync or the backup command.
 SSH_USERNAME_BACKUP = "backup" 
 SSH_USERNAME_PUPPET = "pull" # probably not a good idea to use 'puppet' account
+
+## Plexus backup daemon
+PLEXUS_SOCKET_PATH="/run/plexus.sock"
+PLEXUS_SOCKET_MODE=0770
+PLEXUS_SOCKET_UID=0
+PLEXUS_SOCKET_GID=0

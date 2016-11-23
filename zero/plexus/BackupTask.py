@@ -82,6 +82,7 @@ class BackupTask(object):
 			syslog.syslog('fake backup finished')
 			self._end_task()
 		except Exception as ex:
+			syslog.syslog('backup task ' + str(self.task_id) + " failed: " + str(type(ex)) + " " + str(ex))
 			self._end_task(success=False)
 
 	def db_connect(self):
