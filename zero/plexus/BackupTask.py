@@ -69,7 +69,7 @@ class BackupTask(object):
 
 			backup_port = result['port']
 
-			(code, stdout, stderr) = sysexec("""/usr/bin/rsync -av --delete rsync://backup@localhost:%s/home/ %s/home/""" % (backup_port,sysbackupsdir,),shell=True,debug=args.debug)
+			(code, stdout, stderr) = self.sysexec("""/usr/bin/rsync -av --delete rsync://backup@localhost:%s/home/ %s/home/""" % (backup_port,sysbackupsdir,),shell=True)
 
 			if code == 0:
 				syslog.syslog('backup success')
