@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2016-11-29-1"
+VERSION     = "2016-11-29-2"
 
 import os
 import sys
@@ -68,7 +68,7 @@ def sysexec(command,shell=False,debug=False):
 			print "Executing command " + str(command)
 
 	try:
-		proc = subprocess.Popen(command,6=subprocess.PIPE, stderr=subprocess.STDOUT,shell=shell)
+		proc = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=shell)
 		(stdoutdata, stderrdata) = proc.communicate()
 		if stdoutdata is None:
 			stdoutdata = ""
