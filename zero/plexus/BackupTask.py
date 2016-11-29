@@ -112,6 +112,8 @@ class BackupTask(object):
 		# 1 = partial transfer
 		# 2 = failed, rsync command failed
 		# 3 = failed, python exception
-
-		self.curd.execute("UPDATE `tasks` SET `status` = %s, `end` = NOW(), `result` = %s WHERE `id` = %s", (status, result, self.task_id))
-		self.db.commit()
+		try:
+			self.curd.execute("UPDATE `tasks` SET `status` = %s, `end` = NOW(), `result` = %s WHERE `id` = %s", (status, result, self.task_id))
+			self.db.commit()
+		except Exception as ex:
+			syslog.syslog('backup task ' + str(self.task_id) + " could not mark itself finished: " + str(type(ex)) + " " + str(ex))			
