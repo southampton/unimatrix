@@ -10,6 +10,7 @@ import sys
 import requests
 import json
 import time
+import subprocess
 from setproctitle import setproctitle #pip install setproctitle
 
 class BackupTask(object):
