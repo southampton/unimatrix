@@ -69,17 +69,16 @@ class BackupTask(object):
 
 			backup_port = result['port']
 
-			#(code, stdout, stderr) = sysexec("""/usr/bin/rsync -av --delete rsync://%s@%s: %s/puppet/""" % (BASE_DIR, config.get('puppet','user'),config.get('puppet','server'),BASE_DIR),shell=True,debug=args.debug)
+			(code, stdout, stderr) = sysexec("""/usr/bin/rsync -av --delete rsync://backup@localhost:%s/home/ %s/home/""" % (backup_port,sysbackupsdir,),shell=True,debug=args.debug)
 
-			## run rsync
+			if code == 0:
+				syslog.syslog('backup success')
+			else:
+				syslog.syslog('backup failed :(')
 
-			## 3. run rsync
-			## 4. save backup log
+			## TODO save backup log
 			## 5. update status
 
-
-			time.sleep(60)
-			syslog.syslog('fake backup finished')
 			self._end_task()
 		except Exception as ex:
 			syslog.syslog('backup task ' + str(self.task_id) + " failed: " + str(type(ex)) + " " + str(ex))
