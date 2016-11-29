@@ -26,9 +26,13 @@ class BackupTask(object):
 		syslog.syslog('task id ' + str(self.task_id) + ' marked as finished')
 		sys.exit(0)
 
-	def sysexec(self,command,shell=False):
+	def sysexec(self,command,shell=False,env={}):
 		try:
-			proc = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=shell)
+			procenv = os.environ.copy()
+			for key, value in env.iteritems():
+				procenv[key] = value
+
+			proc = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=shell,env=procenv)
 			(stdoutdata, stderrdata) = proc.communicate()
 			if stdoutdata is None:
 				stdoutdata = ""
@@ -72,7 +76,8 @@ class BackupTask(object):
 
 			backup_port = result['port']
 
-			(code, output) = self.sysexec("""/usr/bin/rsync -av --delete rsync://backup@localhost:%s/home/ %s""" % (backup_port,os.path.join(sysbackupsdir,"home"),),shell=True)
+			procenv = {'RSYNC_PASSWORD': self.system['backup_key']}
+			(code, output) = self.sysexec("""/usr/bin/rsync -av --delete rsync://backup@localhost:%s/home/ %s""" % (backup_port,os.path.join(sysbackupsdir,"home"),),shell=True,env=procenv)
 
 			if code == 0:
 				syslog.syslog('backup success')
