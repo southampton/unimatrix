@@ -214,16 +214,14 @@ class PlexusDaemon(object):
 	@Pyro4.expose
 	def is_backup_running(self,task_id):
 		curd = self._get_cursor()
-
-		## Check name is valid in database
 		curd.execute("SELECT * FROM `tasks` WHERE `id` = %s", (task_id,))
 		task = curd.fetchone()
 
 		if task is None:
 			raise Exception("No such backup task was found")	
 
-		# If the task has been marked in the DB, then no it finished
-		if task['status'] != 0:
+		# If the task has been marked in the DB, then no, it finished
+		if task['status'] != -1:
 			return False
 
 		## Check the task is actually still running still
@@ -233,3 +231,17 @@ class PlexusDaemon(object):
 				return True
 		
 		return False
+
+	@Pyro4.expose
+	def get_task_status(self,task_id):
+		curd = self._get_cursor()
+		curd.execute("SELECT * FROM `tasks` WHERE `id` = %s", (task_id,))
+		task = curd.fetchone()
+
+		if task is None:
+			raise Exception("No such backup task was found")	
+
+		if task['status'] == -1:
+			raise Exception("That task has not yet finished")
+
+		return task['status']

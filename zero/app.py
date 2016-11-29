@@ -283,7 +283,7 @@ Username:             %s
 		  `name` varchar(255) NOT NULL,
 		  `start` datetime NOT NULL,
 		  `end` datetime DEFAULT NULL,
-		  `status` tinyint(4) NOT NULL DEFAULT '0',
+		  `status` tinyint(4) NOT NULL DEFAULT '-1',
           `result` TEXT,
 		  PRIMARY KEY (`id`),
 		  CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`sid`) REFERENCES `systems` (`id`) ON DELETE CASCADE

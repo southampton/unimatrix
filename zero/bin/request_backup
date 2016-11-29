@@ -20,20 +20,29 @@ if __name__ == "__main__":
 		task_id = plexus.request_backup(sys.argv[1])
 	except Exception as ex:
 		sys.stderr.write("An error occured whilst requesting a backup: %s - %s\n" % (str(type(ex)),str(ex)))
-		sys.exit(2)
+		sys.exit(100)
 
 	waiting_for_backup = True
 
 	while waiting_for_backup:
 		try:
 			if plexus.is_backup_running(task_id):
-				time.sleep(30 + random.randint(1,30))
+				time.sleep(10 + random.randint(1,10))
 			else:
 				waiting_for_backup = False
 		except Exception as ex:
 			sys.stderr.write("An error occured whilst waiting for the backup to complete: %s - %s\n" % (str(type(ex)),str(ex)))
-			sys.exit(3)
+			sys.exit(101)
 
-	print "Backup task complete"
+	try:
+		status = plexus.get_task_status(task_id)
+	except Exception as ex:
+		sys.stderr.write("An error occured whilst determining the result of the backup: %s - %s\n" % (str(type(ex)),str(ex)))
+		sys.exit(102)
 
-	## TODO find out the status of the backup once its done???
+	## exit with the task status code as teh return code
+	# 0 = success
+	# 1 = partial transfer
+	# 2 = failed, rsync command failed
+	# 3 = failed, python exception
+	sys.exit(status)
