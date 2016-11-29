@@ -43,17 +43,20 @@ class BackupTask(object):
 
 	def run(self):
 
-		syslog.syslog('backup-task ' + str(self.task_id) + " starting")
+		syslog.syslog('backup-task ' + str(self.task_id) + " starting for system " + self.system['name'])
 
-		## Set up signal handlers to mark the task as error'ed
-		signal.signal(signal.SIGTERM, self._signal_handler)
-		signal.signal(signal.SIGINT, self._signal_handler)
+		try:
+			## Set up signal handlers to mark the task as error'ed
+			signal.signal(signal.SIGTERM, self._signal_handler)
+			signal.signal(signal.SIGINT, self._signal_handler)
 
-		self.db   = self.db_connect()
-		self.curd = self.db.cursor(mysql.cursors.DictCursor)
+			self.db   = self.db_connect()
+			self.curd = self.db.cursor(mysql.cursors.DictCursor)
 
-		## Set the process name
-		setproctitle("plexus-backup ID " + str(self.task_id) + " for " + self.system['name'])
+			## Set the process name
+			setproctitle("plexus-backup ID " + str(self.task_id) + " for " + self.system['name'])
+		except Exception as ex:
+			syslog.syslog('backup task ' + str(self.task_id) + " could not start due to an internal error: " + str(type(ex)) + " " + str(ex))
 
 		try:
 			sysdir = os.path.join(self.config['BACKUP_ROOT_DIR'],self.system['name'])
@@ -79,29 +82,36 @@ class BackupTask(object):
 			procenv = {'RSYNC_PASSWORD': self.system['backup_key']}
 			(code, output) = self.sysexec("""/usr/bin/rsync -av --delete rsync://backup@localhost:%s/home/ %s""" % (backup_port,os.path.join(sysbackupsdir,"home"),),shell=True,env=procenv)
 
+			try:
+				with open(os.path.join(logdir,"rsync.log"),"w") as fp:
+					fp.write(output)
+			except Exception as ex:
+				syslog.syslog('WARN: Could not write to ' + os.path.join(logdir,"rsync.log") + ": " + str(ex))
+
 			if code == 0:
-				syslog.syslog('backup success')
+				state = 1
+				result = "backup complete"
+			elif code == 23 or code == 24:
+				state = 2
+				result = "partial backup, some files could not be backed up"
 			else:
-				syslog.syslog('backup failed :(')
+				state = 3
+				result = "backup failed"
 
-			with open(os.path.join(logdir,"rsync.log"),"w") as fp:
-				fp.write(output)
-
-			## 5. update status
-
-			self._end_task()
+			syslog.syslog('backup-task ' + str(self.task_id) + " finished for " + self.system['name'] + " result: " + result)
+			self._end_task(state=state,result=result)
 		except Exception as ex:
-			syslog.syslog('backup task ' + str(self.task_id) + " failed: " + str(type(ex)) + " " + str(ex))
-			self._end_task(success=False)
+			syslog.syslog('backup task ' + str(self.task_id) + " failed due to an internal error: " + str(type(ex)) + " " + str(ex))
+			self._end_task(state=4,result="Internal error: " + str(type(ex)) + " " + str(ex))
 
 	def db_connect(self):
 		return mysql.connect(self.config['MYSQL_HOST'], self.config['MYSQL_USER'], self.config['MYSQL_PASS'], self.config['MYSQL_NAME'], charset='utf8')
 
-	def _end_task(self, success=True):
-		if success:
-			status = 1
-		else:
-			status = 2
+	def _end_task(self, status, result="Unknown"):
+		# 1 = success
+		# 2 = partial transfer
+		# 3 = failed, rsync command failed
+		# 4 = failed, python exception
 
-		self.curd.execute("UPDATE `tasks` SET `status` = %s, `end` = NOW() WHERE `id` = %s", (status, self.task_id))
+		self.curd.execute("UPDATE `tasks` SET `status` = %s, `end` = NOW(), `result` = %s WHERE `id` = %s", (status, result, self.task_id))
 		self.db.commit()
