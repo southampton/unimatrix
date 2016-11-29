@@ -89,20 +89,20 @@ class BackupTask(object):
 				syslog.syslog('WARN: Could not write to ' + os.path.join(logdir,"rsync.log") + ": " + str(ex))
 
 			if code == 0:
-				state = 0
+				status = 0
 				result = "backup complete"
 			elif code == 23 or code == 24:
-				state = 1
+				status = 1
 				result = "partial backup, some files could not be backed up"
 			else:
-				state = 2
+				status = 2
 				result = "backup failed"
 
 			syslog.syslog('backup-task ' + str(self.task_id) + " finished for " + self.system['name'] + " result: " + result)
-			self._end_task(state=state,result=result)
+			self._end_task(status=status,result=result)
 		except Exception as ex:
 			syslog.syslog('backup task ' + str(self.task_id) + " failed due to an internal error: " + str(type(ex)) + " " + str(ex))
-			self._end_task(state=3,result="Internal error: " + str(type(ex)) + " " + str(ex))
+			self._end_task(status=3,result="Internal error: " + str(type(ex)) + " " + str(ex))
 
 	def db_connect(self):
 		return mysql.connect(self.config['MYSQL_HOST'], self.config['MYSQL_USER'], self.config['MYSQL_PASS'], self.config['MYSQL_NAME'], charset='utf8')
