@@ -31,10 +31,8 @@ class BackupTask(object):
 			(stdoutdata, stderrdata) = proc.communicate()
 			if stdoutdata is None:
 				stdoutdata = ""
-			if stderrdata is None:
-				stderrdata = ""
 
-			return (proc.returncode,str(stdoutdata),str(stderrdata))
+			return (proc.returncode,str(stdoutdata))
 		except Exception as ex:
 			return (1,"",str(type(ex)) + " " + str(ex))
 
@@ -61,6 +59,10 @@ class BackupTask(object):
 			if not os.path.exists(sysbackupsdir):
 				os.mkdir(sysbackupsdir)
 
+			logdir = os.path.join(sysdir,'logs')
+			if not os.path.exists(logdir):
+				os.mkdir(logdir)
+
 			self.curd.execute("SELECT * FROM `systems_backup_ports` WHERE `sid` = %s",(self.system['id'],))
 			result = self.curd.fetchone()
 
@@ -69,14 +71,16 @@ class BackupTask(object):
 
 			backup_port = result['port']
 
-			(code, stdout, stderr) = self.sysexec("""/usr/bin/rsync -av --delete rsync://backup@localhost:%s/home/ %s/home/""" % (backup_port,sysbackupsdir,),shell=True)
+			(code, output) = self.sysexec("""/usr/bin/rsync -av --delete rsync://backup@localhost:%s/home/ %s""" % (backup_port,os.path.join(sysbackupsdir,"home"),),shell=True)
 
 			if code == 0:
 				syslog.syslog('backup success')
 			else:
 				syslog.syslog('backup failed :(')
 
-			## TODO save backup log
+			with open(os.path.join(logdir,"rsync.log"),"w") as fp:
+				fp.write(output)
+
 			## 5. update status
 
 			self._end_task()
