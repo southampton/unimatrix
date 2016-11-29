@@ -34,7 +34,7 @@ class BackupTask(object):
 
 			return (proc.returncode,str(stdoutdata))
 		except Exception as ex:
-			return (1,"",str(type(ex)) + " " + str(ex))
+			return (1,str(type(ex)) + " " + str(ex))
 
 	def run(self):
 
