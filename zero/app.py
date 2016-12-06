@@ -254,6 +254,7 @@ Username:             %s
 		  `last_seen_date` datetime DEFAULT NULL,
           `ssh_public_key` TEXT,
           `backup_key` varchar(128),
+          `api_key` varchar(128),
 		  PRIMARY KEY (`id`),
 		  KEY `name` (`name`(255))
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")

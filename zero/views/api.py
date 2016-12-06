@@ -6,12 +6,9 @@ from zero.lib.systems import register_system_backup_port, get_system_backup_port
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import MySQLdb as mysql
 import re
-
-####
 from paramiko import RSAKey
-####
 import StringIO
-####
+import bcrypt
 
 ################################################################################
 
@@ -73,8 +70,16 @@ def api_register():
 		app.logger.debug("api_register: failed to generate ssh public/private keypair: " + str(type(ex)) + " - " + str(ex))
 		return jsonify({'error': True, 'reason': "The server was unable to generate a ssh keypair"})		
 
-	## Generate a secret key (64 bytes = 128 characters)
+	## Generate a secret key for backups (64 bytes = 128 characters)
 	backup_key = app.token(64)
+
+	## Generate a secret key for API calls (32 bytes = 64 characters - we
+	## will bcrypt encrypt the key and bcrypt only supports passwords up to 72
+	## characters long :(
+	api_key = app.token(32)
+	
+	## bcrypt encrypt the api_key for storage in the database
+	enc_api_key = bcrypt.hashpw(api_key, bcrypt.gensalt())
 
 	## Check if the system already exists in the database
 	curd = g.db.cursor(mysql.cursors.DictCursor)
@@ -84,7 +89,7 @@ def api_register():
 	if sysid is None:
 		## System does not exist, create a new one
 		try:
-			curd.execute("INSERT INTO `systems` (`name`, `create_date`, `register_date`, `last_seen_date`, `ssh_public_key`, `backup_key`) VALUES (%s, NOW(), NOW(), NOW(), %s, %s)", (hostname, public_key_str, backup_key,))
+			curd.execute("INSERT INTO `systems` (`name`, `create_date`, `register_date`, `last_seen_date`, `ssh_public_key`, `backup_key`, `api_key`) VALUES (%s, NOW(), NOW(), NOW(), %s, %s, %s)", (hostname, public_key_str, backup_key, enc_api_key,))
 			g.db.commit()
 		except Exception as ex:
 			app.logger.debug("api_register: failed to create system record " + str(type(ex)) + " - " + str(ex))
@@ -118,4 +123,4 @@ def api_register():
 			app.logger.info("api_register: Reusing existing allocated backup port number for " + hostname)
 
 	app.logger.info("api_register: registration complete for " + hostname + " using account " + username)
-	return jsonify({'private_key': private_key_str, 'public_key': public_key_str, 'backup_key': backup_key, 'backup_port': backup_port})
+	return jsonify({'private_key': private_key_str, 'public_key': public_key_str, 'backup_key': backup_key, 'backup_port': backup_port, 'api_key': api_key})
