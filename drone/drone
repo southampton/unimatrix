@@ -10,6 +10,10 @@ import argparse
 import subprocess
 import ConfigParser
 import datetime
+import requests
+import re
+import platform
+import getpass
 
 ################################################################################
 
@@ -20,8 +24,9 @@ def fatal(code,message):
 ################################################################################
 
 def fatalex(code,message,exception):
-	sys.stderr.write("Error: " + message + " - " + str(type(ex)) + " " + str(ex) + "\n")
+	sys.stderr.write("Error: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
 	sys.exit(code)
+
 
 ################################################################################
 
@@ -176,8 +181,6 @@ def puppet(parser,args,config):
 ################################################################################
 
 def backup_now(parser,args,config):
-	#ssh backup@play01020.soton.ac.uk -i /etc/soton/ssh_private_key -R 10000:localhost:873 -o "ExitOnForwardFailure yes"
-
 	if args.verbose: print "starting backup (this may take several minutes)"
 
 	(code, output) = sysexec("""%s %s@%s -i %s/ssh_private_key -o "ExitOnForwardFailure yes" -R %s:localhost:%s """ % (config.get('ssh','binary'), config.get('backup','user'), config.get('backup','server'), BASE_DIR, config.get('backup','port'),config.get('backup','rsyncd_port'),),shell=True,debug=args.debug)
@@ -255,6 +258,154 @@ def update(parser,args,config):
 
 ################################################################################
 
+def system_register(parser,args,config):
+
+	## work out OS version
+	(distname, distversion, distid) = platform.linux_distribution()
+
+	if distid == 'Maipo':
+		ident = 'rhel7'
+		if args.verbose: print "Detected operating system as RHEL/CentOS 7: " + distname + " " + distversion + " " + distid
+	else:
+		fatal(7,"Your operating system is not supported. Detected as: " + distname + " " + distversion + " " + distid)
+		return False
+
+	## Now get the hostname
+	register_hostname = platform.node()
+	if args.verbose: print "Detected hostname as " + register_hostname
+
+	if not re.match(r"^(uos|iss|lnx|UOS|ISS|LNX)\-[0-9]{2,8}$",register_hostname):
+		fatal(8,"The hostname of this machine is invalid. It must be of the form uos-<number>")
+
+	register_username = raw_input("Username: ")
+	register_password = getpass.getpass()
+
+	register_url = config.get('server','address')
+
+	# Ensure trailing slash on the server register URL
+	if not register_url.endswith("/"):
+		register_url = register_url + "/"
+
+	register_url = register_url + "api/v1/register"
+
+	if args.debug: 
+		if config.getboolean('server','verify'):
+			print "SSL certificate verification enabled"
+		else:
+			print "SSL certificate verification disabled"
+
+	if args.verbose: print "Registering with API endpoint " + register_url
+
+	try:
+		payload = {'ident': ident, 'hostname': register_hostname, 'username': register_username, 'password': register_password}
+		r = requests.post(register_url, data=payload, verify = config.getboolean('server','verify'))
+	except Exception as ex:
+		fatalex(8,"Unable to contact registration server",ex)
+
+	if args.debug: print "return code " + str(r.status_code)
+
+	if r.status_code == 200:
+		try:
+			json = r.json()
+
+			if 'error' in json:
+				fatal(10,"registration server returned an error: " + json['reason'])
+
+			else:
+				if args.verbose: print "Registration server accepted our request"
+
+		except Exception as ex:
+			fatalex(11,"failed to parse reponse from registration server",ex)
+
+	else:
+		fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+
+	# Save the SSH public key
+	if args.debug: print "Saving SSH public key to " + BASE_DIR + "/ssh_public_key"
+	try:
+		with open(BASE_DIR + '/ssh_public_key', 'w') as f:
+			f.write(json['public_key'])
+			f.write("\n")
+	except Exception as ex:
+		fatalex(13,"Failed to write to " + BASE_DIR + "/ssh_public_key",ex)
+
+	if args.verbose: print "Saved SSH public key to " + BASE_DIR + "/ssh_public_key"
+
+	# Save the SSH private key
+	if args.debug: print "Saving SSH private key to " + BASE_DIR + "/ssh_private_key"
+	try:
+		with open(BASE_DIR + '/ssh_private_key', 'w') as f:
+			f.write(json['private_key'])
+	except Exception as ex:
+		fatalex(14,"Failed to write to " + BASE_DIR + "/ssh_private_key",ex)
+
+	if args.verbose: print "Saved SSH private key to " + BASE_DIR + "/ssh_private_key"
+
+	# Set perms on the key
+	if args.debug: print "Setting permissions on " + BASE_DIR + "/ssh_private_key"
+	try:
+		os.chmod(BASE_DIR + '/ssh_private_key', 0600)
+	except Exception as ex:
+		fatalex(15,"Failed to set the permissions of " + BASE_DIR + "/ssh_private_key",ex)
+
+	if args.verbose: print "Set permissions on " + BASE_DIR + "/ssh_private_key"
+
+	# Save the backup key (for rsyncd)
+	if args.debug: print "Saving the backup key to " + BASE_DIR + "/backup_key"
+	try:
+		with open(BASE_DIR + '/backup_key', 'w') as f:
+			f.write("backup:" + json['backup_key'] + "\n")
+	except Exception as ex:
+		fatalex(16,"Failed to write to " + BASE_DIR + "/backup_key",ex)
+
+	if args.verbose: print "Saved backup key to " + BASE_DIR + "/backup_key"
+
+	# Set perms on the key
+	if args.debug: print "Setting permissions on " + BASE_DIR + "/backup_key"
+	try:
+		os.chmod(BASE_DIR + '/backup_key', 0600)
+
+	except Exception as ex:
+		fatalex(17,"Failed to set the permissions of " + BASE_DIR + "/backup_key",ex)
+
+	if args.verbose: print "Set permissions on " + BASE_DIR + "/backup_key"
+
+	## Merge the new settings into the existing config
+	config.set('backup','port',json['backup_port'])
+	config.set('server','api_key',json['api_key'])
+
+	if args.debug: print "Saving changes to the drone config file " + BASE_DIR + "/drone.conf"
+	try:
+		with open(BASE_DIR + '/drone.conf', 'w') as f:
+			config.write(f)
+	except Exception as ex:
+		fatalex(18,"Failed to write to " + BASE_DIR + "/drone.conf",ex)
+
+	if args.verbose: print "Saved drone configuration to " + BASE_DIR + "/drone.conf"
+
+	# Set perms on the drone config
+	if args.debug: print "Setting permissions on " + BASE_DIR + "/drone.conf"
+	try:
+		os.chmod(BASE_DIR + '/drone.conf', 0600)
+	except Exception as ex:
+		fatalex(19,"Failed to set the permissions of " + BASE_DIR + "/drone.conf",ex)
+
+	print "Registration completed successfully"
+
+################################################################################
+
+def system(parser,args,config):
+	action = args.action
+
+	if action == 'register':
+		system_register(parser,args,config)
+	else:
+		print 'Unrecognised or missing action'
+		parser.print_help()
+	pass
+
+################################################################################
+
 def version(parser,args,config):
 	print "drone agent v" + VERSION
 
@@ -263,8 +414,7 @@ def version(parser,args,config):
 def main():
 	## We must be root
 	if not os.geteuid() == 0:
-		sys.stderr.write("Error: You must be root to run that command\n")
-		sys.exit(1)
+		fatal(1,"You must be root to run this command")
 
 	## Load the config
 	config = get_config()
