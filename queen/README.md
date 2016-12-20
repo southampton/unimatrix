@@ -1,2 +1,2 @@
-# unixmatrix-queen
-python tray application used for user interactions / notifications / etc.
+# unimatrix-queen
+client-side web application and daemon for managing the local machine

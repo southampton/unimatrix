@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+{% block body %}
+<h1>☹ {{title}}</h1>
+<p>
+	{{ message }}
+</p>
+{% if debug %}
+<pre>{{ debug }}</pre>
+{% endif %}
+{% endblock %}
