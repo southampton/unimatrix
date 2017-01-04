@@ -1,0 +1,29 @@
+#!/usr/bin/python
+
+import os
+import Pyro4
+import sys
+
+sys.path.append('/usr/lib/unimatrix/queen')
+sys.path.append('/home/db2z07/projects/unimatrix/queen/')
+from vinculum.Daemon import VinculumDaemon, set_socket_permissions
+
+Pyro4.config.SERVERTYPE = "multiplex"
+Pyro4.config.SOCK_REUSE = True
+
+if __name__ == "__main__":
+	socket_path = "/run/vinculum.sock"
+	## TODO: we must be root
+
+	if os.path.exists(socket_path):
+   		os.remove(socket_path)
+
+	## Create the pyro daemon and unix socket
+	pyro              = Pyro4.Daemon(unixsocket=socket_path)
+
+	## Set the socket permissions up
+	set_socket_permissions(socket_path)
+
+	vinc = VinculumDaemon(pyro)
+	uri  = pyro.register(vinc,'vinculum')
+	pyro.requestLoop()
