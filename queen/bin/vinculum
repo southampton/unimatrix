@@ -26,4 +26,4 @@ if __name__ == "__main__":
 
 	vinc = VinculumDaemon(pyro)
 	uri  = pyro.register(vinc,'vinculum')
-	pyro.requestLoop()
+	pyro.requestLoop(vinc._onloop)
