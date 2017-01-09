@@ -113,40 +113,69 @@ class VinculumDaemon(object):
 			task = q.get(block=True)
 			syslog.syslog("package task obtained")
 
-			if task['task'] == 'pkgInstall' or task['task'] == "pkgRemove":
-				pkg_names = task['data']
+			taskid = task['task']
+			if taskid in ['pkgInstall', 'pkgRemove', 'pkgGroupInstall', 'pkgGroupRemove']:
+				items = task['data']
 
 				try:
 					yb=yum.YumBase()
 					yb.conf.cache = 0
 
 					transaction = False
-					for pkg in pkg_names:
+					for item in items:
 
-						## support the format name.arch
-						arch=None
-						if pkg.endswith(".i686"):
-							pkg = pkg[:-5]
-							arch = "i686"
-						elif pkg.endswith(".x86_64"):
-							pkg = pkg[:-7]
-							arch = "x86_64"
-						elif pkg.endswith(".noarch"):
-							pkg = pkg[:-7]
-							arch = "noarch"
+						if taskid in ['pkgInstall', 'pkgRemove']:
+							## support the format name.arch
+							arch=None
+							if item.endswith(".i686"):
+								item = item[:-5]
+								arch = "i686"
+							elif pkg.endswith(".x86_64"):
+								item = item[:-7]
+								arch = "x86_64"
+							elif item.endswith(".noarch"):
+								item = item[:-7]
+								arch = "noarch"
 
-						if task['task'] == 'pkgInstall':
-							res = yb.install(name=pkg,arch=arch,silence_warnings=True)
-						elif task['task'] == 'pkgRemove':
-							res = yb.remove(name=pkg,arch=arch,silence_warnings=True)
+						if taskid == 'pkgInstall':
+							try:
+								res = yb.install(name=item,arch=arch,silence_warnings=True)
+							except Exception as ex:
+								syslog.syslog("Could not install " + item + ": " + str(ex))
+								continue
+
+						elif taskid == 'pkgRemove':
+							try:
+								res = yb.remove(name=item,arch=arch,silence_warnings=True)
+							except Exception as ex:
+								syslog.syslog("Could not remove " + item + ": " + str(ex))
+								continue
+
+						elif taskid == 'pkgGroupInstall':
+							try:
+								res = yb.selectGroup(grpid=item)
+							except Exception as ex:
+								syslog.syslog("Could not install group " + item + ": " + str(ex))
+								continue
+
+						elif taskid == 'pkgGroupRemove':
+							try:
+								res = yb.groupRemove(grpid=item)
+							except Exception as ex:
+								syslog.syslog("Could not remove group " + item + ": " + str(ex))
+								continue
 
 						if len(res) > 0:
 							transaction = True
 						else:
 							if task['task'] == 'pkgInstall':
-								syslog.syslog("Could not install " + pkg)
+								syslog.syslog("Could not install " + item)
 							elif task['task'] == 'pkgRemove':
-								syslog.syslog("Could not remove " + pkg)
+								syslog.syslog("Could not remove " + item)
+							elif task['task'] == 'pkgGroupInstall':
+								syslog.syslog("Could not install group " + item)
+							elif task['task'] == 'pkgGroupRemove':
+								syslog.syslog("Could not remove group " + item)
 
 					if transaction:
 						syslog.syslog("running transaction check")
@@ -161,7 +190,7 @@ class VinculumDaemon(object):
 					yb.close()
 
 				except Exception as ex:
-					syslog.syslog("Error during package install: " + str(type(ex)) + " " + str(ex))			
+					syslog.syslog("Error during yum transaction: " + str(type(ex)) + " " + str(ex))			
 					traceback.print_exc()
 					yb.closeRpmDB()
 					yb.close()
@@ -179,19 +208,32 @@ class VinculumDaemon(object):
 
 	@Pyro4.expose
 	def pkgInstall(self,pkg_names):
+		if not isinstance(pkg_names, (list, tuple)):
+			raise ValueError("pkg_names must be a list or tuple")
+
 		self.pkgTaskQueue.put({'task': 'pkgInstall', 'data': pkg_names})
 		syslog.syslog("added package install task to queue")
 
 	@Pyro4.expose
 	def pkgRemove(self,pkg_names):
+		if not isinstance(pkg_names, (list, tuple)):
+			raise ValueError("pkg_names must be a list or tuple")
+
 		self.pkgTaskQueue.put({'task': 'pkgRemove', 'data': pkg_names})
 		syslog.syslog("added package remove task to queue")
 
 	@Pyro4.expose
 	def pkgGroupInstall(self,grp_names):
+		if not isinstance(grp_names, (list, tuple)):
+			raise ValueError("grp_names must be a list or tuple")
+
 		self.pkgTaskQueue.put({'task': 'pkgGroupInstall', 'data': grp_names})
 
+	@Pyro4.expose
 	def pkgGroupRemove(self,grp_names):
+		if not isinstance(grp_names, (list, tuple)):
+			raise ValueError("grp_names must be a list or tuple")
+
 		self.pkgTaskQueue.put({'task': 'pkgGroupRemove', 'data': grp_names})
 
 	@Pyro4.expose

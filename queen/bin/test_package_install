@@ -3,5 +3,6 @@
 import Pyro4
 
 vinc = Pyro4.Proxy('PYRO:vinculum@./u:' + "/run/vinculum.sock")
-vinc.pkgInstall(["inkscape","saidar","libstatgrab","fftw.x86_64","netcdf","fftw.i686"])
+#vinc.pkgInstall(["inkscape","saidar","libstatgrab","fftw.x86_64","netcdf","fftw.i686"])
 #vinc.pkgRemove(["inkscape","saidar","libstatgrab","fftw","netcdf"])
+vinc.pkgGroupRemove(["Emacs"])
