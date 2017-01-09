@@ -11,6 +11,7 @@ import subprocess
 import yum
 import multiprocessing
 from multiprocessing import Process, Queue
+import traceback
 
 Pyro4.config.SERVERTYPE = "multiplex"
 Pyro4.config.SOCK_REUSE = True
@@ -68,6 +69,7 @@ class VinculumDaemon(object):
 
 		syslog.syslog('master process caught ' + str(sig) + "; exiting")
 		Pyro4.core.Daemon.shutdown(self.pyro)
+		multiprocessing.active_children()
 		sys.exit(0)
 
 	def _signal_handler_child(self, sig, frame):
@@ -111,47 +113,58 @@ class VinculumDaemon(object):
 			task = q.get(block=True)
 			syslog.syslog("package task obtained")
 
-			if task['task'] == 'pkgInstall':
+			if task['task'] == 'pkgInstall' or task['task'] == "pkgRemove":
 				pkg_names = task['data']
 
 				try:
 					yb=yum.YumBase()
 					yb.conf.cache = 0
-					installedPkgs = yb.rpmdb.returnPackages()
-					installedPkgNames=[x.name for x in installedPkgs]
 
-					found_any = False
+					transaction = False
 					for pkg in pkg_names:
-						if pkg in installedPkgNames:
-							syslog.syslog("package " + pkg + " is already installed, skipping")
-							continue
 
-						searchlist=['name']
-						arg=[pkg]
-						matches = yb.searchGenerator(searchlist,arg)
+						## support the format name.arch
+						arch=None
+						if pkg.endswith(".i686"):
+							pkg = pkg[:-5]
+							arch = "i686"
+						elif pkg.endswith(".x86_64"):
+							pkg = pkg[:-7]
+							arch = "x86_64"
+						elif pkg.endswith(".noarch"):
+							pkg = pkg[:-7]
+							arch = "noarch"
 
-						found = False
-						for (package, matched_value) in matches:
-							if package.name == pkg:
-								syslog.syslog("marking " + package.name + " for installation " + str(package))
-								yb.install(package)
-								found_any = True
-								found = True
+						if task['task'] == 'pkgInstall':
+							res = yb.install(name=pkg,arch=arch,silence_warnings=True)
+						elif task['task'] == 'pkgRemove':
+							res = yb.remove(name=pkg,arch=arch,silence_warnings=True)
 
-						if not found:
-							syslog.syslog("package " + pkg + " could not be found, skipping")
+						if len(res) > 0:
+							transaction = True
+						else:
+							if task['task'] == 'pkgInstall':
+								syslog.syslog("Could not install " + pkg)
+							elif task['task'] == 'pkgRemove':
+								syslog.syslog("Could not remove " + pkg)
 
-					if found_any:
+					if transaction:
 						syslog.syslog("running transaction check")
 						yb.buildTransaction()
-						syslog.syslog("installing package(s)")
+						syslog.syslog("processing transaction")
 						yb.processTransaction()
-						syslog.syslog("package installation complete")
+						syslog.syslog("transaction complete")
 					else:
-						syslog.syslog("could not find any valid package names to install")
+						syslog.syslog("no transaction tasks to complete")
+
+					yb.closeRpmDB()
+					yb.close()
 
 				except Exception as ex:
-					syslog.syslog("Error during package install: " + str(type(ex)) + " " + str(ex))				
+					syslog.syslog("Error during package install: " + str(type(ex)) + " " + str(ex))			
+					traceback.print_exc()
+					yb.closeRpmDB()
+					yb.close()
 		
 	## RPC METHODS #############################################################
 
@@ -169,6 +182,7 @@ class VinculumDaemon(object):
 		self.pkgTaskQueue.put({'task': 'pkgInstall', 'data': pkg_names})
 		syslog.syslog("added package install task to queue")
 
+	@Pyro4.expose
 	def pkgRemove(self,pkg_names):
 		self.pkgTaskQueue.put({'task': 'pkgRemove', 'data': pkg_names})
 		syslog.syslog("added package remove task to queue")
@@ -184,4 +198,3 @@ class VinculumDaemon(object):
 	def request_backup(self,name):
 		syslog.syslog('started backup task for ' + system['name'] + ' with task id ' + str(task_id) + ' and worker pid ' + str(task.pid))
 		return task_id
-
