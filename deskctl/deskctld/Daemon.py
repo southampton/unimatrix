@@ -12,6 +12,7 @@ import yum
 import multiprocessing
 from multiprocessing import Process, Queue
 import traceback
+import pwd
 
 Pyro4.config.SERVERTYPE = "multiplex"
 Pyro4.config.SOCK_REUSE = True
@@ -36,6 +37,8 @@ def set_socket_permissions(socket_path):
 ################################################################################
 
 class DeskCtlDaemon(object):
+
+	allowed_groups = ['sys','users','wheel','vboxusers']
 
 	## PRIVATE METHODS #########################################################
 
@@ -197,8 +200,6 @@ class DeskCtlDaemon(object):
 		
 	## RPC METHODS #############################################################
 
-	## groupAddUser
-	## groupRemoveUser
 	## backupNow
 
 	@Pyro4.expose
@@ -236,6 +237,39 @@ class DeskCtlDaemon(object):
 		self.pkgTaskQueue.put({'task': 'pkgGroupRemove', 'data': grp_names})
 
 	@Pyro4.expose
+	def groupAddUser(self,group,username):
+		if group not in self.allowed_groups:
+			raise ValueError("That group is invalid")
+
+		## validate the user
+		try:
+			pwd.getpwnam(username)
+		except KeyError as ex:
+			raise ValueError("That username is invalid")
+
+		(code,output) = self.sysexec(["/usr/bin/gpasswd","-a",username,group])
+
+		if code != 0:
+			raise Exception("Could not add user to group: " + output)
+
+	@Pyro4.expose
+	def groupRemoveUser(self,group,username):
+		if group not in self.allowed_groups:
+			raise ValueError("That group is invalid")
+
+		## validate the user
+		try:
+			pwd.getpwnam(username)
+		except KeyError as ex:
+			raise ValueError("That username is invalid")
+
+		(code,output) = self.sysexec(["/usr/bin/gpasswd","-d",username,group])
+
+		if code != 0:
+			raise Exception("Could not remove user from group: " + output)
+
+	@Pyro4.expose
 	def request_backup(self,name):
 		syslog.syslog('started backup task for ' + system['name'] + ' with task id ' + str(task_id) + ' and worker pid ' + str(task.pid))
 		return task_id
+
