@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from queen import app
-from queen.lib.errors import stderr, logerr, fatalerr
+from deskctl import app
+from deskctl.lib.errors import stderr, logerr, fatalerr
 import traceback
 from flask import g
 

@@ -5,7 +5,7 @@ from flask import Flask, request, session, abort, g, render_template, url_for
 import logging
 import binascii
 
-class QueenFlask(Flask):
+class DeskCtlFlask(Flask):
 	
 	class FatalError(Exception):
 		pass
@@ -17,7 +17,7 @@ class QueenFlask(Flask):
 		up logging, configures Jinja and Flask."""
 
 		# Call the superclass (Flask) constructor
-		super(QueenFlask, self).__init__(init_object_name)
+		super(DeskCtlFlask, self).__init__(init_object_name)
 
 		# CSRF exemption support
 		self._exempt_views = set()
@@ -27,10 +27,10 @@ class QueenFlask(Flask):
 		self.jinja_env.globals['csrf_token'] = self._generate_csrf_token
 
 		# Load the __init__.py config defaults
-		self.config.from_object("queen.defaultcfg")
+		self.config.from_object("deskctl.defaultcfg")
 
 		# Load system config file
-		self.config.from_pyfile('/etc/soton/queen.conf')
+		self.config.from_pyfile('/etc/soton/deskctl.conf')
 
 		# Check all the necessary options have been defined
 		for cfg in ['SECRET_KEY']:
@@ -51,7 +51,7 @@ class QueenFlask(Flask):
 			self.logger.setLevel(logging.INFO)
 
 		# Output some startup info
-		self.logger.info('unimatrix-queen version ' + self.config['VERSION'] + ' initialised')
+		self.logger.info('deskctl version ' + self.config['VERSION'] + ' initialised')
 		self.logger.info('debug status: ' + str(self.config['DEBUG']))
 
 	################################################################################

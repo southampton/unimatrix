@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from queen import app
+from deskctl import app
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import os 
 import re
@@ -14,7 +14,7 @@ import pam
 
 def login_required(f):
 	"""This is a decorator function that when called ensures the user has logged in.
-	Usage is as such: @queen.lib.user.login_required"""
+	Usage is as such: @deskctl.lib.user.login_required"""
 
 	@wraps(f)
 	def decorated_function(*args, **kwargs):

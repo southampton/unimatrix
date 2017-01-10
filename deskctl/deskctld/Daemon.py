@@ -35,15 +35,15 @@ def set_socket_permissions(socket_path):
 
 ################################################################################
 
-class VinculumDaemon(object):
+class DeskCtlDaemon(object):
 
 	## PRIVATE METHODS #########################################################
 
 	def __init__(self, pyro):
-		syslog.openlog("vinculum", syslog.LOG_PID)
+		syslog.openlog("deskctld", syslog.LOG_PID)
 
 		## rename the process title
-		setproctitle("vinculum-master")
+		setproctitle("deskctld-master")
 
 		## Store the copy of the pyro daemon object
 		self.pyro = pyro
@@ -59,7 +59,7 @@ class VinculumDaemon(object):
 		pkgProcess = Process(target=self._pkgProcess, args=(self.pkgTaskQueue,))
 		pkgProcess.start()
 
-		syslog.syslog('vinculum-master started')
+		syslog.syslog('master process started')
 
 	def _signal_handler_master(self, sig, frame):
 		if sig == signal.SIGTERM: 
@@ -103,11 +103,11 @@ class VinculumDaemon(object):
 			return (1,str(type(ex)) + " " + str(ex))
 
 	def _pkgProcess(self,q):
-		setproctitle("vinculum-pkg")
-		syslog.openlog("vinculum-pkg", syslog.LOG_PID)
+		setproctitle("deskctld-pkg")
+		syslog.openlog("deskctld-pkg", syslog.LOG_PID)
 		signal.signal(signal.SIGTERM, self._signal_handler_child)
 		signal.signal(signal.SIGINT, self._signal_handler_child)
-		syslog.syslog('vinculum-pkg started')
+		syslog.syslog('deskctld-pkg started')
 	
 		while True:
 			task = q.get(block=True)
@@ -199,7 +199,6 @@ class VinculumDaemon(object):
 
 	## groupAddUser
 	## groupRemoveUser
-	## 
 	## backupNow
 
 	@Pyro4.expose

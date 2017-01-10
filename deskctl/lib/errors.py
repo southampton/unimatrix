@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from queen import app
+from deskctl import app
 from flask import g, render_template, make_response, session, request
 import traceback
 

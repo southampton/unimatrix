@@ -4,15 +4,15 @@ import os
 import Pyro4
 import sys
 
-sys.path.append('/usr/lib/unimatrix/queen')
-sys.path.append('/home/db2z07/projects/unimatrix/queen/')
-from vinculum.Daemon import VinculumDaemon, set_socket_permissions
+sys.path.append('/usr/lib/deskctl')
+sys.path.append('/home/db2z07/projects/unimatrix/deskctl')
+from deskctld.Daemon import DeskCtlDaemon, set_socket_permissions
 
 Pyro4.config.SERVERTYPE = "multiplex"
 Pyro4.config.SOCK_REUSE = True
 
 if __name__ == "__main__":
-	socket_path = "/run/vinculum.sock"
+	socket_path = "/run/deskctld.sock"
 	## TODO: we must be root
 
 	if os.path.exists(socket_path):
@@ -24,6 +24,6 @@ if __name__ == "__main__":
 	## Set the socket permissions up
 	set_socket_permissions(socket_path)
 
-	vinc = VinculumDaemon(pyro)
-	uri  = pyro.register(vinc,'vinculum')
-	pyro.requestLoop(vinc._onloop)
+	deskctld = DeskCtlDaemon(pyro)
+	uri  = pyro.register(deskctld,'deskctld')
+	pyro.requestLoop(deskctld._onloop)

@@ -1,0 +1,8 @@
+#!/usr/bin/python
+
+import Pyro4
+
+deskctld = Pyro4.Proxy('PYRO:deskctld@./u:' + "/run/deskctld.sock")
+#deskctld.pkgInstall(["inkscape","saidar","libstatgrab","fftw.x86_64","netcdf","fftw.i686"])
+#deskctld.pkgRemove(["inkscape","saidar","libstatgrab","fftw","netcdf"])
+deskctld.pkgGroupRemove(["Emacs"])

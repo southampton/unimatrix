@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-from queen import app
-import queen.lib.user
+from deskctl import app
+import deskctl.lib.user
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, render_template
 import re
 
@@ -13,7 +13,7 @@ def login():
 	app.logger.debug("login()")
 
 	# If the user is already logged in, just redirect them
-	if queen.lib.user.is_logged_in():
+	if deskctl.lib.user.is_logged_in():
 		return redirect(url_for('default'))
 	else:
 		# On GET requests, just go to the default page
@@ -22,7 +22,7 @@ def login():
 
 		# On POST requests, authenticate the user
 		elif request.method == 'POST':
-			result = queen.lib.user.authenticate(request.form['username'], request.form['password'])
+			result = deskctl.lib.user.authenticate(request.form['username'], request.form['password'])
 
 			if not result:
 				flash('Incorrect username and/or password', 'alert-danger')
@@ -33,18 +33,18 @@ def login():
 			session.permanent = True
 
 			# Logon is OK to proceed
-			return queen.lib.user.logon_ok()
+			return deskctl.lib.user.logon_ok()
 
 ################################################################################
 
 @app.route('/logout')
-@queen.lib.user.login_required
+@deskctl.lib.user.login_required
 def logout():
 	"""Logs a user out"""
 	app.logger.debug("logout()")
 
 	# Log out of the session
-	queen.lib.user.clear_session()
+	deskctl.lib.user.clear_session()
 	
 	# Tell the user
 	flash('You were logged out successfully', 'alert-success')

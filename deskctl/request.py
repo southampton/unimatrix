@@ -1,6 +1,6 @@
-from queen import app
-from queen.lib.errors import logerr, fatalerr
-from queen.lib.user import is_logged_in
+from deskctl import app
+from deskctl.lib.errors import logerr, fatalerr
+from deskctl.lib.user import is_logged_in
 from flask import Flask, request, session, g, abort, render_template, url_for
 import MySQLdb as mysql
 
