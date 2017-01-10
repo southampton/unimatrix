@@ -1,2 +1,2 @@
 # unimatrix
-Linux Desktop infrastructure server and agent
+Linux Desktop infrastructure server, agent, desktop control panel and tray application
