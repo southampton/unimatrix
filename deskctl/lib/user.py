@@ -5,10 +5,10 @@ from flask import Flask, request, session, redirect, url_for, flash, g, abort, m
 import os 
 import re
 import pwd
-import MySQLdb as mysql
 from functools import wraps
 from werkzeug.urls import url_encode
 import pam
+import pwd
 
 ################################################################################
 
@@ -58,6 +58,13 @@ def logon_ok():
 
 	# Mark as logged on
 	session['logged_in'] = True
+
+	# Get the user's real name out of nss
+	try:
+		userdata = pwd.getpwnam(session['username'])
+		session['name'] = userdata.pw_gecos
+	except KeyError as ex:
+		session['name'] = session['username']
 
 	# Log a successful login
 	app.logger.info('User "' + session['username'] + '" logged in from "' + request.remote_addr + '" using ' + request.user_agent.string)
