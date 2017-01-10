@@ -70,6 +70,8 @@ def logon_ok():
 			return redirect(url_for('default'))
 		else:
 			return redirect(next)
+	else:
+		return redirect(url_for('default'))
 
 ################################################################################
 # Authentication

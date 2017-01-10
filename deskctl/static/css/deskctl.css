@@ -1,0 +1,11 @@
+.nav-item-wtf
+{
+	color: #d1d1d1;
+	font-size: 14px;
+}
+
+.nav-item-wtf:hover,
+.nav-item-wtf:focus {
+	color: #fff!important;
+	text-decoration: none;
+}
