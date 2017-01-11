@@ -46,7 +46,8 @@
         </div>
       </div>
 
-<div class="modal fade" id="mlogin" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	{% if not is_logged_in() %}
+	<div class="modal fade" id="mlogin" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
 
@@ -86,6 +87,7 @@
           </div>
         </div>
       </div>
+	{% endif %}
 
 <!----------------------------------------------------------------------------->
 
@@ -103,32 +105,29 @@
   </div>
   <nav class="collapse navbar-collapse">
     <ul class="nav navbar-nav navbar-right navbar-iconic">
-      <li class="dropdown">
-        <a class="dropdown-toggle nav-item-wtf nav-item-iconic" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-          <span title="Help" class="fa fa-fw fa-question-circle"></span>
-          <span class="caret"></span>
-        </a>
-        <ul class="dropdown-menu">
-          <li><a href="#">Help</a></li>
-          <li><a href="#" data-target="#mabout" data-toggle="modal">About</a></li>
-        </ul>
-      </li>
+		{%- if is_logged_in() %}
       <li class="dropdown">
         <a class="dropdown-toggle nav-item-wtf nav-item-iconic" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-          <span title="Username" class="fa fa-fw fa-user"></span> {%- if is_logged_in() %} {{session.name}} {% endif %}
+          <span title="Username" class="fa fa-fw fa-user"></span> {{session.name}}
           <span class="caret"></span>
         </a>
         <ul class="dropdown-menu">
-          <li><a href="#" data-target="#mlogin" data-toggle="modal">Login</a></li>
+			
+          <li><a href="{{url_for('logout')}}" data-toggle="modal">Logout</a></li>
         </ul>
       </li>
+		{%- else %}
+      <li>
+        <a href="#" data-target="#mlogin" data-toggle="modal" class="nav-item-wtf nav-item-iconic">
+          <span title="Help" class="fa fa-fw fa-lock"></span> Login to manage this computer
+        </a>
+      </li>
+		{%- endif %}
+
     </ul>
   </nav>
 </nav> <!--/.navbar-->
-
 <!----------------------------------------------------------------------------->
-
-
 <div class="nav-pf-vertical nav-pf-vertical-with-sub-menus">
   <ul class="list-group">
     <li class="list-group-item">
