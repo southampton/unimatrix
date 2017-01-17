@@ -10,7 +10,7 @@ from setproctitle import setproctitle #pip install setproctitle
 import subprocess
 import yum
 import multiprocessing
-from multiprocessing import Process, Queue
+from multiprocessing import Process
 import traceback
 import pwd
 
@@ -39,6 +39,8 @@ def set_socket_permissions(socket_path):
 class DeskCtlDaemon(object):
 
 	allowed_groups = ['sys','users','wheel','vboxusers']
+	pkgTaskQueue    = []
+	pkgProcess     = None
 
 	## PRIVATE METHODS #########################################################
 
@@ -54,13 +56,6 @@ class DeskCtlDaemon(object):
 		## Set up signal handlers
 		signal.signal(signal.SIGTERM, self._signal_handler_master)
 		signal.signal(signal.SIGINT, self._signal_handler_master)
-
-		## Set up the queue of tasks for packages to install/remove
-		self.pkgTaskQueue = Queue()
-
-		## Start the process for performing package installs
-		pkgProcess = Process(target=self._pkgProcess, args=(self.pkgTaskQueue,))
-		pkgProcess.start()
 
 		syslog.syslog('master process started')
 
@@ -88,6 +83,12 @@ class DeskCtlDaemon(object):
 	## (finished tasks waiting for us to reap them) are reaped
 	def _onloop(self):
 		multiprocessing.active_children()
+
+		if len(self.pkgTaskQueue) > 0:
+			if self.pkgProcess is not None:
+				if not self.pkgProcess.is_alive():
+					self.startPackageTask(self.pkgTaskQueue.pop(0))
+
 		return True
 
 	def sysexec(self,command,shell=False,env={}):
@@ -105,102 +106,118 @@ class DeskCtlDaemon(object):
 		except Exception as ex:
 			return (1,str(type(ex)) + " " + str(ex))
 
-	def _pkgProcess(self,q):
+	def pkgProcessTask(self,task):
 		setproctitle("deskctld-pkg")
 		syslog.openlog("deskctld-pkg", syslog.LOG_PID)
 		signal.signal(signal.SIGTERM, self._signal_handler_child)
 		signal.signal(signal.SIGINT, self._signal_handler_child)
 		syslog.syslog('deskctld-pkg started')
 	
-		while True:
-			task = q.get(block=True)
-			syslog.syslog("package task obtained")
+		syslog.syslog("task: " + str(task)) ## TODO
 
-			taskid = task['task']
-			if taskid in ['pkgInstall', 'pkgRemove', 'pkgGroupInstall', 'pkgGroupRemove']:
-				items = task['data']
+		taskid = task['task']
+		if taskid in ['pkgInstall', 'pkgRemove', 'pkgGroupInstall', 'pkgGroupRemove']:
+			items = task['data']
 
-				try:
-					yb=yum.YumBase()
-					yb.conf.cache = 0
+			try:
+				yb=yum.YumBase()
+				yb.conf.cache = 0
 
-					transaction = False
-					for item in items:
+				transaction = False
+				for item in items:
 
-						if taskid in ['pkgInstall', 'pkgRemove']:
-							## support the format name.arch
-							arch=None
-							if item.endswith(".i686"):
-								item = item[:-5]
-								arch = "i686"
-							elif pkg.endswith(".x86_64"):
-								item = item[:-7]
-								arch = "x86_64"
-							elif item.endswith(".noarch"):
-								item = item[:-7]
-								arch = "noarch"
+					if taskid in ['pkgInstall', 'pkgRemove']:
+						## support the format name.arch
+						arch=None
+						if item.endswith(".i686"):
+							item = item[:-5]
+							arch = "i686"
+						elif item.endswith(".x86_64"):
+							item = item[:-7]
+							arch = "x86_64"
+						elif item.endswith(".noarch"):
+							item = item[:-7]
+							arch = "noarch"
 
-						if taskid == 'pkgInstall':
-							try:
-								res = yb.install(name=item,arch=arch,silence_warnings=True)
-							except Exception as ex:
-								syslog.syslog("Could not install " + item + ": " + str(ex))
-								continue
+					if taskid == 'pkgInstall':
+						try:
+							res = yb.install(name=item,arch=arch,silence_warnings=True)
+						except Exception as ex:
+							syslog.syslog("Could not install " + item + ": " + str(ex))
+							continue
 
-						elif taskid == 'pkgRemove':
-							try:
-								res = yb.remove(name=item,arch=arch,silence_warnings=True)
-							except Exception as ex:
-								syslog.syslog("Could not remove " + item + ": " + str(ex))
-								continue
+					elif taskid == 'pkgRemove':
+						try:
+							res = yb.remove(name=item,arch=arch,silence_warnings=True)
+						except Exception as ex:
+							syslog.syslog("Could not remove " + item + ": " + str(ex))
+							continue
 
-						elif taskid == 'pkgGroupInstall':
-							try:
-								res = yb.selectGroup(grpid=item)
-							except Exception as ex:
-								syslog.syslog("Could not install group " + item + ": " + str(ex))
-								continue
+					elif taskid == 'pkgGroupInstall':
+						try:
+							res = yb.selectGroup(grpid=item)
+						except Exception as ex:
+							syslog.syslog("Could not install group " + item + ": " + str(ex))
+							continue
 
-						elif taskid == 'pkgGroupRemove':
-							try:
-								res = yb.groupRemove(grpid=item)
-							except Exception as ex:
-								syslog.syslog("Could not remove group " + item + ": " + str(ex))
-								continue
+					elif taskid == 'pkgGroupRemove':
+						try:
+							res = yb.groupRemove(grpid=item)
+						except Exception as ex:
+							syslog.syslog("Could not remove group " + item + ": " + str(ex))
+							continue
 
-						if len(res) > 0:
-							transaction = True
-						else:
-							if task['task'] == 'pkgInstall':
-								syslog.syslog("Could not install " + item)
-							elif task['task'] == 'pkgRemove':
-								syslog.syslog("Could not remove " + item)
-							elif task['task'] == 'pkgGroupInstall':
-								syslog.syslog("Could not install group " + item)
-							elif task['task'] == 'pkgGroupRemove':
-								syslog.syslog("Could not remove group " + item)
-
-					if transaction:
-						syslog.syslog("running transaction check")
-						yb.buildTransaction()
-						syslog.syslog("processing transaction")
-						yb.processTransaction()
-						syslog.syslog("transaction complete")
+					if len(res) > 0:
+						transaction = True
 					else:
-						syslog.syslog("no transaction tasks to complete")
+						if task['task'] == 'pkgInstall':
+							syslog.syslog("Could not install " + item)
+						elif task['task'] == 'pkgRemove':
+							syslog.syslog("Could not remove " + item)
+						elif task['task'] == 'pkgGroupInstall':
+							syslog.syslog("Could not install group " + item)
+						elif task['task'] == 'pkgGroupRemove':
+							syslog.syslog("Could not remove group " + item)
 
-					yb.closeRpmDB()
-					yb.close()
+				if transaction:
+					syslog.syslog("running transaction check")
+					yb.buildTransaction()
+					syslog.syslog("processing transaction")
+					yb.processTransaction()
+					syslog.syslog("transaction complete")
+				else:
+					syslog.syslog("no transaction tasks to complete")
 
-				except Exception as ex:
-					syslog.syslog("Error during yum transaction: " + str(type(ex)) + " " + str(ex))			
-					traceback.print_exc()
-					yb.closeRpmDB()
-					yb.close()
+				yb.closeRpmDB()
+				yb.close()
+
+			except Exception as ex:
+				syslog.syslog("Error during yum transaction: " + str(type(ex)) + " " + str(ex))			
+				traceback.print_exc()
+				yb.closeRpmDB()
+				yb.close()
+
+
+	def addPackageTask(self,task):
+		start = False
+		if self.pkgProcess is None:
+			start = True
+		else:
+			if not self.pkgProcess.is_alive():
+				start = True
+		
+		if start:
+			self.startPackageTask(task)
+		else:
+			syslog.syslog("added package task to queue")
+			self.pkgTaskQueue.append(task)
+
+	def startPackageTask(self,task):
+		syslog.syslog("starting package process")
+		self.pkgProcess = Process(target=self.pkgProcessTask, args=(task,))
+		self.pkgProcess.start()
 		
 	## RPC METHODS #############################################################
-
-	## backupNow
 
 	@Pyro4.expose
 	def ping(self):
@@ -211,30 +228,38 @@ class DeskCtlDaemon(object):
 		if not isinstance(pkg_names, (list, tuple)):
 			raise ValueError("pkg_names must be a list or tuple")
 
-		self.pkgTaskQueue.put({'task': 'pkgInstall', 'data': pkg_names})
-		syslog.syslog("added package install task to queue")
+		#if not self.pkgProcess = 
+
+		self.addPackageTask({'task': 'pkgInstall', 'data': pkg_names})
 
 	@Pyro4.expose
 	def pkgRemove(self,pkg_names):
 		if not isinstance(pkg_names, (list, tuple)):
 			raise ValueError("pkg_names must be a list or tuple")
 
-		self.pkgTaskQueue.put({'task': 'pkgRemove', 'data': pkg_names})
-		syslog.syslog("added package remove task to queue")
+		self.addPackageTask({'task': 'pkgRemove', 'data': pkg_names})
 
 	@Pyro4.expose
 	def pkgGroupInstall(self,grp_names):
 		if not isinstance(grp_names, (list, tuple)):
 			raise ValueError("grp_names must be a list or tuple")
 
-		self.pkgTaskQueue.put({'task': 'pkgGroupInstall', 'data': grp_names})
+		self.addPackageTask({'task': 'pkgGroupInstall', 'data': grp_names})
 
 	@Pyro4.expose
 	def pkgGroupRemove(self,grp_names):
 		if not isinstance(grp_names, (list, tuple)):
 			raise ValueError("grp_names must be a list or tuple")
 
-		self.pkgTaskQueue.put({'task': 'pkgGroupRemove', 'data': grp_names})
+		self.addPackageTask({'task': 'pkgGroupRemove', 'data': grp_names})
+
+	@Pyro4.expose
+	def pkgQueueList(self):
+		lst = []
+		for item in self.pkgTaskQueue:
+			lst.append(item)
+
+		return lst
 
 	@Pyro4.expose
 	def groupAddUser(self,group,username):

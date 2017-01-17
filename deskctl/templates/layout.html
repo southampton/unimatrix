@@ -108,7 +108,7 @@
 		{%- if is_logged_in() %}
       <li class="dropdown">
         <a class="dropdown-toggle nav-item-wtf nav-item-iconic" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-          <span title="Username" class="fa fa-fw fa-user"></span> {{session.name}}
+          <span title="Username" class="fa fa-fw fa-user"></span> Logged in as {{session.name}}
           <span class="caret"></span>
         </a>
         <ul class="dropdown-menu">
@@ -143,7 +143,7 @@
         
       </a>
     </li>
-    <li class="list-group-item active secondary-nav-item-pf" data-target="#ipsum-secondary">
+    <li class="list-group-item secondary-nav-item-pf" data-target="#ipsum-secondary">
       <a>
         <span class="fa fa-lock" data-toggle="tooltip" title="Ipsum"></span>
         <span class="list-group-item-value">Permissions</span>
@@ -159,21 +159,22 @@
       <a>
         <span class="list-group-item-value">SSH Access</span>
       </a>
-      
-    </li>
-    <li class="list-group-item " data-target="#ipsum-copiosae-tertiary">
-      <a>
-        <span class="list-group-item-value">Administrators</span>
-      </a>
-      
     </li>
     <li class="list-group-item " data-target="#ipsum-patrioque-tertiary">
       <a>
         <span class="list-group-item-value">VirtualBox</span>
       </a>
-      
     </li>
-    
+    <li class="list-group-item " data-target="#ipsum-copiosae-tertiary">
+      <a>
+        <span class="list-group-item-value">Administrators</span>
+      </a>
+    </li>
+    <li class="list-group-item " data-target="#ipsum-patrioque-tertiary">
+      <a>
+        <span class="list-group-item-value">Root Access</span>
+      </a>
+    </li>
   </ul>
 </div>
 
