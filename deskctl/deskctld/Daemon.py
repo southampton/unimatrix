@@ -39,7 +39,8 @@ def set_socket_permissions(socket_path):
 class DeskCtlDaemon(object):
 
 	allowed_groups = ['sys','users','wheel','vboxusers']
-	pkgTaskQueue    = []
+	pkgTaskQueue   = []
+	pkgTaskCurrent = None
 	pkgProcess     = None
 
 	## PRIVATE METHODS #########################################################
@@ -48,7 +49,7 @@ class DeskCtlDaemon(object):
 		syslog.openlog("deskctld", syslog.LOG_PID)
 
 		## rename the process title
-		setproctitle("deskctld-master")
+		setproctitle("deskctld")
 
 		## Store the copy of the pyro daemon object
 		self.pyro = pyro
@@ -57,7 +58,7 @@ class DeskCtlDaemon(object):
 		signal.signal(signal.SIGTERM, self._signal_handler_master)
 		signal.signal(signal.SIGINT, self._signal_handler_master)
 
-		syslog.syslog('master process started')
+		syslog.syslog('deskctld started')
 
 	def _signal_handler_master(self, sig, frame):
 		if sig == signal.SIGTERM: 
@@ -76,7 +77,7 @@ class DeskCtlDaemon(object):
 		elif sig == signal.SIGINT:
 			sig = "SIGINT"
 
-		syslog.syslog('child process caught ' + str(sig) + "; exiting")
+		syslog.syslog('pkg process caught ' + str(sig) + "; exiting")
 		sys.exit(0)
 
 	## This is called on each pyro loop timeout/run to make sure defunct processes
@@ -213,6 +214,7 @@ class DeskCtlDaemon(object):
 			self.pkgTaskQueue.append(task)
 
 	def startPackageTask(self,task):
+		self.pkgTaskCurrent = task
 		syslog.syslog("starting package process")
 		self.pkgProcess = Process(target=self.pkgProcessTask, args=(task,))
 		self.pkgProcess.start()
@@ -254,12 +256,14 @@ class DeskCtlDaemon(object):
 		self.addPackageTask({'task': 'pkgGroupRemove', 'data': grp_names})
 
 	@Pyro4.expose
-	def pkgQueueList(self):
-		lst = []
-		for item in self.pkgTaskQueue:
-			lst.append(item)
+	def pkgStatus(self):
 
-		return lst
+		current = None
+		if self.pkgProcess is not None:
+			if self.pkgProcess.is_alive():
+				current = self.pkgTaskCurrent
+
+		return (current,self.pkgTaskQueue)
 
 	@Pyro4.expose
 	def groupAddUser(self,group,username):
@@ -297,4 +301,6 @@ class DeskCtlDaemon(object):
 	def request_backup(self,name):
 		syslog.syslog('started backup task for ' + system['name'] + ' with task id ' + str(task_id) + ' and worker pid ' + str(task.pid))
 		return task_id
+
+
 
