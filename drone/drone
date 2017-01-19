@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2016-12-08-2"
+VERSION     = "2017-01-19-1"
 
 import os
 import sys
@@ -27,7 +27,6 @@ def fatalex(code,message,exception):
 	sys.stderr.write("Error: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
 	sys.exit(code)
 
-
 ################################################################################
 
 def strtime():
@@ -43,6 +42,7 @@ def get_config():
 	config.add_section('puppet')
 	config.add_section('server')
 	config.add_section('ssh')
+	config.add_section('reskit')
 	
 	## Set up default values
 	config.set('backup','user','backup')
@@ -57,6 +57,8 @@ def get_config():
 	config.set('puppet','user','puppet')
 	config.set('puppet','binary','/opt/puppetlabs/bin/puppet')
 	config.set('puppet','server','localhost')
+
+	config.set('reskit','pkgdir','/etc/reskit/packages/')
 
 	config.set('ssh','binary','/usr/bin/ssh')
 
@@ -94,6 +96,7 @@ def sysexec(command,shell=False,debug=False):
 	except Exception as ex:
 		return (1,str(type(ex)) + " " + str(ex))
 
+################################################################################
 ################################################################################
 
 def puppet_sync(parser,args,config):
@@ -182,6 +185,7 @@ def puppet(parser,args,config):
 		print 'Unrecognised or missing action'
 		parser.print_help()
 
+################################################################################
 ################################################################################
 
 def backup_now(parser,args,config):
@@ -303,10 +307,77 @@ def backup(parser,args,config):
 		parser.print_help()
 
 ################################################################################
+################################################################################
 
 def update(parser,args,config):
-	pass
+	print 'Not yet implemented'
 
+################################################################################
+################################################################################
+
+def reskit_update(parser,args,config):
+	if args.verbose: print "starting reskit update (this may take several minutes)"
+
+	reskit_pkg_dir = config.get('reskit','pkgdir')
+
+	if args.debug: print "checking config.reskit.pkgdir"
+	if not os.path.exists(reskit_pkg_dir):
+		fatal(25,"The reskit pkgdir directory - " + reskit_pkg_dir + " - does not exist")
+	if not os.path.isdir(reskit_pkg_dir):
+		fatal(26,"The reskit pkgdir path - " + reskit_pkg_dir + " - is not a directory")
+
+	reskit_files = [f for f in os.listdir(reskit_pkg_dir) if os.path.isfile(os.path.join(reskit_pkg_dir, f))]
+
+	for f in reskit_files:
+
+		fp = os.path.join(reskit_pkg_dir,f)
+
+		if args.debug: 
+			command = [fp,"1"]
+		else:
+			command = [fp]
+
+		if args.debug: print "executing " + fp
+
+		(code, output) = sysexec(command,debug=args.debug)
+
+		if code != 0:
+			if args.verbose:
+				print "reskit update failed on " + fp + ":\n" + output
+
+	if args.verbose: print "reskit update complete"
+
+################################################################################
+
+def reskit_list(parser,args,config):
+	reskit_pkg_dir = config.get('reskit','pkgdir')
+
+	if args.debug: print "checking config.reskit.pkgdir"
+	if not os.path.exists(reskit_pkg_dir):
+		fatal(25,"The reskit pkgdir directory - " + reskit_pkg_dir + " - does not exist")
+	if not os.path.isdir(reskit_pkg_dir):
+		fatal(26,"The reskit pkgdir path - " + reskit_pkg_dir + " - is not a directory")
+
+	reskit_files = [f for f in os.listdir(reskit_pkg_dir) if os.path.isfile(os.path.join(reskit_pkg_dir, f))]
+
+	for f in reskit_files:
+
+		print f
+
+################################################################################
+
+def reskit(parser,args,config):
+	action = args.action
+
+	if action == 'update':
+		reskit_update(parser,args,config)
+	elif action == 'list':
+		reskit_list(parser,args,config)
+	else:
+		print 'Unrecognised or missing action'
+		parser.print_help()
+
+################################################################################
 ################################################################################
 
 def system_register(parser,args,config):
@@ -453,7 +524,6 @@ def system(parser,args,config):
 	else:
 		print 'Unrecognised or missing action'
 		parser.print_help()
-	pass
 
 ################################################################################
 
@@ -491,11 +561,15 @@ def main():
     status    show the update status of the system
     schedule  schedule updates to be applied at next reboot
 
+  reskit
+    update    update the contents of reskit software packages
+    list      list installed reskit software packages
+
   system
     register  (re-)register this system
 
   version     shows the version of the drone agent
-    
+
 """
 
 	parser = argparse.ArgumentParser(prog='drone',description='workstation management agent',epilog=subcommands,formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -512,6 +586,8 @@ def main():
 		backup(parser,args,config)
 	elif args.subcommand == 'update':
 		update(parser,args,config)
+	elif args.subcommand == 'reskit':
+		reskit(parser,args,config)
 	elif args.subcommand == 'system':
 		system(parser,args,config)
 	elif args.subcommand == 'version':
