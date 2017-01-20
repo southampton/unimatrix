@@ -166,7 +166,6 @@ def puppet_get_state(parser,ars,config):
 ################################################################################
 
 def puppet_facts(parser,args,config):
-puppet facts find --modulepath /etc/soton/puppet/modules/
 
 	(code, output) = sysexec("""%s facts find --modulepath %s/puppet/modules/""" % (config.get('puppet','binary'),BASE_DIR),shell=True,debug=args.debug)
 
