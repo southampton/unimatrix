@@ -32,6 +32,10 @@ def login():
 			session['username'] = request.form['username'].lower()
 			session.permanent = True
 
+			# If they have a place they want to go to after login
+			if 'next' in request.form:
+				session['next'] = request.form['next']
+
 			# Logon is OK to proceed
 			return deskctl.lib.user.logon_ok()
 

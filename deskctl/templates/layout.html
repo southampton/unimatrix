@@ -14,7 +14,7 @@
 		<script src="{{url_for('static',filename='bootstrap/bootstrap.min.js')}}"></script>
 		<script src="{{url_for('static',filename='patternfly/js/patternfly.min.js')}}"></script>
 	</head>
-	<body>
+	<body class="cards-pf">
 
 <div class="modal fade" id="mabout" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -53,6 +53,7 @@
 
 		<form role="form" action="{{ url_for('login') }}" method="POST" class="form-horizontal" >
 		<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+		<input name="next" type="hidden" value="{{ request.path }}"/>
 
             <div class="modal-header">
               <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
@@ -74,10 +75,6 @@
 			  <input name="password" type="password" class="form-control" placeholder="Password">
 			</div>
 		  </div>
-		  <div class="form-group">
-			<div class="col-sm-2">
-			</div>
-		  </div>
 
             </div>
             <div class="modal-footer">
@@ -89,7 +86,7 @@
       </div>
 	{% endif %}
 
-<!----------------------------------------------------------------------------->
+		{%- block modals %}{% endblock %}
 
   <nav class="navbar navbar-pf-vertical">
   <div class="navbar-header">
@@ -108,7 +105,7 @@
 		{%- if is_logged_in() %}
       <li class="dropdown">
         <a class="dropdown-toggle nav-item-wtf nav-item-iconic" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-          <span title="Username" class="fa fa-fw fa-user"></span> Logged in as {{session.name}}
+          <span title="Username" class="fa fa-fw fa-lock"></span> Authenticated as {{session.name}}
           <span class="caret"></span>
         </a>
         <ul class="dropdown-menu">
@@ -119,7 +116,7 @@
 		{%- else %}
       <li>
         <a href="#" data-target="#mlogin" data-toggle="modal" class="nav-item-wtf nav-item-iconic">
-          <span title="Help" class="fa fa-fw fa-lock"></span> Login to manage this computer
+          <span title="Help" class="fa fa-fw fa-unlock-alt"></span> Click here to make changes to this computer
         </a>
       </li>
 		{%- endif %}
@@ -130,22 +127,22 @@
 <!----------------------------------------------------------------------------->
 <div class="nav-pf-vertical nav-pf-vertical-with-sub-menus">
   <ul class="list-group">
-    <li class="list-group-item">
-      <a>
-        <span class="pficon pficon-registry" data-toggle="tooltip" title="Dashboard"></span>
+    <li class="list-group-item{% if active == 'software' %} active{%endif%}">
+      <a href="{{ url_for('software') }}">
+        <span class="pficon pficon-registry" data-toggle="tooltip" title="Software"></span>
         <span class="list-group-item-value">Software</span>
       </a>
     </li>
     <li class="list-group-item">
       <a>
-        <span class="pficon pficon-network" data-toggle="tooltip" title="Dolor"></span>
+        <span class="pficon pficon-network" data-toggle="tooltip" title="Community software"></span>
         <span class="list-group-item-value">CSW</span>
         
       </a>
     </li>
-    <li class="list-group-item secondary-nav-item-pf" data-target="#ipsum-secondary">
+    <li class="list-group-item secondary-nav-item-pf{% if active == 'permissions' %} active{%endif%}" data-target="#ipsum-secondary">
       <a>
-        <span class="fa fa-lock" data-toggle="tooltip" title="Ipsum"></span>
+        <span class="fa fa-lock" data-toggle="tooltip" title="Permissions"></span>
         <span class="list-group-item-value">Permissions</span>
       </a>
       
@@ -155,23 +152,23 @@
     <span>Permissions</span>
   </div>
   <ul class="list-group">
-    <li class="list-group-item active " data-target="#ipsum-intellegam-tertiary">
-      <a>
+    <li class="list-group-item{% if activegrp == 'users' %} active{%endif%}">
+      <a href="{{ url_for('permissions',group='users') }}">
         <span class="list-group-item-value">SSH Access</span>
       </a>
     </li>
-    <li class="list-group-item " data-target="#ipsum-patrioque-tertiary">
-      <a>
+    <li class="list-group-item{% if activegrp == 'vboxusers' %} active{%endif%}">
+      <a href="{{ url_for('permissions',group='vboxusers') }}">
         <span class="list-group-item-value">VirtualBox</span>
       </a>
     </li>
-    <li class="list-group-item " data-target="#ipsum-copiosae-tertiary">
-      <a>
+    <li class="list-group-item{% if activegrp == 'sys' %} active{%endif%}">
+      <a href="{{ url_for('permissions',group='sys') }}">
         <span class="list-group-item-value">Administrators</span>
       </a>
     </li>
-    <li class="list-group-item " data-target="#ipsum-patrioque-tertiary">
-      <a>
+    <li class="list-group-item{% if activegrp == 'wheel' %} active{%endif%}">
+      <a href="{{ url_for('permissions',group='wheel') }}">
         <span class="list-group-item-value">Root Access</span>
       </a>
     </li>
@@ -182,19 +179,19 @@
     </li>
     <li class="list-group-item">
       <a>
-        <span class="fa fa-archive" data-toggle="tooltip" title="Adipscing"></span>
+        <span class="fa fa-archive" data-toggle="tooltip" title="Backups"></span>
         <span class="list-group-item-value">Backups</span>
       </a>
     </li>
     <li class="list-group-item">
       <a>
-        <span class="fa fa-gears" data-toggle="tooltip" title="Lorem"></span>
+        <span class="fa fa-gears" data-toggle="tooltip" title="Policy"></span>
         <span class="list-group-item-value">Policy</span>
       </a>
     </li>
     <li class="list-group-item">
       <a>
-        <span class="pficon pficon-info" data-toggle="tooltip" title="Lorem"></span>
+        <span class="pficon pficon-info" data-toggle="tooltip" title="About"></span>
         <span class="list-group-item-value">About</span>
       </a>
     </li>

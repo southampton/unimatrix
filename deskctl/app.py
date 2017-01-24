@@ -1,13 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import os
+import os.path
 from flask import Flask, request, session, abort, g, render_template, url_for
 import logging
 import binascii
 
 class DeskCtlFlask(Flask):
-	
+
+	config_file = '/usr/lib/deskctl/deskctl.conf'
+
 	class FatalError(Exception):
+		pass
+
+	class DaemonConnectionError(Exception):
 		pass
 
 	################################################################################
@@ -29,8 +35,20 @@ class DeskCtlFlask(Flask):
 		# Load the __init__.py config defaults
 		self.config.from_object("deskctl.defaultcfg")
 
-		# Load system config file
-		self.config.from_pyfile('/etc/soton/deskctl.conf')
+		# Check the config file exists, if it does not, create one instead
+		# with a random secret key in it which we generate
+		if not os.path.exists(self.config_file):
+			app.logger.info("No config file found; generating new config file")
+			try:
+				with open(self.config_file,'w') as fp:
+					fp.write('SECRET_KEY="' + self.token() + '"')
+
+				os.chmod(self.config_file,0700)
+			except Exception as ex:
+				raise self.FatalError("Could not create new config file: " + str(ex))
+
+		# Load the config file
+		self.config.from_pyfile('/usr/lib/deskctl/deskctl.conf')
 
 		# Check all the necessary options have been defined
 		for cfg in ['SECRET_KEY']:

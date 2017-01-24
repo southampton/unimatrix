@@ -1,0 +1,127 @@
+{% extends "layout.html" %}
+{% block modals %}
+	{% if is_logged_in() %}
+	<div class="modal fade" id="madd" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+
+		<form role="form" method="POST" class="form-horizontal" >
+		<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+		<input name="action" type="hidden" value="add"/>
+
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                <span class="pficon pficon-close"></span>
+              </button>
+				<h4 class="modal-title">Login</h4> 
+            </div>
+            <div class="modal-body">
+				<p>Please enter the account username you wish to add:</p>
+		  <div class="form-group">
+			<label class="col-sm-2 control-label">Username</label>
+			<div class="col-sm-10">
+			  <input name="username" type="text" class="form-control" placeholder="Username">
+			</div>
+		  </div>
+            </div>
+            <div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        		<button type="submit" class="btn btn-primary">Sign in</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+	<div class="modal fade" id="mremove" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+
+		<form role="form" method="POST" class="form-horizontal" >
+		<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+		<input name="action" type="hidden" value="remove"/>
+
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+                <span class="pficon pficon-close"></span>
+              </button>
+				<h4 class="modal-title">Login</h4> 
+            </div>
+            <div class="modal-body">
+				<p>Are you sure you want to remove <span id="user_remove">ERROR</span>?</p>
+            </div>
+            <div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        		<button type="submit" class="btn btn-primary">Sign in</button>
+            </div>
+          </div>
+        </div>
+      </div>
+	{% endif %}
+{% endblock %}
+{% block body %}
+
+
+<div class="row row-cards-pf">
+	<div class="col-xs-12">
+		<div class="card-pf card-pf-accented">
+			<div class="card-pf-heading">
+				<div class="pull-right">
+					{% if can_make_changes %}
+						<a href="#madd" data-toggle="modal" class="btn btn-primary btn-lg"><i class="fa fa-fw fa-plus"></i> Add user</a>
+					{% endif %}
+
+				</div>
+				<h1><i class="fa fa-fw fa-lock"></i> Permissions - {{ group_title }}</h1>
+				<p style="padding-bottom: 15px">{{group_desc}}</p>
+			</div>
+			<div class="card-pf-body">
+				<div class="list-group list-view-pf list-view-pf-view">
+
+
+					{% for entry in group_members %}
+					<div class="list-group-item">
+						<div class="deskctl-thin-list list-view-pf-actions">
+							{% if can_make_changes %}<a href="#mremove" data-toggle="modal" data-username="{{entry.username}}" class="btn btn-default">Remove</a>{% endif %}
+						</div>
+
+						<div class="deskctl-thin-list list-view-pf-main-info">
+							<div class="list-view-pf-left">
+								<span class="fa fa-user list-view-pf-icon-sm"></span>
+							</div>
+						
+							<div class="list-view-pf-body">
+								<div class="list-view-pf-description">
+									<div class="list-group-item-heading">
+										{{ entry.username }}
+									</div>
+									<div class="list-group-item-text">
+										{{ entry.gecos }}
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					{% else %}
+					<div class="list-group-item">
+						<div class="deskctl-thin-list list-view-pf-main-info">
+							<div class="list-view-pf-body">
+								<div class="list-view-pf-description">
+									<div class="list-group-item-heading">
+										No users found
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					{% endfor %}
+
+
+
+				</div>
+			</div>
+		</div>
+	</div>  
+</div>
+
+
+{% endblock %}

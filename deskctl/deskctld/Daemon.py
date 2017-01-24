@@ -263,7 +263,11 @@ class DeskCtlDaemon(object):
 			if self.pkgProcess.is_alive():
 				current = self.pkgTaskCurrent
 
-		return (current,self.pkgTaskQueue)
+		lst = self.pkgTaskQueue
+		if current is not None:
+			lst = [current] + lst
+
+		return lst
 
 	@Pyro4.expose
 	def groupAddUser(self,group,username):

@@ -40,6 +40,10 @@ def error405(error):
 def errorFatal(error):
 	return stderr("Application error",str(error),500)
 
+@app.errorhandler(app.DaemonConnectionError)
+def errorDaemonConnetionError(error):
+	return stderr("Could not connect to desktop manager service",str(error),500)
+
 ################################################################################
 
 @app.errorhandler(Exception)

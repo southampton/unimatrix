@@ -8,7 +8,7 @@ import platform
 
 @app.context_processor
 def context_processor():
-    return {
+	return {
 		"is_logged_in": is_logged_in,
 		"hostname": platform.node().upper(),
 	}
