@@ -18,13 +18,13 @@
 			  <div class="form-group">
 				<label class="col-sm-2 control-label">Username</label>
 				<div class="col-sm-10">
-				  <input name="username" type="text" class="form-control" placeholder="Username">
+				  <input id="addusername" name="username" type="text" class="form-control" placeholder="Username">
 				</div>
 			  </div>
 		        </div>
 		        <div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-		    		<button type="submit" class="btn btn-primary">Sign in</button>
+		    		<button type="submit" class="btn btn-primary">Add</button>
 		        </div>
 			</form>
           </div>
@@ -36,19 +36,20 @@
 			<form role="form" method="POST" class="form-horizontal" >
 			<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
 			<input name="action" type="hidden" value="remove"/>
+			<input name="username" type="hidden" id="user_remove_input"/>
 		    
 				<div class="modal-header">
 		          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
 		            <span class="pficon pficon-close"></span>
 		          </button>
-					<h4 class="modal-title">Login</h4> 
+					<h4 class="modal-title">Remove user</h4> 
 		        </div>
 		        <div class="modal-body">
-					<p>Are you sure you want to remove <span id="user_remove">ERROR</span>?</p>
+					<p>Are you sure you want to remove <span id="user_remove">ERROR</span> from {{group_title}}?</p>
 		        </div>
 		        <div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-		    		<button type="submit" class="btn btn-primary">Sign in</button>
+		    		<button type="submit" class="btn btn-primary">Remove</button>
 		        </div>
 			</form>
           </div>
@@ -110,4 +111,22 @@
 		</div>
 	</div>  
 </div>
+<script>
+$(function() {
+
+	$('#madd').on('shown.bs.modal', function ()
+	{
+		$('#addusername').focus();
+	});
+
+	$('#mremove').on('show.bs.modal', function (event)
+	{
+		var who = $(event.relatedTarget)
+
+		$('#user_remove').text(who.data('username'));
+		$('#user_remove_input').val(who.data('username'));
+	})
+
+});
+</script>
 {% endblock %}

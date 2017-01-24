@@ -38,7 +38,7 @@ def permissions(group):
 
 	## Get current group members
 	try:
-		grmembers = grp.getgrnam(group)
+		grp_object = grp.getgrnam(group)
 	except KeyError as ex:
 		raise app.FatalError("The group " + group + " does not exist on the system. Please contact ServiceLine for assistance")
 
@@ -80,7 +80,7 @@ def permissions(group):
 
 	if request.method == 'GET':
 		group_members = []
-		for member in grmembers.gr_mem:
+		for member in grp_object.gr_mem:
 	
 			try:
 				pwentry = pwd.getpwnam(member)
@@ -105,23 +105,32 @@ def permissions(group):
 			try:
 				pwentry = pwd.getpwnam(username)
 			except KeyError as ex:
-				flash("The username you specified is invalid","alert-danger")
+				flash("The username you specified was not found","alert-danger")
 				return redirect(url_for('permissions',group=group))
 
 			## Try adding them to the group
 			try:
 				deskctld.groupAddUser(group,username)
 			except Exception as ex:
-				flash("Could not add username to group: " + str(ex))
+				flash("Could not add username to group: " + str(ex),"alert-danger")
 				return redirect(url_for('permissions',group=group))
 
-			flash("Added '" + username + "' to " + group_title)
+			flash("Added '" + username + "' to " + group_title,"alert-success")
 			return redirect(url_for('permissions',group=group))
 
 		elif request.form['action'] == 'remove':
-			# stuff	
-			pass
+			username = request.form['username']
 
+			if username not in grp_object.gr_mem:
+				flash("Could not remove the username you specified because is not in the group","alert-danger")
+				return redirect(url_for('permissions',group=group))
+			else:
 
+				try:
+					deskctld.groupRemoveUser(group,username)
+				except Exception as ex:
+					flash("Could not remove username from group: " + str(ex),"alert-danger")
+					return redirect(url_for('permissions',group=group))
 
-
+				flash("Removed '" + username + "' from " + group_title,"alert-success")
+				return redirect(url_for('permissions',group=group))
