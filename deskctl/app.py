@@ -38,7 +38,7 @@ class DeskCtlFlask(Flask):
 		# Check the config file exists, if it does not, create one instead
 		# with a random secret key in it which we generate
 		if not os.path.exists(self.config_file):
-			app.logger.info("No config file found; generating new config file")
+			self.logger.info("No config file found; generating new config file")
 			try:
 				with open(self.config_file,'w') as fp:
 					fp.write('SECRET_KEY="' + self.token() + '"')
