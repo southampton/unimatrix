@@ -4,11 +4,9 @@
 	<div class="modal fade" id="madd" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
-
 			<form role="form" method="POST" class="form-horizontal" >
 			<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
 			<input name="action" type="hidden" value="add"/>
-
 		        <div class="modal-header">
 		          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
 		            <span class="pficon pficon-close"></span>
@@ -32,7 +30,6 @@
           </div>
         </div>
       </div>
-
 	<div class="modal fade" id="mremove" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
@@ -60,8 +57,6 @@
 	{% endif %}
 {% endblock %}
 {% block body %}
-
-
 <div class="row row-cards-pf">
 	<div class="col-xs-12">
 		<div class="card-pf card-pf-accented">
@@ -70,7 +65,6 @@
 					{% if can_make_changes %}
 						<a href="#madd" data-toggle="modal" class="btn btn-primary btn-lg"><i class="fa fa-fw fa-plus"></i> Add user</a>
 					{% endif %}
-
 				</div>
 				<h1><i class="fa fa-fw fa-lock"></i> Permissions - {{ group_title }}</h1>
 				<p style="padding-bottom: 15px">{{group_desc}}</p>
@@ -116,6 +110,4 @@
 		</div>
 	</div>  
 </div>
-
-
 {% endblock %}
