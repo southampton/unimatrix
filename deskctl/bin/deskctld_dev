@@ -4,8 +4,8 @@ import os
 import Pyro4
 import sys
 
-sys.path.append('/usr/lib/deskctl/.local/lib/python2.7/site-packages')
-sys.path.append('/usr/lib/deskctl/deskctl')
+sys.path.append('/usr/lib/deskctl/lib/')
+sys.path.append('/usr/lib/deskctl/')
 from deskctld.Daemon import DeskCtlDaemon, set_socket_permissions
 
 Pyro4.config.SERVERTYPE = "multiplex"
