@@ -22,8 +22,7 @@ Pyro4.config.SOCK_REUSE = True
 def set_socket_permissions(socket_path):
 	## set perms on the socket path
 	try:
-		## TODO change the GID (1000) to a proper group the web server runs as
-		os.chown(socket_path,0,1000)
+		os.chown(socket_path,0,800001)
 	except Exception as ex:
 		sys.stderr.write("Could not chown socket: " + str(type(ex)) + " " + str(ex))
 		sys.exit(1)
