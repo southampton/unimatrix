@@ -11,5 +11,5 @@ if __name__ == "__main__":
 	try:
 		plexus.regenerate_pkgdb()
 	except Exception as ex:
-		sys.stderr.write(str(ex))
+		sys.stderr.write(str(ex) + "\n")
 		sys.exit(1)
