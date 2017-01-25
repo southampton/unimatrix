@@ -293,7 +293,7 @@ Username:             %s
 		cursor.execute("""CREATE TABLE IF NOT EXISTS `pkg_categories` (
 		  `id` mediumint(11) NOT NULL AUTO_INCREMENT,
 		  `name` varchar(255) NOT NULL,
-		  PRIMARY KEY (`id`),
+		  PRIMARY KEY (`id`)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
 
 		cursor.execute("""CREATE TABLE IF NOT EXISTS `pkg_entries` (
