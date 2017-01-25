@@ -12,13 +12,14 @@ import sys
 import json
 from setproctitle import setproctitle #pip install setproctitle
 from plexus.BackupTask import BackupTask
+import sqlite3
 
 # we use multiplex, rather than threading, cos each request only starts a
 # new worker process or simply returning status information. the threaded 
 # model would work fine, its just it means handling locking in python,
 # and it means the GIL, so... no thx.
 Pyro4.config.SERVERTYPE = "multiplex"
-Pyro4.config.SOCK_REUSE = True	
+Pyro4.config.SOCK_REUSE = True
 
 ################################################################################
 
@@ -38,7 +39,7 @@ def load_config(filename):
 				config[key] = getattr(d, key)
 
 		## ensure we have required config options
-		for wkey in ['MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASS', 'MYSQL_NAME', 'BACKUP_ROOT_DIR', 'PLEXUS_SOCKET_PATH', 'PLEXUS_SOCKET_MODE', 'PLEXUS_SOCKET_UID', 'PLEXUS_SOCKET_GID']:
+		for wkey in ['MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASS', 'MYSQL_NAME', 'BACKUP_ROOT_DIR', 'PLEXUS_SOCKET_PATH', 'PLEXUS_SOCKET_MODE', 'PLEXUS_SOCKET_UID', 'PLEXUS_SOCKET_GID', 'PKGDB_PATH']:
 			if not wkey in config.keys():
 				sys.stderr.write("Missing configuration option: %s\n" % wkey)
 				sys.exit(1)
@@ -245,3 +246,36 @@ class PlexusDaemon(object):
 			raise Exception("That task has not yet finished")
 
 		return task['status']
+
+	@Pyro4.expose
+	def regenerate_pkgdb(self):
+		try:
+			sqlitedb  = sqlite3.connect(self.config['PKGDB_PATH'])
+			slcur = sqlitedb.cursor()
+
+			# create the tables
+			slcur.execute('''CREATE TABLE categories (id integer, name text, order integer)''')
+			slcur.execute('''CREATE TABLE entries (id integer, category integer, name text, desc text, icon text)''')
+			slcur.execute('''CREATE TABLE items (id integer, entry integer, name text)''')
+
+			curd = self._get_cursor()
+			curd.execute("SELECT * FROM `pkg_categories`)
+			categories = curd.fetchall()
+			for category in categories:
+				slcur.execute("INSERT INTO categories VALUES (%s, %s, %s)",(category['id'],category['name'],category['order'],))
+
+			curd.execute("SELECT * FROM `pkg_entries`)
+			entries = curd.fetchall()
+			for entry in entries:
+				slcur.execute("INSERT INTO entries VALUES (%s, %s, %s, %s, %s)",(entry['id'],entry['pkg_category_id'],entry['name'],entry['desc'],entry['icon'],))
+
+			curd.execute("SELECT * FROM `pkg_entry_items`)
+			items = curd.fetchall()
+			for item in items:
+				slcur.execute("INSERT INTO items VALUES (%s, %s, %s)",(item['id'],item['pkg_entry_id'],item['name'],))
+
+			sqlitedb.commit()
+			sqlitedb.close()
+
+		except Exception as ex:
+			raise Exception("Unable to regenerate the pkg database: " + str(type(ex)) + " - " + str(ex))
