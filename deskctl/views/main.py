@@ -1,12 +1,13 @@
 #!/usr/bin/python
 
 from deskctl import app
-from deskctl.lib.user import is_logged_in
+from deskctl.lib.user import is_logged_in, can_user_remove_software
 from deskctl.lib.misc import deskctld_connect, open_pkgdb
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import grp
 import pwd
 import yum
+import logging
 
 ################################################################################
 
@@ -17,17 +18,7 @@ def default():
 	return render_template('dashboard.html', title='dashboard')
 
 @app.route('/software')
-@app.route('/software/<int:category>')
 def software(category=None):
-	## Connect to the desktop management service
-	deskctld = deskctld_connect()
-
-	## Get the current pkg task queue
-	pkgStatus = deskctld.pkgStatus()
-
-	if len(pkgStatus) == 0:
-		pkgStatus = None
-
 	## Get the pkgdb database
 	db = open_pkgdb()
 	cur = db.cursor()
@@ -37,20 +28,63 @@ def software(category=None):
 	if len(categories) == 0:
 		raise app.FatalError("The package database is empty")
 
-	if category == None:
-		## No category selected, so choose the default
-		category = categories[0]["id"]
-	else:
-		found = False
-		for cat in categories:
-			if cat['id'] == category:
-				found = True
+	category = categories[0]["id"]
+	ajax_url = url_for('ajax_software',category=category)
+	return render_template('software.html',title='Desktop Manager - Software',active="software",category=category,categories=categories)
 
-		if not found:
-			abort(404)
+@app.route('/ajax/software/post',methods=['POST'])
+def ajax_entry_post():
+	# get the id and action
+	entryid = request.form['id']
+	action  = request.form['action']
+
+	## Connect to the desktop management service
+	deskctld = deskctld_connect()
+
+	## Get the pkgdb database
+	db = open_pkgdb()
+	cur = db.cursor()
+
+	# validate the entry ID
+	cur.execute("SELECT * FROM `entries` WHERE `id` = ?",(entryid,))
+	obj = cur.fetchone()
+
+	if not obj:
+		abort(404)
+	else:
+		if action == 'install':
+			if is_logged_in():
+				deskctld.pkgEntryInstall(entryid)
+			else:
+				abort(403)
+		elif action == 'remove':
+			if can_user_remove_software():
+				deskctld.pkgEntryRemove(entryid)
+			else:
+				abort(403)
+		else:
+			abort(400)
+
+	return "", 200
+
+@app.route('/ajax/software/entries/<int:category>')
+def ajax_software(category):
+	## Connect to the desktop management service
+	deskctld = deskctld_connect()
+
+	## Get the pkgdb database
+	db = open_pkgdb()
+	cur = db.cursor()
+	cur.execute("SELECT * FROM `categories` WHERE `id` = ?",(category,))
+	category_obj = cur.fetchone()
+
+	if not category_obj:
+		abort(404)
 
 	# Prepare yum for querying
 	yb = yum.YumBase()
+	logger = logging.getLogger("yum.verbose.YumPlugins")
+	logger.setLevel(logging.CRITICAL)
 
 	# Prepare groups
 	(installedGroups,availableGroups) = yb.doGroupLists()
@@ -70,29 +104,41 @@ def software(category=None):
 		cur.execute("SELECT * FROM `items` WHERE `entry` = ?",(entry['id'],))
 		items = cur.fetchall()
 
-		status = 0
+		status = 0 # entry status unknown
 		if len(items) > 0:
 			try:
 				installed = True
 				for item in items:
 					if item['name'].startswith("@"):
-						grpName = item['name'][:-1]
+						grpName = item['name'][1:]
 						if grpName not in groups:
-							installed = False 	
+							installed = False
 					else:
 						if not yb.rpmdb.searchNevra(name=item['name']):
 							installed = False
 
 				if installed:
-					status = 1
+					status = 1 # entry is installed
 				else:
-					status = 2
+					status = 2 # entry is not installed
 			except Exception as ex:
-				status = 0
+				status = 0 # entry status unknown
 
-			pkgs.append({'id': entry['id'], 'status': status, 'name': entry['name'], 'desc': entry['desc'], 'icon': entry['icon']}) 
+			## check if this entry is currently being installed/removed by deskctld
+			try:
+				deskctld_status = deskctld.pkgEntryStatus(entry['id'])
+				
+				if deskctld_status == 1:
+					status = 3 # entry is being installed
+				elif deskctld_status == 2:
+					status = 4 # entry is being removed
 
-	return render_template('software.html',title='Desktop Manager - Software',active="software",pkgstatus=pkgStatus,category=category,categories=categories,pkgs=pkgs)
+			except Exception as ex:
+				pass
+
+			pkgs.append({'id': entry['id'], 'status': status, 'name': entry['name'], 'desc': entry['desc'], 'icon': entry['icon']})
+
+	return render_template('ajax_software.html',pkgs=pkgs,can_user_remove_software=can_user_remove_software())
 
 @app.route('/permissions/<group>',methods=['GET','POST'])
 def permissions(group):
@@ -116,7 +162,7 @@ def permissions(group):
 			linuxadm = grp.getgrnam('linuxadm')
 			localsys = grp.getgrnam('sys')
 		except KeyError as ex:
-			raise app.FatalError("The group " + group + " does not exist on the system. Please contact ServiceLine for assistance")
+			raise app.FatalError("Expected core groups do not exist on the system. Please contact ServiceLine for assistance")
 		
 		if session['username'] in linuxadm.gr_mem:
 			## users in the linuxadm group have full perms whatever

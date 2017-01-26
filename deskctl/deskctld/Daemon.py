@@ -13,6 +13,8 @@ import multiprocessing
 from multiprocessing import Process
 import traceback
 import pwd
+import sqlite3
+import logging
 
 Pyro4.config.SERVERTYPE = "multiplex"
 Pyro4.config.SOCK_REUSE = True
@@ -80,12 +82,13 @@ class DeskCtlDaemon(object):
 		sys.exit(0)
 
 	## This is called on each pyro loop timeout/run to make sure defunct processes
-	## (finished tasks waiting for us to reap them) are reaped
+	## (finished tasks waiting for us to reap them) are reaped and to start
+	## a new package process if there is a task in the queue
 	def _onloop(self):
 		multiprocessing.active_children()
 
 		if len(self.pkgTaskQueue) > 0:
-			if self.pkgProcess is not None:
+			if self.pkgProcess is not None: # this should never happen, but we'll check anyway
 				if not self.pkgProcess.is_alive():
 					self.startPackageTask(self.pkgTaskQueue.pop(0))
 
@@ -112,73 +115,104 @@ class DeskCtlDaemon(object):
 		signal.signal(signal.SIGTERM, self._signal_handler_child)
 		signal.signal(signal.SIGINT, self._signal_handler_child)
 		syslog.syslog('deskctld-pkg started')
-	
-		syslog.syslog("task: " + str(task)) ## TODO
 
-		taskid = task['task']
-		if taskid in ['pkgInstall', 'pkgRemove', 'pkgGroupInstall', 'pkgGroupRemove']:
-			items = task['data']
+		## open the pkgdb sqlite database
+		try:
+			conn = sqlite3.connect("/etc/soton/pkgdb.sqlite")
+			conn.row_factory = sqlite3.Row
+			cursor = conn.cursor()
+		except Exception as ex:
+			syslog.syslog("Could not open the pkgdb: " + str(type(ex)) + " - " + str(ex))
+			return
+
+		if task['action'] in ['install','remove']:
+			# try to load the package data from the pkgdb by ID
+			cursor.execute("SELECT * FROM `entries` WHERE `id` = ?",(task['id'],))
+			entry = cursor.fetchone()
+
+			if entry is None:
+				syslog.syslog("Could not find requested entry ID " + task['id'])
+				return
 
 			try:
 				yb=yum.YumBase()
 				yb.conf.cache = 0
+				logger = logging.getLogger("yum.verbose.YumPlugins")
+				logger.setLevel(logging.CRITICAL)
+
+				## Now we need to get the individual packages or groups
+				## which make up this 'entry'.
+				cursor.execute("SELECT * FROM `items` WHERE `entry` = ?",(task['id'],))
+				items = cursor.fetchall()
 
 				transaction = False
 				for item in items:
+					# start of loop over each item
 
-					if taskid in ['pkgInstall', 'pkgRemove']:
-						## support the format name.arch
+					# Check if we've been asked to install a package group
+					if item['name'].startswith("@"):
+						group = True
+						item_name = item['name'][1:]
+						item_type = "group"
+					else:
+						group = False
+						item_name = item['name']
+						item_type = "package"
+
+					## support name.arch if not a package group
+					if not group:
 						arch=None
-						if item.endswith(".i686"):
-							item = item[:-5]
+						if item_name.endswith(".i686"):
+							item_name = item_name[:-5]
 							arch = "i686"
-						elif item.endswith(".x86_64"):
-							item = item[:-7]
+						elif item_name.endswith(".x86_64"):
+							item_name = item_name[:-7]
 							arch = "x86_64"
-						elif item.endswith(".noarch"):
-							item = item[:-7]
+						elif item_name.endswith(".noarch"):
+							item_name = item_name[:-7]
 							arch = "noarch"
 
-					if taskid == 'pkgInstall':
-						try:
-							res = yb.install(name=item,arch=arch,silence_warnings=True)
-						except Exception as ex:
-							syslog.syslog("Could not install " + item + ": " + str(ex))
-							continue
+						# If we've been told to install
+						if task['action'] == 'install':
+							try:
+								res = yb.install(name=item_name,arch=arch,silence_warnings=True)
+							except Exception as ex:
+								syslog.syslog("Could not install package " + item_name + ": " + str(ex))
+								continue
 
-					elif taskid == 'pkgRemove':
-						try:
-							res = yb.remove(name=item,arch=arch,silence_warnings=True)
-						except Exception as ex:
-							syslog.syslog("Could not remove " + item + ": " + str(ex))
-							continue
+						elif task['action'] == 'remove':
+							try:
+								res = yb.remove(name=item_name,arch=arch,silence_warnings=True)
+							except Exception as ex:
+								syslog.syslog("Could not remove package " + item_name + ": " + str(ex))
+								continue
+					else:
+						# this is a group action, not a package
+						if task['action'] == 'install':
+							try:
+								res = yb.selectGroup(grpid=item_name)
+							except Exception as ex:
+								syslog.syslog("Could not install group " + item_name + ": " + str(ex))
+								continue
 
-					elif taskid == 'pkgGroupInstall':
-						try:
-							res = yb.selectGroup(grpid=item)
-						except Exception as ex:
-							syslog.syslog("Could not install group " + item + ": " + str(ex))
-							continue
-
-					elif taskid == 'pkgGroupRemove':
-						try:
-							res = yb.groupRemove(grpid=item)
-						except Exception as ex:
-							syslog.syslog("Could not remove group " + item + ": " + str(ex))
-							continue
+						elif task['action'] == 'remove':
+							try:
+								res = yb.groupRemove(grpid=item_name)
+							except Exception as ex:
+								syslog.syslog("Could not remove group " + item_name + ": " + str(ex))
+								continue
 
 					if len(res) > 0:
 						transaction = True
 					else:
-						if task['task'] == 'pkgInstall':
-							syslog.syslog("Could not install " + item)
-						elif task['task'] == 'pkgRemove':
-							syslog.syslog("Could not remove " + item)
-						elif task['task'] == 'pkgGroupInstall':
-							syslog.syslog("Could not install group " + item)
-						elif task['task'] == 'pkgGroupRemove':
-							syslog.syslog("Could not remove group " + item)
+						# this means that yum returned no transaction results (it doesnt, sadly, return
+						# an exception with any useful information. So we just know that yum couldn't
+						# do anything...cos we got nothing in the 'res' list. Oh well.
+						syslog.syslog("Could not " + task['action'] + " " + item_type + " " + item_name)
 
+					## end of loop over each item
+
+				# did we find any actions to undertake?
 				if transaction:
 					syslog.syslog("running transaction check")
 					yb.buildTransaction()
@@ -192,11 +226,13 @@ class DeskCtlDaemon(object):
 				yb.close()
 
 			except Exception as ex:
-				syslog.syslog("Error during yum transaction: " + str(type(ex)) + " " + str(ex))			
+				syslog.syslog("Error during yum transaction: " + str(type(ex)) + " " + str(ex))
 				traceback.print_exc()
 				yb.closeRpmDB()
 				yb.close()
 
+		# close sqlite3 before we quit
+		conn.close()
 
 	def addPackageTask(self,task):
 		start = False
@@ -224,49 +260,38 @@ class DeskCtlDaemon(object):
 	def ping(self):
 		return True
 
+	## send a list of package IDs, where the ID corresponds to the ID in the
+	## pkgdb sqlite database. in this way the web interface can ask what the 
+	## status of a particular package is (e.g. if its being installed)
 	@Pyro4.expose
-	def pkgInstall(self,pkg_names):
-		if not isinstance(pkg_names, (list, tuple)):
-			raise ValueError("pkg_names must be a list or tuple")
-
-		#if not self.pkgProcess = 
-
-		self.addPackageTask({'task': 'pkgInstall', 'data': pkg_names})
+	def pkgEntryInstall(self,pid):
+		self.addPackageTask({'action': 'install', 'id': pid})
 
 	@Pyro4.expose
-	def pkgRemove(self,pkg_names):
-		if not isinstance(pkg_names, (list, tuple)):
-			raise ValueError("pkg_names must be a list or tuple")
-
-		self.addPackageTask({'task': 'pkgRemove', 'data': pkg_names})
+	def pkgEntryRemove(self,pid):
+		self.addPackageTask({'action': 'remove', 'id': pid})
 
 	@Pyro4.expose
-	def pkgGroupInstall(self,grp_names):
-		if not isinstance(grp_names, (list, tuple)):
-			raise ValueError("grp_names must be a list or tuple")
+	def pkgEntryStatus(self,check_id):
 
-		self.addPackageTask({'task': 'pkgGroupInstall', 'data': grp_names})
-
-	@Pyro4.expose
-	def pkgGroupRemove(self,grp_names):
-		if not isinstance(grp_names, (list, tuple)):
-			raise ValueError("grp_names must be a list or tuple")
-
-		self.addPackageTask({'task': 'pkgGroupRemove', 'data': grp_names})
-
-	@Pyro4.expose
-	def pkgStatus(self):
-
-		current = None
-		if self.pkgProcess is not None:
-			if self.pkgProcess.is_alive():
-				current = self.pkgTaskCurrent
-
+		# Get the list of entries queued
 		lst = self.pkgTaskQueue
-		if current is not None:
-			lst = [current] + lst
+		# add on the current task if the process is alive
+		if not self.pkgProcess is None:
+			if self.pkgProcess.is_alive():
+				if self.pkgTaskCurrent is not None:
+					lst = [self.pkgTaskCurrent] + lst
+				
 
-		return lst
+		# Loop over the list
+		for task in lst:
+			if int(task['id']) == int(check_id):
+				if task['action'] == 'install':
+					return 1 # this entry is being installed onto the system
+				elif task['action'] == 'remove':
+					return 2 # this entry is being removed from the system
+
+		return 0 # entry was not in queue
 
 	@Pyro4.expose
 	def groupAddUser(self,group,username):
@@ -299,11 +324,4 @@ class DeskCtlDaemon(object):
 
 		if code != 0:
 			raise Exception("Could not remove user from group: " + output)
-
-	@Pyro4.expose
-	def request_backup(self,name):
-		syslog.syslog('started backup task for ' + system['name'] + ' with task id ' + str(task_id) + ' and worker pid ' + str(task.pid))
-		return task_id
-
-
 

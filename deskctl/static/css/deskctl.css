@@ -20,3 +20,28 @@
 	margin-top: 5px;
 	margin-bottom: 5px;
 }
+
+/* Special large buttons on software page */
+.btn-group-vl>.btn, .btn-vl {
+	padding: 4px 10px;
+	font-size: 25px;
+	line-height: 1.3333333;
+	border-radius: 2px;
+}
+
+.software-bar-right
+{
+ 	margin-top: 12px;
+	float: right !important;
+}
+
+.alert-in-bar
+{
+	padding-right: 20px;
+}
+
+[data-toggle="category"]
+{
+	cursor: pointer;
+}
+

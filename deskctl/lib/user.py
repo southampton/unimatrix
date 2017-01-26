@@ -9,6 +9,29 @@ from functools import wraps
 from werkzeug.urls import url_encode
 import pam
 import pwd
+import grp
+
+################################################################################
+
+def can_user_remove_software():
+	if not is_logged_in():
+		return False
+
+	try:
+		linuxsys = grp.getgrnam('linuxsys')
+		linuxadm = grp.getgrnam('linuxadm')
+		localsys = grp.getgrnam('sys')
+	except KeyError as ex:
+		raise app.FatalError("Expected core groups do not exist on the system. Please contact ServiceLine for assistance")
+
+	if session['username'] in linuxsys.gr_mem:
+		return True
+	elif session['username'] in linuxadm.gr_mem:
+		return True
+	elif session['username'] in localsys:
+		return True
+
+	return False
 
 ################################################################################
 
