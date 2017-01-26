@@ -15,37 +15,6 @@
 		<script src="{{url_for('static',filename='patternfly/js/patternfly.min.js')}}"></script>
 	</head>
 	<body class="cards-pf">
-
-<div class="modal fade" id="mabout" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content about-modal-pf">
-            <div class="modal-header">
-              <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-                <span class="pficon pficon-close"></span>
-              </button>
-            </div>
-            <div class="modal-body">
-              <h1>Desktop Manager</h1>
-              <div class="product-versions-pf">
-                <ul class="list-unstyled">
-                  <li><strong>Label</strong> Version</li>
-                  <li><strong>Label</strong> Version</li>
-                  <li><strong>Label</strong> Version</li>
-                  <li><strong>Label</strong> Version</li>
-                  <li><strong>Label</strong> Version</li>
-                  <li><strong>Label</strong> Version</li>
-                </ul>
-              </div>
-              <div class="trademark-pf">
-                Copyright &copy; University of Southampton 2017
-              </div>
-            </div>
-            <div class="modal-footer">
-            </div>
-          </div>
-        </div>
-      </div>
-
 	{% if not is_logged_in() %}
 	<div class="modal fade" id="mlogin" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -85,9 +54,7 @@
         </div>
       </div>
 	{% endif %}
-
-		{%- block modals %}{% endblock %}
-
+	{%- block modals %}{% endblock %}
   <nav class="navbar navbar-pf-vertical">
   <div class="navbar-header">
     <button type="button" class="navbar-toggle">
@@ -109,8 +76,7 @@
           <span class="caret"></span>
         </a>
         <ul class="dropdown-menu">
-			
-          <li><a href="{{url_for('logout')}}" data-toggle="modal">Logout</a></li>
+          <li><a href="{{url_for('logout')}}">Logout</a></li>
         </ul>
       </li>
 		{%- else %}
@@ -124,9 +90,14 @@
     </ul>
   </nav>
 </nav> <!--/.navbar-->
-<!----------------------------------------------------------------------------->
 <div class="nav-pf-vertical nav-pf-vertical-with-sub-menus">
   <ul class="list-group">
+    <li class="list-group-item{% if active == 'overview' %} active{%endif%}">
+      <a href="{{ url_for('default') }}">
+        <span class="fa fa-tachometer" data-toggle="tooltip" title="Overview"></span>
+        <span class="list-group-item-value">Overview</span>
+      </a>
+    </li>
     <li class="list-group-item{% if active == 'software' %} active{%endif%}">
       <a href="{{ url_for('software') }}">
         <span class="pficon pficon-registry" data-toggle="tooltip" title="Software"></span>
@@ -135,8 +106,8 @@
     </li>
     <li class="list-group-item">
       <a>
-        <span class="pficon pficon-network" data-toggle="tooltip" title="Community software"></span>
-        <span class="list-group-item-value">CSW</span>
+        <span class="fa fa-cloud-download" data-toggle="tooltip" title="Software updates"></span>
+        <span class="list-group-item-value">Updates</span>
         
       </a>
     </li>
@@ -146,7 +117,7 @@
         <span class="list-group-item-value">Permissions</span>
       </a>
       
-      <div id="-secondary" class="nav-pf-secondary-nav">
+      <div id="ipsum-secondary" class="nav-pf-secondary-nav">
   <div class="nav-item-pf-header">
     <a class="secondary-collapse-toggle-pf" data-toggle="collapse-secondary-nav"></a>
     <span>Permissions</span>
@@ -187,12 +158,6 @@
       <a>
         <span class="fa fa-gears" data-toggle="tooltip" title="Policy"></span>
         <span class="list-group-item-value">Policy</span>
-      </a>
-    </li>
-    <li class="list-group-item">
-      <a>
-        <span class="pficon pficon-info" data-toggle="tooltip" title="About"></span>
-        <span class="list-group-item-value">About</span>
       </a>
     </li>
   </ul>

@@ -59,6 +59,9 @@ class DeskCtlDaemon(object):
 		signal.signal(signal.SIGTERM, self._signal_handler_master)
 		signal.signal(signal.SIGINT, self._signal_handler_master)
 
+		## Determine hardware information for deskctl-web
+		self._load_hardware_info()
+
 		syslog.syslog('deskctld started')
 
 	def _signal_handler_master(self, sig, frame):
@@ -108,6 +111,13 @@ class DeskCtlDaemon(object):
 			return (proc.returncode,str(stdoutdata))
 		except Exception as ex:
 			return (1,str(type(ex)) + " " + str(ex))
+
+	def _load_hardware_info(self):
+		## CPU  lshw -class cpu -json -quiet
+		## Memory
+		## Graphics
+		## Disks
+		## OS version
 
 	def pkgProcessTask(self,task):
 		setproctitle("deskctld-pkg")
@@ -325,3 +335,6 @@ class DeskCtlDaemon(object):
 		if code != 0:
 			raise Exception("Could not remove user from group: " + output)
 
+	@Pyro4.expose
+	def getHardwareInformation(self):
+		return ""

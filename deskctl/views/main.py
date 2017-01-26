@@ -14,8 +14,7 @@ import logging
 @app.route('/')
 def default():
 	app.logger.debug("default()")
-
-	return render_template('dashboard.html', title='dashboard')
+	return render_template('dashboard.html', title='Desktop Manager - Overview')
 
 @app.route('/software')
 def software(category=None):
@@ -202,7 +201,7 @@ def permissions(group):
 
 			group_members.append({'username': member, 'gecos': gecos})
 
-		return render_template('permissions.html',title='Permissions',active="permissions",activegrp=group,group_title=group_title,group_desc=group_desc,group_members=group_members,can_make_changes=can_make_changes)
+		return render_template('permissions.html',title='Desktop Manager - Permissions',active="permissions",activegrp=group,group_title=group_title,group_desc=group_desc,group_members=group_members,can_make_changes=can_make_changes)
 
 	elif request.method == 'POST':
 		if not can_make_changes:
