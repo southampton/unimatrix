@@ -253,10 +253,15 @@ class PlexusDaemon(object):
 			sqlitedb  = sqlite3.connect(self.config['PKGDB_PATH'])
 			slcur = sqlitedb.cursor()
 
+			# wipe tables if they already exist
+			slcur.execute('DROP TABLE IF EXISTS `items`')
+			slcur.execute('DROP TABLE IF EXISTS `entries`')
+			slcur.execute('DROP TABLE IF EXISTS `categories`')
+
 			# create the tables
-			slcur.execute('''CREATE TABLE categories (`id` integer, `name` text, `order` integer)''')
-			slcur.execute('''CREATE TABLE entries (`id` integer, `category` integer, `name` text, `desc` text, `icon` text)''')
-			slcur.execute('''CREATE TABLE items (`id` integer, `entry` integer, `name` text)''')
+			slcur.execute('CREATE TABLE categories (`id` integer, `name` text, `order` integer)')
+			slcur.execute('CREATE TABLE entries (`id` integer, `category` integer, `name` text, `desc` text, `icon` text)')
+			slcur.execute('CREATE TABLE items (`id` integer, `entry` integer, `name` text)')
 
 			curd = self._get_cursor()
 			curd.execute("SELECT * FROM `pkg_categories`")
