@@ -267,17 +267,17 @@ class PlexusDaemon(object):
 			curd.execute("SELECT * FROM `pkg_categories`")
 			categories = curd.fetchall()
 			for category in categories:
-				slcur.execute("INSERT INTO categories VALUES (%s, %s, %s)",(category['id'],category['name'],category['order'],))
+				slcur.execute("INSERT INTO categories VALUES (?, ?, ?)",(category['id'],category['name'],category['order'],))
 
 			curd.execute("SELECT * FROM `pkg_entries`")
 			entries = curd.fetchall()
 			for entry in entries:
-				slcur.execute("INSERT INTO entries VALUES (%s, %s, %s, %s, %s)",(entry['id'],entry['pkg_category_id'],entry['name'],entry['desc'],entry['icon'],))
+				slcur.execute("INSERT INTO entries VALUES (?, ?, ?, ?, ?)",(entry['id'],entry['pkg_category_id'],entry['name'],entry['desc'],entry['icon'],))
 
 			curd.execute("SELECT * FROM `pkg_entry_items`")
 			items = curd.fetchall()
 			for item in items:
-				slcur.execute("INSERT INTO items VALUES (%s, %s, %s)",(item['id'],item['pkg_entry_id'],item['name'],))
+				slcur.execute("INSERT INTO items VALUES (?, ?, ?)",(item['id'],item['pkg_entry_id'],item['name'],))
 
 			sqlitedb.commit()
 			sqlitedb.close()
