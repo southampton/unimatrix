@@ -49,10 +49,6 @@ def software(category=None):
 		if not found:
 			abort(404)
 
-	# Get all the entries for this category
-	cur.execute("SELECT * FROM `entries`")
-	entries = cur.fetchall()
-
 	# Prepare yum for querying
 	yb = yum.YumBase()
 
@@ -60,18 +56,22 @@ def software(category=None):
 	(installedGroups,availableGroups) = yb.doGroupLists()
 	groups = []
 	for group in installedGroups:
-		groups.add(group.name)
+		groups.append(group.name)
+
+	# Get all the entries for this category
+	cur.execute("SELECT * FROM `entries` WHERE `category` = ?",(category,))
+	entries = cur.fetchall()
 
 	# Now we need to check if the entry is installed or not on this system
 	# to determine what button to show.
+	pkgs = []
 	for entry in entries:
 		## Get the items we need to install
 		cur.execute("SELECT * FROM `items` WHERE `entry` = ?",(entry['id'],))
 		items = cur.fetchall()
 
-		if len(items) == 0:
-			entry['status'] = 0 # means no items, so mark as "unknown"
-		else:
+		status = 0
+		if len(items) > 0:
 			try:
 				installed = True
 				for item in items:
@@ -84,13 +84,15 @@ def software(category=None):
 							installed = False
 
 				if installed:
-					entry['status'] = 1
+					status = 1
 				else:
-					entry['status'] = 2
+					status = 2
 			except Exception as ex:
-				entry['status'] = 0
+				status = 0
 
-	return render_template('software.html',title='Desktop Manager - Software',active="software",pkgstatus=pkgStatus,category=category,categories=categories,entries=entries)
+			pkgs.append({'id': entry['id'], 'status': status, 'name': entry['name'], 'desc': entry['desc'], 'icon': entry['icon']}) 
+
+	return render_template('software.html',title='Desktop Manager - Software',active="software",pkgstatus=pkgStatus,category=category,categories=categories,pkgs=pkgs)
 
 @app.route('/permissions/<group>',methods=['GET','POST'])
 def permissions(group):

@@ -24,21 +24,39 @@
 				</div>
 			</div>
 			<div class="col-xs-12 col-sm-9">
-
-<div class="row">
-
-			<div class="col-xs-12 col-sm-6 col-md-4">
-				<div class="card-pf card-pf-view card-pf-view-xs">
-					<div class="card-pf-body">
-						<span style="font-size: 1.5vw">
-							<i class="fa fa-fw fa-edit" style="vertical-align: middle"></i> geany
-						</span>
-						<p>Geany is a small and fast integrated development enviroment with basic features and few dependencies to other packages or Desktop Environments.</p>
-						<div class="text-center"><a href="" class="btn btn-default btn-lg">Install</a></div>
+				<div class="row">
+					{% for pkg in pkgs %}
+					<div class="col-xs-12 col-sm-6 col-md-4">
+						<div class="card-pf card-pf-view card-pf-view-xs">
+							<div class="card-pf-body">
+								<span style="font-size: 1.5vw">
+									<i class="fa fa-fw {{pkg.icon}}" style="vertical-align: middle"></i> {{pkg.name}}
+								</span>
+								<p>{{pkg.desc}}<p>
+								<div class="text-center">
+									{% if pkg.status == 0 %}
+									<a class="btn btn-default btn-lg disabled" disabled="disabled">Unknown status</a>
+									{% elif pkg.status == 1 %}
+									<a href="#" class="btn btn-danger btn-lg">Remove</a>
+									{% elif pkg.status == 2 %}
+									<a href="#" class="btn btn-primary btn-lg">Install</a>
+									{% endif %}
+								</div>
+							</div>
+						</div>
 					</div>
-				</div>
-			</div>
-
+					{% else %}
+					<div class="col-xs-12 col-sm-6 col-md-4">
+						<div class="card-pf card-pf-view card-pf-view-xs">
+							<div class="card-pf-body text-center">
+								<span style="font-size: 1.5vw">
+									<i class="fa fa-fw fa-frown-o" style="vertical-align: middle"></i>
+								</span>
+								<p>No packages in this category</p
+							</div>
+						</div>
+					</div>
+					{% endfor %}
 				</div>
 			</div>
 		</div>
