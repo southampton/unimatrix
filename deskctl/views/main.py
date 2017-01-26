@@ -2,10 +2,11 @@
 
 from deskctl import app
 from deskctl.lib.user import is_logged_in
-from deskctl.lib.misc import deskctld_connect
+from deskctl.lib.misc import deskctld_connect, open_pkgdb
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import grp
 import pwd
+import yum
 
 ################################################################################
 
@@ -16,7 +17,8 @@ def default():
 	return render_template('dashboard.html', title='dashboard')
 
 @app.route('/software')
-def software():
+@app.route('/software/<int:category>')
+def software(category=None):
 	## Connect to the desktop management service
 	deskctld = deskctld_connect()
 
@@ -25,8 +27,70 @@ def software():
 
 	if len(pkgStatus) == 0:
 		pkgStatus = None
-	
-	return render_template('software.html',title='Software',active="software",pkgstatus=pkgStatus)
+
+	## Get the pkgdb database
+	db = open_pkgdb()
+	cur = db.cursor()
+	cur.execute("SELECT * FROM `categories`")
+	categories = cur.fetchall()
+
+	if len(categories) == 0:
+		raise app.FatalError("The package database is empty")
+
+	if category == None:
+		## No category selected, so choose the default
+		category = categories[0]["id"]
+	else:
+		found = False
+		for cat in categories:
+			if cat['id'] == category:
+				found = True
+
+		if not found:
+			abort(404)
+
+	# Get all the entries for this category
+	cur.execute("SELECT * FROM `entries`")
+	entries = cur.fetchall()
+
+	# Prepare yum for querying
+	yb = yum.YumBase()
+
+	# Prepare groups
+	(installedGroups,availableGroups) = yb.doGroupLists()
+	groups = []
+	for group in installedGroups:
+		groups.add(group.name)
+
+	# Now we need to check if the entry is installed or not on this system
+	# to determine what button to show.
+	for entry in entries:
+		## Get the items we need to install
+		cur.execute("SELECT * FROM `items` WHERE `entry` = ?",(entry['id'],))
+		items = cur.fetchall()
+
+		if len(items) == 0:
+			entry['status'] = 0 # means no items, so mark as "unknown"
+		else:
+			try:
+				installed = True
+				for item in items:
+					if item['name'].startswith("@"):
+						grpName = item['name'][:-1]
+						if grpName not in groups:
+							installed = False 	
+					else:
+						if not yb.rpmdb.searchNevra(name=item['name']):
+							installed = False
+
+				if installed:
+					entry['status'] = 1
+				else:
+					entry['status'] = 2
+			except Exception as ex:
+				entry['status'] = 0
+
+	return render_template('software.html',title='Desktop Manager - Software',active="software",pkgstatus=pkgStatus,category=category,categories=categories,entries=entries)
 
 @app.route('/permissions/<group>',methods=['GET','POST'])
 def permissions(group):
