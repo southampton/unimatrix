@@ -55,8 +55,8 @@ BACKUP_ROOT_DIR = "/data/backups"
 
 ## Accounts to use for SSH connections from workstations
 # the shell for either account can be whatever you like as long as it isn't
-# bin/false or sbin/nologin or whatever. ssh's authorized_keys command 
-# restrictions prevent anything but rsync or the backup command.
+# bin/false or sbin/nologin (or similar). ssh's authorized_keys command 
+# restrictions prevent anything but rsync or the backup command anyway
 SSH_USERNAME_BACKUP = "backup" 
 SSH_USERNAME_PUPPET = "pull" # probably not a good idea to use 'puppet' account
 
@@ -65,3 +65,10 @@ PLEXUS_SOCKET_PATH="/run/plexus.sock"
 PLEXUS_SOCKET_MODE=0770
 PLEXUS_SOCKET_UID=0
 PLEXUS_SOCKET_GID=0
+
+## deskctl needs a sqlite database of package data
+## to show to the user for what packages to install
+## plexus generates this from the DB (which is updated
+## by staff in the zero web app). Plexus needs to know where to
+## output this to
+PKGDB_PATH="/data/rsync/puppet/modules/deskctl/files/pkgdb.sqlite"

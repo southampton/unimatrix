@@ -290,6 +290,31 @@ Username:             %s
 		  CONSTRAINT `tasks_ibfk_1` FOREIGN KEY (`sid`) REFERENCES `systems` (`id`) ON DELETE CASCADE
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
 
+		cursor.execute("""CREATE TABLE IF NOT EXISTS `pkg_categories` (
+		  `id` mediumint(11) NOT NULL AUTO_INCREMENT,
+		  `name` varchar(255) NOT NULL,
+		  `order` mediumint(11) NOT NULL,
+		  PRIMARY KEY (`id`)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
+
+		cursor.execute("""CREATE TABLE IF NOT EXISTS `pkg_entries` (
+		  `id` mediumint(11) NOT NULL AUTO_INCREMENT,
+		  `pkg_category_id` mediumint(11) NOT NULL,
+		  `name` varchar(255) NOT NULL,
+		  `desc` TEXT,
+		  `icon` varchar(255) NOT NULL,
+		  PRIMARY KEY (`id`),
+		  CONSTRAINT `pkg_entries_ibfk_1` FOREIGN KEY (`pkg_category_id`) REFERENCES `pkg_categories` (`id`) ON DELETE CASCADE
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
+
+		cursor.execute("""CREATE TABLE IF NOT EXISTS `pkg_entry_items` (
+		  `id` mediumint(11) NOT NULL AUTO_INCREMENT,
+		  `pkg_entry_id` mediumint(11) NOT NULL,
+		  `name` varchar(255) NOT NULL,
+		  PRIMARY KEY (`id`),
+		  CONSTRAINT `pkg_entry_actions_ibfk_1` FOREIGN KEY (`pkg_entry_id`) REFERENCES `pkg_entries` (`id`) ON DELETE CASCADE
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
+
 		## Close database connection
 		temp_db.close()
 

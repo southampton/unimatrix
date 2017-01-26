@@ -1,0 +1,15 @@
+#!/usr/bin/python
+
+SOCKET_PATH="/run/plexus.sock"
+
+import sys
+import Pyro4
+
+if __name__ == "__main__":
+	plexus = Pyro4.Proxy('PYRO:plexus@./u:' + SOCKET_PATH)
+
+	try:
+		plexus.regenerate_pkgdb()
+	except Exception as ex:
+		sys.stderr.write(str(ex) + "\n")
+		sys.exit(1)
