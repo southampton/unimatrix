@@ -343,14 +343,14 @@ def update_trigger(parser,args,config):
 def update_status(parser,args,config):
 
 	(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-get-prepared"],debug=args.debug)
-	print output
+	print output.rstrip("\n")
 
 ################################################################################
 
 def update_history(parser,args,config):
 
 	(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-status"],debug=args.debug)
-	print output
+	print output.rstrip("\n")
 
 ################################################################################
 
