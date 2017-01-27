@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-6"
+VERSION     = "2017-01-27-7"
 
 import os
 import sys
@@ -365,7 +365,7 @@ def backup_ifneeded(parser,args,config):
 	if args.debug: print "checking for last backup"
 	(code,when) = backup_load_state()
 
-	if not is None:
+	if code is None:
 		if args.verbose: print "no backup status found, triggering backup"
 		backup_now(parser,args,config)
 	else:
