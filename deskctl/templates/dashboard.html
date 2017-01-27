@@ -3,7 +3,53 @@
 <div class="row row-cards-pf">
 	<div class="col-xs-12 col-sm-12 col-md-12">
 		<div class="card-pf card-pf-accented">
-			<h1 style="padding-bottom: 20px">Oh hai</h1>
+			<h1 style="padding-bottom: 20px">System Information</h1>
+		</div>
+	</div>
+	<div class="col-xs-4 col-sm-4 col-md-4">
+		<div class="card-pf">
+			<div class="card-pf-body">
+				<h1>CPU</h1>
+				{% for cpu in hardware.cpus %}<p>CPU {{ loop.index }}:<br/>Model: {{ hardware.cpus[cpu].model }}<br />Cores: {{ hardware.cpus[cpu].cores }}<br/>Cache: {{ hardware.cpus[cpu].cache }}</p>{% endfor %}
+			</div>
+		</div>
+	</div>
+	<div class="col-xs-4 col-sm-4 col-md-4">
+		<div class="card-pf">
+			<div class="card-pf-body">
+				<h1>Memory</h1>
+				<div><strong>Physical RAM</strong>: {{ hardware.physical_memory.installed_ram|filesizeformat(true) }}</div>
+				<div><strong>Usable RAM</strong>: {{ hardware.os_memory.total_usable|filesizeformat(true) }}</div>
+				<div><strong>Free RAM</strong>: {{ hardware.os_memory.free|filesizeformat(true) }}</div>
+				<div><strong>Available RAM</strong>: {{ hardware.os_memory.available|filesizeformat(true) }}</div>
+			</div>
+		</div>
+	</div>
+	<div class="col-xs-4 col-sm-4 col-md-4">
+		<div class="card-pf">
+			<div class="card-pf-body">
+				<h1>Disks</h1>
+				<h2>Physical Disks</h2>
+				{% for disk in hardware.disks|sort %}
+					<div><strong>{{ disk }}</strong>: {{ hardware.disks[disk]|filesizeformat(true) }}</div>
+				{% endfor %}
+				<h2>Mounted Filesystems</h2>
+				{% for fs in hardware.filesystems|sort %}
+					<div><strong>{{ fs }}</strong>: {{ hardware.filesystems[fs].used|filesizeformat(true) }} used out of {{ hardware.filesystems[fs].size|filesizeformat(true) }}</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+	<div class="col-xs-4 col-sm-4 col-md-4">
+		<div class="card-pf">
+			<div class="card-pf-body">
+				<h1>System Details</h1>
+				<div><strong>Vendor</strong>: {{ hardware.system.vendor }}</div>
+				<div><strong>Model</strong>: {{ hardware.system.model }}</div>
+				{% for card in hardware.graphics.cards %}
+					<div><strong>Graphics Card</strong>: {{ card }}</div>
+				{% endfor %}
+			</div>
 		</div>
 	</div>
 </div>

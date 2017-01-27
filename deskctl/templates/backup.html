@@ -19,7 +19,7 @@
 			<div class="col-xs-12 col-sm-12">
 				<div class="card-pf">
 				  <div class="card-pf-body">
-					{% if code == -1 %}
+					{% if code is none %}
 						<span style="font-size: 1.2vw" class="text-warning">
 							<i class="fa fa-exclamation-circle" style="valign: middle"></i> This system has never been backed up
 						</span>
@@ -38,6 +38,7 @@
 							<i class="fa fa-exclamation-circle" style="valign: middle"></i> The last backup attempt failed
 						</span>
 						<p class="text-muted">Backup last ran on: {{when}}</p>
+						<pre class="updatepre">{% if output is not none %}{{output}}{%endif%}</pre>
 					{% endif %}
 				  </div>
 				</div>
