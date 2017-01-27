@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-10"
+VERSION     = "2017-01-27-11"
 
 import os
 import sys
@@ -234,9 +234,11 @@ def puppet(parser,args,config):
 def backup_now(parser,args,config):
 	if args.verbose: print "starting backup (this may take several minutes)"
 
+	uts = int(time.time())
 	## Ensure the mount point for the snapshot exists
 	if args.debug: print "checking config.backup.lv_snap_mount path"
 	if not os.path.exists(config.get('backup','lv_snap_mount')):
+		backup_save_state(uts,-1,"The lv_snap_mount directory does not exist")
 		fatal(20,"The lv_snap_mount directory - " + config.get('backup','lv_snap_mount') + " - does not exist")
 
 	## Create the snapshot of home
@@ -246,6 +248,7 @@ def backup_now(parser,args,config):
 	if code == 0:
 		if args.verbose: print "snapshot created"
 	else:
+		backup_save_state(uts,-1,"Could not create disk snapshot: \n" + output)
 		fatal(21,"Could not create snapshot:\n" + output)
 
 	## Mount it
@@ -255,26 +258,26 @@ def backup_now(parser,args,config):
 	if code == 0:
 		if args.verbose: print "snapshot mounted"
 	else:
+		backup_save_state(uts,-1,"Could not mount disk snapshot: \n" + output)
 		fatal(21,"Could not mount snapshot:\n" + output)
 
 	## k we're ready! start the backup!
-	(code, output) = sysexec("""%s %s@%s -i %s/ssh_private_key -o "ExitOnForwardFailure yes" -R %s:localhost:%s """ % (config.get('ssh','binary'), config.get('backup','user'), config.get('backup','server'), BASE_DIR, config.get('backup','port'),config.get('backup','rsyncd_port'),),shell=True,debug=args.debug)
-
 	uts = int(time.time())
+	(code, output) = sysexec("""%s %s@%s -i %s/ssh_private_key -o "ExitOnForwardFailure yes" -R %s:localhost:%s """ % (config.get('ssh','binary'), config.get('backup','user'), config.get('backup','server'), BASE_DIR, config.get('backup','port'),config.get('backup','rsyncd_port'),),shell=True,debug=args.debug)
 
 	fail = False
 	if code == 0:
 		status = "backup complete, all files backed up"
+		backup_save_state(uts,code)
 	elif code == 1:
 		status = "backup partially complete, some files did not backup"
+		backup_save_state(uts,code)
 	else:
+		fail = True # we use this later to exit with an error
 		status = "backup failed"
-		fail = True
+		backup_save_state(uts,code,output)
 
 	if args.verbose: print status
-
-	## Save the resulting status
-	backup_save_state(uts,code)
 
 	if args.debug: print "unmounting snapshot"
 	## Now we umount the snapshot and delete it as we don't need it anymore
@@ -300,8 +303,8 @@ def backup_now(parser,args,config):
 
 ################################################################################
 
-def backup_save_state(uts,code):
-	data = {'when': uts, 'code': code}
+def backup_save_state(uts,code,output=None):
+	data = {'when': uts, 'code': code, 'output': output}
 
 	try:
 		if not os.path.exists(BASE_DIR + "/state"):
@@ -331,20 +334,23 @@ def backup_load_state():
 		try:
 			code = data['code']
 			when = data['when']
+			if 'output' in data:
+				output = data['output']
 		except Exception as ex:
 			fatalex(29,"Could not load backup status",ex)
 
 	else:
-		code = None
-		when = None
+		code   = None
+		when   = None
+		output = None
 
-	return (code,when)
+	return (code,when,output)
 
 ################################################################################
 
 def backup_get_state(parser,args,config):
 
-	(code,when) = backup_load_state()
+	(code,when,output) = backup_load_state()
 
 	if code is not None:
 
@@ -356,6 +362,8 @@ def backup_get_state(parser,args,config):
 			print "the last backup completed but some files could not be backed up"
 		else:
 			print "the last backup failed"
+			if output is not None:
+				print output
 	else:
 		print "a backup has never been run on this system"
 
