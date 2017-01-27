@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-3"
+VERSION     = "2017-01-27-4"
 
 import os
 import sys
@@ -175,7 +175,7 @@ def puppet_get_state(parser,args,config):
 			fatalex(5,"Could not read from puppet status file " + status_file,ex)
 
 		try:
-			print "the last puppet apply finished at " + strtime(data['when']) + "\n"
+			print "the last puppet apply finished at " + strtime(data['when'])
 
 			if data['code'] == 0:
 				print "system was in compliance with the system policy"
@@ -329,7 +329,7 @@ def backup_get_state(parser,args,config):
 			fatalex(5,"Could not read from backup status file " + status_file,ex)
 
 		try:
-			print "the last backup attempt was made at " + strtime(data['when']) + "\n"
+			print "the last backup attempt was made at " + strtime(data['when'])
 
 			if data['code'] == 0:
 				print "the backup competed successfully, all files were backed up"
