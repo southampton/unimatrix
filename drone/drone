@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-9"
+VERSION     = "2017-01-27-10"
 
 import os
 import sys
@@ -318,7 +318,7 @@ def backup_save_state(uts,code):
 
 ################################################################################
 
-def backup_load_state(parser,args,config):
+def backup_load_state():
 	status_file = BASE_DIR + "/state/backup" 
 
 	if os.path.exists(status_file):
