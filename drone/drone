@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-20-1"
+VERSION     = "2017-01-27-1"
 
 import os
 import sys
@@ -43,6 +43,7 @@ def get_config():
 	config.add_section('server')
 	config.add_section('ssh')
 	config.add_section('reskit')
+	config.add_section('update')
 	
 	## Set up default values
 	config.set('backup','user','backup')
@@ -59,6 +60,8 @@ def get_config():
 	config.set('puppet','server','localhost')
 
 	config.set('reskit','pkgdir','/etc/reskit/packages/')
+
+	config.set('update','pkcon_binary','/bin/pkcon')
 
 	config.set('ssh','binary','/usr/bin/ssh')
 
@@ -151,7 +154,7 @@ def puppet_save_state(status):
 
 ################################################################################
 
-def puppet_get_state(parser,ars,config):
+def puppet_get_state(parser,args,config):
 	status_file = BASE_DIR + "/state/puppet" 
 
 	if os.path.exists(status_file):
@@ -287,7 +290,7 @@ def backup_save_state(status):
 
 ################################################################################
 
-def backup_get_state(parser,ars,config):
+def backup_get_state(parser,args,config):
 	status_file = BASE_DIR + "/state/backup" 
 
 	if os.path.exists(status_file):
@@ -317,8 +320,55 @@ def backup(parser,args,config):
 ################################################################################
 ################################################################################
 
+def update_trigger(parser,args,config):
+
+	if args.verbose: print "downloading package updates"
+	(code, output) = sysexec([config.get('update','pkcon_binary'), "--only-download", "update"],debug=args.debug)
+
+	if code == 0:
+		if args.verbose: print "package updates downloaded"
+	else:
+		fatal(28,"Could not download package updates:\n" + output)
+
+	if args.verbose: print "triggering offline update"
+	(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-trigger"],debug=args.debug)
+
+	if code == 0:
+		if args.verbose: print "the system will update at the next reboot"
+	else:
+		fatal(29,"Could not trigger the offline update:\n" + output)
+
+################################################################################
+
+def update_status(parser,args,config):
+
+	(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-get-prepared"],debug=args.debug)
+	print output.rstrip("\n")
+
+################################################################################
+
+def update_history(parser,args,config):
+
+	(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-status"],debug=args.debug)
+	print output.rstrip("\n")
+
+################################################################################
+
 def update(parser,args,config):
-	print 'Not yet implemented'
+	action = args.action
+
+	if action == 'status':
+		update_status(parser,args,config)
+
+	elif action == 'history':
+		update_history(parser,args,config)
+
+	elif action == "trigger":
+		update_trigger(parser,args,config)
+
+	else:
+		print 'Unrecognised or missing action'
+		parser.print_help()
 
 ################################################################################
 ################################################################################
@@ -563,8 +613,9 @@ def main():
     now       perform a backup of this system
 
   update
-    status    show the update status of the system
-    schedule  schedule updates to be applied at next reboot
+    trigger   schedule an offline system update to occur at the next reboot
+    history   show the result of the last offline update
+    status    show the packages due to be updated (if any) at next reboot
 
   reskit
     update    update the contents of reskit software packages
