@@ -154,7 +154,7 @@ def puppet_save_state(status):
 
 ################################################################################
 
-def puppet_get_state(parser,ars,config):
+def puppet_get_state(parser,args,config):
 	status_file = BASE_DIR + "/state/puppet" 
 
 	if os.path.exists(status_file):
@@ -290,7 +290,7 @@ def backup_save_state(status):
 
 ################################################################################
 
-def backup_get_state(parser,ars,config):
+def backup_get_state(parser,args,config):
 	status_file = BASE_DIR + "/state/backup" 
 
 	if os.path.exists(status_file):
@@ -320,7 +320,7 @@ def backup(parser,args,config):
 ################################################################################
 ################################################################################
 
-def update_trigger(parser,ars,config):
+def update_trigger(parser,args,config):
 
 	if args.verbose: print "downloading package updates"
 	(code, output) = sysexec([config.get('update','pkcon_binary'), "--only-download", "update"],debug=args.debug)
@@ -340,14 +340,14 @@ def update_trigger(parser,ars,config):
 
 ################################################################################
 
-def update_status(parser,ars,config):
+def update_status(parser,args,config):
 
 	(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-get-prepared"],debug=args.debug)
 	print output
 
 ################################################################################
 
-def update_history(parser,ars,config):
+def update_history(parser,args,config):
 
 	(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-status"],debug=args.debug)
 	print output
