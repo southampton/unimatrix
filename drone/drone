@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-11"
+VERSION     = "2017-01-27-12"
 
 import os
 import sys
@@ -336,6 +336,8 @@ def backup_load_state():
 			when = data['when']
 			if 'output' in data:
 				output = data['output']
+			else:
+				output = None
 		except Exception as ex:
 			fatalex(29,"Could not load backup status",ex)
 
