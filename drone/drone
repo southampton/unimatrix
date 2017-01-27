@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-4"
+VERSION     = "2017-01-27-5"
 
 import os
 import sys
@@ -181,10 +181,10 @@ def puppet_get_state(parser,args,config):
 				print "system was in compliance with the system policy"
 			elif data['code'] == 2:
 				print "changes were made to the system to comply with the system policy:"
-				print data['output']
+				print data['output'].rstrip("\n")
 			else:
 				print "the attempt to apply the system policy failed:"
-				print data['output']
+				print data['output'].rstrip("\n")
 
 		except Exception as ex:
 			fatalex(30,"Could not load puppet status",ex)
