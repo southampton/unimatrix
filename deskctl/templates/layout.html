@@ -142,16 +142,16 @@
 
       
     </li>
-    <li class="list-group-item">
-      <a>
-        <span class="fa fa-archive" data-toggle="tooltip" title="Backups"></span>
-        <span class="list-group-item-value">Backups</span>
+    <li class="list-group-item{% if active == 'backup' %} active{%endif%}">
+      <a href="{{ url_for('backup') }}">
+        <span class="fa fa-archive" data-toggle="tooltip" title="Backup"></span>
+        <span class="list-group-item-value">Backup</span>
       </a>
     </li>
-    <li class="list-group-item">
-      <a>
-        <span class="fa fa-gears" data-toggle="tooltip" title="Policy"></span>
-        <span class="list-group-item-value">Policy</span>
+    <li class="list-group-item{% if active == 'policy' %} active{%endif%}">
+      <a href="{{ url_for('policy') }}">
+        <span class="fa fa-gears" data-toggle="tooltip" title="System Policy"></span>
+        <span class="list-group-item-value">System Policy</span>
       </a>
     </li>
   </ul>
