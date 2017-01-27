@@ -1,0 +1,47 @@
+					{% for pkg in pkgs %}
+					<div class="col-xs-12 col-sm-6 col-md-4">
+						<div class="card-pf card-pf-view card-pf-view-xs">
+							<div class="card-pf-body">
+								<span style="font-size: 1.5vw">
+									<i class="fa fa-fw {{pkg.icon}}" style="vertical-align: middle"></i> {{pkg.name}}
+								</span>
+								<p>{{pkg.desc}}<p>
+								<div class="text-center">
+									{% if pkg.status == 0 %}
+									<a class="btn btn-default btn-lg disabled" disabled="disabled">Unknown status</a>
+									{% elif pkg.status == 1 %}
+										{% if can_user_remove_software %}
+											<a class="btn btn-danger btn-lg" data-toggle="entryclk" data-id="{{pkg.id}}" data-action="remove">Remove</a>
+										{% else %}
+											<a class="btn btn-info btn-lg disabled" disabled="disabled"><i class="fa fa-check fa-fw"></i> Installed</a>
+										{% endif %}
+									
+									{% elif pkg.status == 2 %}
+										{% if is_logged_in() %}
+											<a class="btn btn-primary btn-lg" data-toggle="entryclk" data-id="{{pkg.id}}" data-action="install" >Install</a>
+										{% else %}
+											<a class="btn btn-info btn-lg disabled" disabled="disabled"><i class="fa fa-archive fa-fw"></i> Not installed</a>
+										{% endif %}
+
+
+									{% elif pkg.status == 3 %}
+									<a class="btn btn-info btn-lg disabled" disabled="disabled"><i class="fa fa-cog fa-spin fa-fw"></i> Installation in progress</a>
+									{% elif pkg.status == 4 %}
+									<a class="btn btn-info btn-lg disabled" disabled="disabled"><i class="fa fa-cog fa-spin fa-fw"></i> Removal in progress</a>
+									{% endif %}
+								</div>
+							</div>
+						</div>
+					</div>
+					{% else %}
+					<div class="col-xs-12 col-sm-6 col-md-4">
+						<div class="card-pf card-pf-view card-pf-view-xs">
+							<div class="card-pf-body text-center">
+								<span style="font-size: 1.5vw">
+									<i class="fa fa-fw fa-frown-o" style="vertical-align: middle"></i>
+								</span>
+								<p>No packages in this category</p
+							</div>
+						</div>
+					</div>
+					{% endfor %}
