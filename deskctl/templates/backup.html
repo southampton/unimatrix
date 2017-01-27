@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<div class="row row-cards-pf">
+	<div class="col-xs-12 col-sm-12 col-md-12">
+		<div class="card-pf card-pf-accented">
+			<div class="software-bar-right">
+				<a href="{{url_for('backup')}}" class="btn btn-default btn-vl"><i class="fa fa-refresh"></i></a>
+			</div>
+			<h1>Backup</h1>
+			<p style="padding-bottom: 20px">This system is backed up automatically at least once a day. You do not need to keep your computer on overnight for backups to work - backups will be automatically triggered when you turn your computer on.</p>
+		</div>
+	</div>
+</div>
+
+<div class="row row-cards-pf">
+	<div class="col-xs-12 {% if pkgstatus %}col-sm-9{%else%}col-sm-12{%endif%}">
+		<div class="row">
+			<div class="col-xs-12 col-sm-12">
+				<div class="card-pf">
+				  <div class="card-pf-body">
+					{% if code == -1 %}
+						<span style="font-size: 1.2vw" class="text-warning">
+							<i class="fa fa-exclamation-circle" style="valign: middle"></i> This system has never been backed up
+						</span>
+					{% elif code == 0 %}
+						<span style="font-size: 1.2vw" class="text-success">
+							<i class="fa fa-check-circle" style="valign: middle"></i> The last backup was successful
+						</span>
+						<p class="text-muted">Backup last ran on: {{when}}</p>
+					{% elif code == 1 %}
+						<span style="font-size: 1.2vw" class="text-warning">
+							<i class="fa fa-exclamation-circle" style="valign: middle"></i> The last backup was successful but some files could not be backed up
+						</span>
+						<p class="text-muted">Backup last ran on: {{when}}</p>
+					{% else %}
+						<span style="font-size: 1.2vw" class="text-danger">
+							<i class="fa fa-exclamation-circle" style="valign: middle"></i> The last backup attempt failed
+						</span>
+						<p class="text-muted">Backup last ran on: {{when}}</p>
+					{% endif %}
+				  </div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+{% endblock %}

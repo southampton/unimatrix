@@ -9,6 +9,8 @@ import pwd
 import yum
 import logging
 import os
+import json
+import re
 
 ################################################################################
 
@@ -276,4 +278,58 @@ def updates():
 			status_title = "Update status"
 
 	return render_template('updates.html', title='Desktop Manager - Software Updates',active="updates",status=status,status_title=status_title)
+
+@app.route('/policy')
+def policy():
+	status_file = "/etc/soton/state/puppet" 
+
+	if os.path.exists(status_file):
+		try:
+			with open(status_file,"r") as fp:
+				data = json.load(fp)
+		except Exception as ex:
+			raise app.FatalError("Could not read from puppet status file " + status_file + ": " + str(ex))
+
+		try:
+			when = app.strtime(data['when'])
+			code = data['code']
+			if 'output' in data:
+				output = data['output']
+				# remove ANSI colours (escape sequences)
+				removeEscapes = re.compile(r'\x1b[^m]*m')
+				output = removeEscapes.sub('', output)
+			else:
+				output = None
+		except Exception as ex:
+			raise app.FatalError("Could not read puppet status: " + str(ex))
+
+	else:
+		when = None
+		code = -1
+		output = None
+
+	return render_template('policy.html', title='Desktop Manager - System Policy',active="policy",when=when,code=code,output=output)
+
+@app.route('/backup')
+def backup():
+	status_file = "/etc/soton/state/backup" 
+
+	if os.path.exists(status_file):
+		try:
+			with open(status_file,"r") as fp:
+				data = json.load(fp)
+		except Exception as ex:
+			raise app.FatalError("Could not read from backup status file " + status_file + ": " + str(ex))
+
+		try:
+			when = app.strtime(data['when'])
+			code = data['code']
+		except Exception as ex:
+			raise app.FatalError("Could not read backup status: " + str(ex))
+
+	else:
+		when = None
+		code = -1
+
+	return render_template('backup.html', title='Desktop Manager - Backup',active="backup",when=when,code=code)
 

@@ -5,6 +5,7 @@ import os.path
 from flask import Flask, request, session, abort, g, render_template, url_for
 import logging
 import binascii
+import datetime
 
 class DeskCtlFlask(Flask):
 
@@ -142,3 +143,13 @@ class DeskCtlFlask(Flask):
 		self._exempt_views.add(view_location)
 		self.logger.debug('Added CSRF check exemption for ' + view_location)
 		return view
+
+	################################################################################
+
+	def strtime(self,when=None):
+		if when is None:
+			dt = datetime.datetime.now()
+		else:
+			dt = datetime.datetime.fromtimestamp(int(when))
+
+		return dt.strftime("%Y-%m-%d %H:%M:%S")

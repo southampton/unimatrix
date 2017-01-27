@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<div class="row row-cards-pf">
+	<div class="col-xs-12 col-sm-12 col-md-12">
+		<div class="card-pf card-pf-accented">
+			<div class="software-bar-right">
+				<a href="{{url_for('policy')}}" class="btn btn-default btn-vl"><i class="fa fa-refresh"></i></a>
+			</div>
+			<h1>System Policy</h1>
+			<p style="padding-bottom: 20px">This system uses Puppet configuration management software to ensure the system is healthy and functioning correctly.</p>
+		</div>
+	</div>
+</div>
+
+<div class="row row-cards-pf">
+	<div class="col-xs-12 {% if pkgstatus %}col-sm-9{%else%}col-sm-12{%endif%}">
+		<div class="row">
+			<div class="col-xs-12 col-sm-12">
+				<div class="card-pf">
+				  <div class="card-pf-body">
+					{% if code == -1 %}
+						<span style="font-size: 1.2vw" class="text-warning">
+							<i class="fa fa-exclamation-circle" style="valign: middle"></i> System status unknown
+						</span>
+					{% elif code == 0 %}
+						<span style="font-size: 1.2vw" class="text-success">
+							<i class="fa fa-check-circle" style="valign: middle"></i> This system is healthy
+						</span>
+						<p class="text-muted">Puppet last ran at: {{when}}</p>
+					{% elif code == 2 %}
+						<span style="font-size: 1.2vw" class="text-success">
+							<i class="fa fa-check-circle" style="valign: middle"></i> This system is healthy
+						</span>
+						<p class="text-muted">Puppet last ran at: {{when}}</p>
+						<p>On the last run changes were made to the system to ensure it complied with the system policy:</p>
+						<pre class="updatepre">{{output}}</pre>
+					{% else %}
+						<span style="font-size: 1.2vw" class="text-danger">
+							<i class="fa fa-exclamation-circle" style="valign: middle"></i> System is unhealthy
+						</span>
+						<p class="text-muted">Puppet last ran at: {{when}}</p>
+						<pre class="updatepre">{{output}}</pre>
+					{% endif %}
+				  </div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+{% endblock %}
