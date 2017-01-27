@@ -16,29 +16,15 @@
 <div class="row row-cards-pf">
 	<div class="col-xs-12 {% if pkgstatus %}col-sm-9{%else%}col-sm-12{%endif%}">
 		<div class="row">
-			<div class="col-xs-12 col-sm-6">
-				<div class="card-pf" style="min-height: 400px">
+			<div class="col-xs-12 col-sm-12">
+				<div class="card-pf">
 					<div class="card-pf-heading">
 						<h2 class="card-pf-title">
-						Updates staged for installation
+						{{status_title}}
 						</h2>
 					</div>
 				  <div class="card-pf-body">
 					<pre class="updatepre">{{status}}</pre>
-				  </div>
-				</div>
-			</div>
-			<div class="col-xs-12 col-sm-6">
-				<div class="card-pf" style="min-height: 400px">
-					<div class="card-pf-heading">
-						<h2 class="card-pf-title">
-						Updates recently installed
-						</h2>
-					</div>
-				  <div class="card-pf-body">
-					<ul class="nav nav-pills nav-stacked">
-					<pre class="updatepre">{{history}}</pre>
-					</ul>
 				  </div>
 				</div>
 			</div>

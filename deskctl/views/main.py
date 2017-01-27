@@ -8,6 +8,7 @@ import grp
 import pwd
 import yum
 import logging
+import os
 
 ################################################################################
 
@@ -82,20 +83,22 @@ def ajax_software(category):
 	if not category_obj:
 		abort(404)
 
-	# Prepare yum for querying
-	yb = yum.YumBase()
-	logger = logging.getLogger("yum.verbose.YumPlugins")
-	logger.setLevel(logging.CRITICAL)
-
-	# Prepare groups
-	(installedGroups,availableGroups) = yb.doGroupLists()
-	groups = []
-	for group in installedGroups:
-		groups.append(group.name)
-
 	# Get all the entries for this category
 	cur.execute("SELECT * FROM `entries` WHERE `category` = ?",(category,))
 	entries = cur.fetchall()
+
+	if entries is not None:
+		if len(entries) > 0:
+			# Prepare yum for querying
+			yb = yum.YumBase()
+			logger = logging.getLogger("yum.verbose.YumPlugins")
+			logger.setLevel(logging.CRITICAL)
+
+			# Prepare groups
+			(installedGroups,availableGroups) = yb.doGroupLists()
+			groups = []
+			for group in installedGroups:
+				groups.append(group.name)
 
 	# Now we need to check if the entry is installed or not on this system
 	# to determine what button to show.
@@ -251,17 +254,26 @@ def permissions(group):
 @app.route('/updates')
 def updates():
 	(history_code,history) = sysexec(["/bin/pkcon","offline-status"])
-	(status_code,status) = sysexec(["/bin/pkcon","offline-get-prepared"])
 
-	if status_code == 4:
-		status = "No updates are currently staged for installation"
-	elif status_code > 0:
-		status = "Could not obtain information, error code: " + str(status_code)
 
-	if history_code == 2:
-		history = "No updates have been recently installed on this computer"
-	elif history_code > 0:
-		history = "Could not obtain information, error code: " + str(history_code)
+	if os.path.exists("/system-update"):
+		(rcode,status) = sysexec(["/bin/pkcon","offline-get-prepared"])
+		status_title = "System is ready to update at next startup"
 
-	return render_template('updates.html', title='Desktop Manager - Software Updates',active="updates",history=history,status=status)
+		if rcode == 4:
+			status = "No updates are currently staged for installation"
+		elif rcode > 0:
+			status = "Could not obtain information, error code: " + str(rcode)
+	else:
+		(rcode,status) = sysexec(["/bin/pkcon","offline-status"])
+		status_title = "Updates recently installed"
+
+		if rcode == 2:
+			status = "No updates have been recently installed on this computer"
+			status_title = "Update status"
+		elif history_code > 0:
+			status = "Could not obtain information, error code: " + str(rcode)
+			status_title = "Update status"
+
+	return render_template('updates.html', title='Desktop Manager - Software Updates',active="updates",status=status,status_title=status_title)
 
