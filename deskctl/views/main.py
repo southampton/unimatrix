@@ -2,7 +2,7 @@
 
 from deskctl import app
 from deskctl.lib.user import is_logged_in, can_user_remove_software
-from deskctl.lib.misc import deskctld_connect, open_pkgdb
+from deskctl.lib.misc import deskctld_connect, open_pkgdb, sysexec
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import grp
 import pwd
@@ -13,8 +13,7 @@ import logging
 
 @app.route('/')
 def default():
-	app.logger.debug("default()")
-	return render_template('dashboard.html', title='Desktop Manager - Overview')
+	return render_template('dashboard.html', active="overview", title='Desktop Manager - Overview')
 
 @app.route('/software')
 def software(category=None):
@@ -248,3 +247,21 @@ def permissions(group):
 
 				flash("Removed '" + username + "' from " + group_title,"alert-success")
 				return redirect(url_for('permissions',group=group))
+
+@app.route('/updates')
+def updates():
+	(history_code,history) = sysexec(["/bin/pkcon","offline-status"])
+	(status_code,status) = sysexec(["/bin/pkcon","offline-get-prepared"])
+
+	if status_code == 4:
+		status = "No updates are currently staged for installation"
+	elif status_code > 0:
+		status = "Could not obtain information, error code: " + str(status_code)
+
+	if history_code == 2:
+		history = "No updates have been recently installed on this computer"
+	elif history_code > 0:
+		history = "Could not obtain information, error code: " + str(history_code)
+
+	return render_template('updates.html', title='Desktop Manager - Software Updates',active="updates",history=history,status=status)
+

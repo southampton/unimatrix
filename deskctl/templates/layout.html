@@ -98,8 +98,8 @@
         <span class="list-group-item-value">Software</span>
       </a>
     </li>
-    <li class="list-group-item">
-      <a>
+    <li class="list-group-item{% if active == 'updates' %} active{%endif%}">
+      <a href="{{ url_for('updates') }}">
         <span class="fa fa-cloud-download" data-toggle="tooltip" title="Software updates"></span>
         <span class="list-group-item-value">Updates</span>
         
