@@ -2,22 +2,25 @@
 
 from deskctl import app
 from deskctl.lib.user import is_logged_in, can_user_remove_software
-from deskctl.lib.misc import deskctld_connect, open_pkgdb
+from deskctl.lib.misc import deskctld_connect, open_pkgdb, sysexec
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import grp
 import pwd
 import yum
 import logging
+import os
 
 ################################################################################
 
 @app.route('/')
 def default():
-	app.logger.debug("default()")
-	return render_template('dashboard.html', title='Desktop Manager - Overview')
+	return render_template('dashboard.html', active="overview", title='Desktop Manager - Overview')
 
 @app.route('/software')
 def software(category=None):
+	## Connect to the desktop management service
+	deskctld = deskctld_connect()
+
 	## Get the pkgdb database
 	db = open_pkgdb()
 	cur = db.cursor()
@@ -80,20 +83,22 @@ def ajax_software(category):
 	if not category_obj:
 		abort(404)
 
-	# Prepare yum for querying
-	yb = yum.YumBase()
-	logger = logging.getLogger("yum.verbose.YumPlugins")
-	logger.setLevel(logging.CRITICAL)
-
-	# Prepare groups
-	(installedGroups,availableGroups) = yb.doGroupLists()
-	groups = []
-	for group in installedGroups:
-		groups.append(group.name)
-
 	# Get all the entries for this category
 	cur.execute("SELECT * FROM `entries` WHERE `category` = ?",(category,))
 	entries = cur.fetchall()
+
+	if entries is not None:
+		if len(entries) > 0:
+			# Prepare yum for querying
+			yb = yum.YumBase()
+			logger = logging.getLogger("yum.verbose.YumPlugins")
+			logger.setLevel(logging.CRITICAL)
+
+			# Prepare groups
+			(installedGroups,availableGroups) = yb.doGroupLists()
+			groups = []
+			for group in installedGroups:
+				groups.append(group.name)
 
 	# Now we need to check if the entry is installed or not on this system
 	# to determine what button to show.
@@ -245,3 +250,30 @@ def permissions(group):
 
 				flash("Removed '" + username + "' from " + group_title,"alert-success")
 				return redirect(url_for('permissions',group=group))
+
+@app.route('/updates')
+def updates():
+	(history_code,history) = sysexec(["/bin/pkcon","offline-status"])
+
+
+	if os.path.exists("/system-update"):
+		(rcode,status) = sysexec(["/bin/pkcon","offline-get-prepared"])
+		status_title = "System is ready to update at next startup"
+
+		if rcode == 4:
+			status = "No updates are currently staged for installation"
+		elif rcode > 0:
+			status = "Could not obtain information, error code: " + str(rcode)
+	else:
+		(rcode,status) = sysexec(["/bin/pkcon","offline-status"])
+		status_title = "Updates recently installed"
+
+		if rcode == 2:
+			status = "No updates have been recently installed on this computer"
+			status_title = "Update status"
+		elif history_code > 0:
+			status = "Could not obtain information, error code: " + str(rcode)
+			status_title = "Update status"
+
+	return render_template('updates.html', title='Desktop Manager - Software Updates',active="updates",status=status,status_title=status_title)
+

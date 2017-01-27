@@ -118,6 +118,7 @@ class DeskCtlDaemon(object):
 		## Graphics
 		## Disks
 		## OS version
+		pass
 
 	def pkgProcessTask(self,task):
 		setproctitle("deskctld-pkg")

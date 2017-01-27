@@ -45,3 +45,26 @@
 	cursor: pointer;
 }
 
+@media (min-width: 1200px)
+{
+	.scalefont-lg
+	{
+		font-size: 1vw;
+		height: auto;
+	}
+}
+
+.modal-p
+{
+	padding-bottom: 20px;
+}
+
+.updatepre
+{
+	padding: 0px;
+	margin: 0px;
+	font-size: inherit;
+	background-color: inherit;
+	border: none;
+	border-radius: 0px;
+}
