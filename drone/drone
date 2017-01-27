@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-2"
+VERSION     = "2017-01-27-3"
 
 import os
 import sys
@@ -146,7 +146,7 @@ def puppet_apply(parser,args,config):
 
 ################################################################################
 
-def puppet_save_state(uts,code):
+def puppet_save_state(uts,code,output):
 	data = {'when': uts, 'code': code, 'output': output}
 
 	try:
