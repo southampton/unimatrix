@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-1"
+VERSION     = "2017-01-27-5"
 
 import os
 import sys
@@ -14,6 +14,8 @@ import requests
 import re
 import platform
 import getpass
+import time
+import json
 
 ################################################################################
 
@@ -29,8 +31,13 @@ def fatalex(code,message,exception):
 
 ################################################################################
 
-def strtime():
-	return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def strtime(when=None):
+	if when is None:
+		dt = datetime.datetime.now()
+	else:
+		dt = datetime.datetime.fromtimestamp(int(when))
+
+	return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 ################################################################################
 
@@ -119,6 +126,7 @@ def puppet_apply(parser,args,config):
 
 	(code, output) = sysexec("""%s apply --detailed-exitcodes --modulepath %s/puppet/modules/ %s/puppet/manifests/site.pp""" % (config.get('puppet','binary'),BASE_DIR,BASE_DIR),shell=True,debug=args.debug)
 
+	uts = int(time.time())
 	when = "puppet apply last ran at " + strtime() + "\n"
 
 	if code == 0:
@@ -131,14 +139,16 @@ def puppet_apply(parser,args,config):
 
 	else:
 		status = "apply failed: \n" + output
-		puppet_save_state(when + status)
+		puppet_save_state(uts,code,output)
 		fatal(4,status)
 
-	puppet_save_state(when + status)
+	puppet_save_state(uts,code,output)
 
 ################################################################################
 
-def puppet_save_state(status):
+def puppet_save_state(uts,code,output):
+	data = {'when': uts, 'code': code, 'output': output}
+
 	try:
 		if not os.path.exists(BASE_DIR + "/state"):
 			os.mkdir(BASE_DIR + "/state")
@@ -148,9 +158,9 @@ def puppet_save_state(status):
 
 	try:
 		with open(BASE_DIR + "/state/puppet","w") as fp:
-			fp.write(status + "\n")
+			json.dump(data,fp)
 	except Exception as ex:
-		sys.stderr.write("Warning! Could not write to " + BASE_DIR + "/state/puppet - unable to save puppet status")
+		sys.stderr.write("Warning! Could not write to " + BASE_DIR + "/state/puppet:" + str(type(ex)) + " " + str(ex))
 
 ################################################################################
 
@@ -160,9 +170,25 @@ def puppet_get_state(parser,args,config):
 	if os.path.exists(status_file):
 		try:
 			with open(status_file,"r") as fp:
-				sys.stdout.write(fp.read())
+				data = json.load(fp)
 		except Exception as ex:
 			fatalex(5,"Could not read from puppet status file " + status_file,ex)
+
+		try:
+			print "the last puppet apply finished at " + strtime(data['when'])
+
+			if data['code'] == 0:
+				print "system was in compliance with the system policy"
+			elif data['code'] == 2:
+				print "changes were made to the system to comply with the system policy:"
+				print data['output'].rstrip("\n")
+			else:
+				print "the attempt to apply the system policy failed:"
+				print data['output'].rstrip("\n")
+
+		except Exception as ex:
+			fatalex(30,"Could not load puppet status",ex)
+
 	else:
 		print "puppet apply has never been run on this system"
 
@@ -234,13 +260,13 @@ def backup_now(parser,args,config):
 	## k we're ready! start the backup!
 	(code, output) = sysexec("""%s %s@%s -i %s/ssh_private_key -o "ExitOnForwardFailure yes" -R %s:localhost:%s """ % (config.get('ssh','binary'), config.get('backup','user'), config.get('backup','server'), BASE_DIR, config.get('backup','port'),config.get('backup','rsyncd_port'),),shell=True,debug=args.debug)
 
-	when = "the last backup attempt was made at " + strtime() + "\n"
+	uts = int(time.time())
 
 	fail = False
 	if code == 0:
 		status = "backup complete, all files backed up"
 	elif code == 1:
-		status = "backup partially complete, some files did not backup:"
+		status = "backup partially complete, some files did not backup"
 	else:
 		status = "backup failed"
 		fail = True
@@ -248,7 +274,7 @@ def backup_now(parser,args,config):
 	if args.verbose: print status
 
 	## Save the resulting status
-	backup_save_state(when + status)
+	backup_save_state(uts,code)
 
 	if args.debug: print "unmounting snapshot"
 	## Now we umount the snapshot and delete it as we don't need it anymore
@@ -274,7 +300,9 @@ def backup_now(parser,args,config):
 
 ################################################################################
 
-def backup_save_state(status):
+def backup_save_state(uts,code):
+	data = {'when': uts, 'code': code}
+
 	try:
 		if not os.path.exists(BASE_DIR + "/state"):
 			os.mkdir(BASE_DIR + "/state")
@@ -284,9 +312,9 @@ def backup_save_state(status):
 
 	try:
 		with open(BASE_DIR + "/state/backup","w") as fp:
-			fp.write(status + "\n")
+			json.dump(data,fp)
 	except Exception as ex:
-		sys.stderr.write("Warning! Could not write to " + BASE_DIR + "/state/backup - unable to save backup status")
+		sys.stderr.write("Warning! Could not write to " + BASE_DIR + "/state/backup:" + str(type(ex)) + " " + str(ex))
 
 ################################################################################
 
@@ -296,9 +324,23 @@ def backup_get_state(parser,args,config):
 	if os.path.exists(status_file):
 		try:
 			with open(status_file,"r") as fp:
-				sys.stdout.write(fp.read())
+				data = json.load(fp)
 		except Exception as ex:
 			fatalex(5,"Could not read from backup status file " + status_file,ex)
+
+		try:
+			print "the last backup attempt was made at " + strtime(data['when'])
+
+			if data['code'] == 0:
+				print "the backup competed successfully, all files were backed up"
+			elif data['code'] == 1:
+				print "the backup completed but some files could not be backed up"
+			else:
+				status = "the backup attempt failed"
+
+		except Exception as ex:
+			fatalex(29,"Could not load backup status",ex)
+
 	else:
 		print "a backup has never been run on this system"
 
