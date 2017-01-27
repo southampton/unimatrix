@@ -20,7 +20,7 @@
 				  <div class="card-pf-body">
 					<ul class="nav nav-pills nav-stacked">
 						{% for cat in categories %}
-						<li{% if cat.id == category %} class="active"{%endif%}><a data-id="{{cat.id}}" data-toggle="category">{{cat.name}}</a></li>
+						<li  class="category-item{% if cat.id == category %} active{%endif%}"><a data-id="{{cat.id}}" data-toggle="category">{{cat.name}}</a></li>
 						{% endfor %}
 					</ul>
 				  </div>
@@ -72,6 +72,14 @@ $(document).ready(function()
 	$('[data-toggle="category"]').click(function(event)
 	{
 		window.catid = $(this).data('id');
+
+		$(".category-item").each(function()
+		{
+			$(this).removeClass('active');
+		});
+
+		$(this).closest("li").addClass('active');
+
 		loadPkgsShow();
 		loadPkgs();
 	});

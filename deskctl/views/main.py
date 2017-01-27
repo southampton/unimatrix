@@ -18,6 +18,9 @@ def default():
 
 @app.route('/software')
 def software(category=None):
+	## Connect to the desktop management service
+	deskctld = deskctld_connect()
+
 	## Get the pkgdb database
 	db = open_pkgdb()
 	cur = db.cursor()
