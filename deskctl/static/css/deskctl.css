@@ -45,3 +45,16 @@
 	cursor: pointer;
 }
 
+@media (min-width: 1200px)
+{
+	.scalefont-lg
+	{
+		font-size: 1vw;
+		height: auto;
+	}
+}
+
+.modal-p
+{
+	padding-bottom: 20px;
+}
