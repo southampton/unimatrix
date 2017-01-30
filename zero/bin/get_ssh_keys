@@ -47,7 +47,7 @@ def load_config():
 			config[key] = getattr(d, key)
 
 	## ensure we have required config options
-	for wkey in ['MYSQL_USER', 'MYSQL_PASS', 'MYSQL_NAME', 'MYSQL_PORT', 'SSH_USERNAME_BACKUP', 'SSH_USERNAME_PUPPET']:
+	for wkey in ['MYSQL_HOST','MYSQL_USER', 'MYSQL_PASS', 'MYSQL_NAME', 'MYSQL_PORT', 'SSH_USERNAME_BACKUP', 'SSH_USERNAME_PUPPET']:
 		if not wkey in config.keys():
 			sys.stderr.write("Missing configuation option: " + wkey + "\n")
 			sys.exit(3)
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
 	username = sys.argv[1]
 
-	# load unixmatrix-zero config
+	# load unimatrix-zero config
 	config = load_config()
 
 	# We exit quietly if we're being asked for keys for users we don't care about

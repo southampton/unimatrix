@@ -1,0 +1,47 @@
+.brand-primary
+{
+	font-weight: 800;
+	font-size: 18px;
+	letter-spacing: 5px;
+}
+
+.brand-secondary
+{
+	font-size: 16px;
+	letter-spacing: 5px;
+}
+
+.lidrag
+{
+	cursor: move;
+    cursor: -webkit-grabbing;
+}
+
+.list-sortable
+{
+	font-size: 14px;
+}
+
+.lihov:hover
+{
+	background-color: #def3ff;
+}
+
+/* Allow navbar links to look ok - this is for the login button */
+.nav-item-wtf
+{
+	color: #d1d1d1;
+	font-size: 14px;
+}
+
+.nav-item-wtf:hover,
+.nav-item-wtf:focus {
+	color: #fff!important;
+	text-decoration: none;
+}
+
+.card-btns-right
+{
+ 	margin-top: 12px;
+	float: right !important;
+}
