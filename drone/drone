@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-12"
+VERSION     = "2017-01-30-1"
 
 import os
 import sys
@@ -50,6 +50,7 @@ def get_config():
 	config.add_section('server')
 	config.add_section('ssh')
 	config.add_section('reskit')
+	config.add_section('csw')
 	config.add_section('update')
 	
 	## Set up default values
@@ -67,6 +68,10 @@ def get_config():
 	config.set('puppet','server','localhost')
 
 	config.set('reskit','pkgdir','/etc/reskit/packages/')
+	config.set('reskit','server','localhost')
+	config.set('reskit','share','reskit')
+
+	config.set('csw','server','localhost')
 
 	config.set('update','pkcon_binary','/bin/pkcon')
 
