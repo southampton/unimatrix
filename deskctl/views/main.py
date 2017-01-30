@@ -16,7 +16,13 @@ import re
 
 @app.route('/')
 def default():
-	return render_template('dashboard.html', active="overview", title='Desktop Manager - Overview')
+	## Connect to the desktop management service
+	deskctld = deskctld_connect()
+
+	## Get hardware information
+	hardware = deskctld.getHardwareInformation()
+
+	return render_template('dashboard.html', active="overview", title='Desktop Manager - Overview', hardware=hardware)
 
 @app.route('/software')
 def software(category=None):
@@ -26,7 +32,7 @@ def software(category=None):
 	## Get the pkgdb database
 	db = open_pkgdb()
 	cur = db.cursor()
-	cur.execute("SELECT * FROM `categories`")
+	cur.execute("SELECT * FROM `categories` ORDER BY `order`")
 	categories = cur.fetchall()
 
 	if len(categories) == 0:
@@ -304,8 +310,8 @@ def policy():
 			raise app.FatalError("Could not read puppet status: " + str(ex))
 
 	else:
-		when = None
-		code = -1
+		when   = None
+		code   = None
 		output = None
 
 	return render_template('policy.html', title='Desktop Manager - System Policy',active="policy",when=when,code=code,output=output)
@@ -324,12 +330,17 @@ def backup():
 		try:
 			when = app.strtime(data['when'])
 			code = data['code']
+			if 'output' in data:
+				output = data['output']
+			else:
+				output = None
 		except Exception as ex:
 			raise app.FatalError("Could not read backup status: " + str(ex))
 
 	else:
-		when = None
-		code = -1
+		when   = None
+		code   = None
+		output = None
 
-	return render_template('backup.html', title='Desktop Manager - Backup',active="backup",when=when,code=code)
+	return render_template('backup.html', title='Desktop Manager - Backup',active="backup",when=when,code=code,output=output)
 

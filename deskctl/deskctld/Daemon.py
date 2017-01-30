@@ -15,6 +15,8 @@ import traceback
 import pwd
 import sqlite3
 import logging
+import re
+import dmidecode
 
 Pyro4.config.SERVERTYPE = "multiplex"
 Pyro4.config.SOCK_REUSE = True
@@ -338,4 +340,178 @@ class DeskCtlDaemon(object):
 
 	@Pyro4.expose
 	def getHardwareInformation(self):
-		return ""
+		return { 'cpus': self.get_cpu_info(), 'physical_memory': self.get_phys_mem_info(), 'os_memory': self.get_mem_info(), 'filesystems': self.get_disk_info(), 'disks': self.get_phys_disk_info(), 'graphics': self.get_graphics_cards(), 'system': self.get_system_details() }
+
+	def get_graphics_cards(self):
+		# Regular expression for graphics cards
+		re_vga = re.compile(r'^[0-9a-f]+:[0-9a-f]+\.[0-9a-f]+\s+VGA\s+compatible\s+controller:\s+(.*)')
+
+		# Get the information from df (it's just easier)
+		p = subprocess.Popen(['/usr/sbin/lspci'], stdout=subprocess.PIPE)
+		(out, _) = p.communicate()
+		
+		cards = []
+
+		# Iterate over the output
+		for line in out.splitlines():
+			vga_match = re_vga.search(line)
+			if vga_match is not None:
+				cards.append(vga_match.group(1))
+
+		return {'cards': cards}
+
+	def get_phys_disk_info(self):
+		# Setup
+		disks = {}
+
+		# Search through every device in /sys/block
+		for block_dev in os.listdir('/sys/block'):
+			# Only investigate hd* or sd* devices (so IDE disks and SCSI disks)
+			if (block_dev[0] == 'h' or block_dev[0] == 's') and block_dev[1] == 'd':
+				# Read their size (in 512-byte blocks)
+				f = open('/sys/block/' + block_dev + '/size')
+				size = f.readline()
+				f.close()
+				disks[block_dev] = int(size) * 512
+
+		return disks
+
+	def get_disk_info(self):
+		# Regular expression for this
+		re_disk = re.compile(r'^\s*([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+(.*)')
+
+		# Get the information from df (it's just easier)
+		p = subprocess.Popen(['/bin/df', '--output=size,used,avail,target', '-x', 'tmpfs', '-x', 'devtmpfs', '-x', 'shm'], stdout=subprocess.PIPE)
+		(out, _) = p.communicate()
+
+		disks = {}
+
+		# Iterate over the output
+		for line in out.splitlines():
+			disk_match = re_disk.search(line)
+
+			if disk_match is not None:
+				disks[disk_match.group(4)] = {'size': int(disk_match.group(1)) * 1024, 'used': int(disk_match.group(2)) * 1024, 'available': int(disk_match.group(3)) * 1024}
+
+		return disks
+
+	def get_phys_mem_info(self):
+		total = 0
+		for mem in dmidecode.memory().values():
+			if 'Form Factor' in mem['data'] and mem['data']['Form Factor'] == 'DIMM' and 'Size' in mem['data'] and mem['data']['Size'] is not None:
+				parts = mem['data']['Size'].split(' ')
+				number = parts[0]
+				unit = parts[1]
+
+				# Store size in bytes
+				if unit == 'KB' or unit == 'KiB':
+					size = int(number) * 1024
+				elif unit == 'MB' or unit == 'MiB':
+					size = int(number) * 1048576
+				elif unit == 'GB' or unit == 'GiB':
+					size = int(number) * 1073741824
+				elif unit == 'TB' or unit == 'TiB':
+					size = int(number) * 1099511627776
+				else:
+					size = int(number)
+
+				total = total + size
+
+		return {'installed_ram': total}
+
+	def get_mem_info(self):
+		# Regular expressions for parsing meminfo
+		re_total = re.compile(r'^MemTotal:\s+([0-9]+)\s+kB')
+		re_free = re.compile(r'^MemFree:\s+([0-9]+)\s+kB')
+		re_available = re.compile(r'^MemAvailable:\s+([0-9]+)\s+kB')
+
+		# Set up
+		results = {}
+
+		# Read the entire file
+		meminfo = open('/proc/meminfo', 'r')
+		for line in meminfo:
+			# Match the line against our regexs
+			total_match = re_total.search(line)
+			free_match = re_free.search(line)
+			available_match = re_available.search(line)
+
+			if total_match is not None:
+				results['total_usable'] = int(total_match.group(1)) * 1024
+			elif free_match is not None:
+				results['free'] = int(free_match.group(1)) * 1024
+			elif available_match is not None:
+				results['available'] = int(available_match.group(1)) * 1024
+
+		return results
+
+	def get_cpu_info(self):
+		# Regular expressions for parsing cpuinfo
+		re_processor = re.compile(r'^processor\s*:\s+([0-9]+)')
+		re_physical_id = re.compile(r'^physical\sid\s*:\s+([0-9]+)')
+		re_cpu_cores = re.compile(r'^cpu\scores\s*:\s+([0-9]+)')
+		re_model_name = re.compile(r'^model\sname\s*:\s+(.*)')
+		re_cache_size = re.compile(r'^cache\ssize\s*:\s+(.*)')
+
+		# Setup
+		processor = None
+		cpu = None
+		cpu_cores = None
+		model = None
+		cache_size = None
+		procs = {}
+
+		# Read the entire cpuinfo file
+		cpuinfo = open('/proc/cpuinfo', 'r')
+		for line in cpuinfo:
+			# Match the line against our regexs
+			p_match = re_processor.search(line)
+			pid_match = re_physical_id.search(line)
+			cpu_match = re_cpu_cores.search(line)
+			model_match = re_model_name.search(line)
+			cache_match = re_cache_size.search(line)
+
+			if p_match is not None:
+				# We're starting a new CPU, record the old one
+				if cpu is not None and cpu not in procs:
+					procs[cpu] = { 'model': model, 'cores': cpu_cores, 'cache': cache_size }
+				
+				processor = p_match.group(1)
+				cpu = None
+				cpu_core = None
+				model = None
+
+			if pid_match is not None:
+				cpu = pid_match.group(1)
+
+			if cpu_match is not None:
+				cpu_cores = cpu_match.group(1)
+
+			if model_match is not None:
+				model = model_match.group(1)
+
+			if cache_match is not None:
+				cache_size = cache_match.group(1)
+
+		# Pick up the last CPU
+		if cpu is not None and cpu not in procs:
+			procs[cpu] = { 'model': model, 'cores': cpu_cores, 'cache': cache_size }
+
+		return procs
+
+	def get_system_details(self):
+		try:
+			vendor = None
+			vendor = dmidecode.system().values()[1]['data']['Manufacturer']
+		except Exception, e:
+			pass
+
+		try:
+			model = None
+			model = dmidecode.system().values()[1]['data']['Product Name']
+		except Exception, e:
+			pass
+
+		return {'vendor': vendor, 'model': model}
+
+
