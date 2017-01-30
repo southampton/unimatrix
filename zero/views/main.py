@@ -43,16 +43,23 @@ def pkgdb_categories():
 			except Exception as ex:
 				abort(400)
 
-			order = 1
-			for catid in newOrderList:
-				curd.execute("UPDATE `pkg_categories` SET `order` = %s WHERE `id` = %s",(order,int(catid)))
-				order = order + 1
-
-			g.db.commit()
+			try:
+				order = 1
+				for catid in newOrderList:
+					curd.execute("UPDATE `pkg_categories` SET `order` = %s WHERE `id` = %s",(order,int(catid)))
+					order = order + 1
+				g.db.commit()
+			except Exception as ex:
+				app.logger.error("Failed to update category order in database: " + str(type(ex)) + " - " + str(ex))
+				abort(500)
 
 			# regenerate the pkgdb with the new order
-			plexus = plexus_connect()
-			plexus.regenerate_pkgdb()
+			try:
+				plexus = plexus_connect()
+				plexus.regenerate_pkgdb()
+			except Exception as ex:
+				app.logger.error("Failed to regenerate the pkgdb: " + str(type(ex)) + " - " + str(ex))
+				abort(500)
 
 			return "", 200
 
