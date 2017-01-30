@@ -423,13 +423,18 @@ def update_trigger(parser,args,config):
 	else:
 		fatal(28,"Could not download package updates:\n" + output)
 
-	if args.verbose: print "triggering offline update"
-	(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-trigger"],debug=args.debug)
+	if not os.path.exists("/system-update"):
+		if args.debug: print "the /system-update trigger is absent"
+		if args.verbose: print "triggering offline update"
+		(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-trigger"],debug=args.debug)
 
-	if code == 0:
-		if args.verbose: print "the system will update at the next reboot"
+		if code == 0:
+			if args.verbose: print "the system will update at the next reboot"
+		else:
+			fatal(29,"Could not trigger the offline update:\n" + output)
 	else:
-		fatal(29,"Could not trigger the offline update:\n" + output)
+		if args.debug: print "the /system-update trigger is already present"
+		if args.verbose: print "the system will update at the next reboot"
 
 ################################################################################
 
