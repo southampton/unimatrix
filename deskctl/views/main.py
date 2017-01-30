@@ -32,7 +32,7 @@ def software(category=None):
 	## Get the pkgdb database
 	db = open_pkgdb()
 	cur = db.cursor()
-	cur.execute("SELECT * FROM `categories`")
+	cur.execute("SELECT * FROM `categories` ORDER BY `order`")
 	categories = cur.fetchall()
 
 	if len(categories) == 0:
