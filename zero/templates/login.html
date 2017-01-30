@@ -1,69 +1,69 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en-us" class="login-pf">
 	<head>
-		<meta charset="utf-8">
-		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<title>Login - Linux Desktop Management Console</title>
+		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.ico') }}">
-		<title>login</title>
-		<link href="//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
-		<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/login.css') }}">
-		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-		<script src="//netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+		<link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
+		<link href="{{url_for('static',filename='patternfly/css/patternfly.min.css')}}" rel="stylesheet" media="screen, print">
+		<link href="{{url_for('static',filename='patternfly/css/patternfly-additions.min.css')}}" rel="stylesheet" media="screen, print">
+		<link href="{{url_for('static',filename='css/login.css')}}" rel="stylesheet" media="screen, print">
+		{%- block head %}{% endblock %}
+		<script src="{{url_for('static',filename='jquery/jquery.min.js')}}"></script>
+		<script src="{{url_for('static',filename='bootstrap/bootstrap.min.js')}}"></script>
+		<script src="{{url_for('static',filename='patternfly/js/patternfly.min.js')}}"></script>
 		<script>
 		$(document).ready(function ()
 		{
-			$('#loginUsername').focus();
-			$('#loginUsername').select();
-			$('[data-toggle="popover"]').popover()
+			$('#inputUsername').focus();
+			$('#inputUsername').select();
+			$('[data-toggle="popover"]').popover();
 		});
 		</script>
-		<style type="text/css">
-		@media (min-width: 768px)
-		{
-			body
-			{
-				background-color: none;
-				background-image: url('/static/img/rhel.jpg');
-				background-size: cover;	
-			}
-		}
-		</style>
 	</head>
 	<body>
-
+		<span id="badge">
+			<img src="{{url_for('static',filename='uoslogowhite.png')}}" alt="University of Southampton" />
+		</span>
 		<div class="container">
-			<div id="loginbox" class="loginbox">
-				<h1>linux desktops</h1>
-				{% for category, message in get_flashed_messages(with_categories=true) %}
-				<div class="alert {{ category }}">
-					<a data-dismiss="alert" class="close" href="#">×</a>
-					{{ message }}
+			<div class="row">
+				<div class="col-sm-12">
+					<div id="brand">
+						<span class="brand-primary">LINUX DESKTOP</span> <span class="brand-secondary">MANAGEMENT CONSOLE</span>
+					</div>
 				</div>
-				{% endfor %}
-
-				<form id="loginform" role="form" action="{{ url_for('login') }}" method="POST" class="text-left">
-					<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
-					{% if next %}
-					<input name="next" type="hidden" value="{{next}}"/>
-					{% endif %}
-					<div class="form-group">
-						<label for="username">Username:</label>
-						<input type="text" class="login-input form-control" id="loginUsername" name="username">
-					</div>
-					<div class="form-group">
-						<label for="password">Password:</label>
-						<input type="password" class="login-input form-control" id="loginPassword" name="password">
-					</div>
-					<div class="checkbox hidden-xs">
-						<label>
-							<input type="checkbox" class="" value="sec" id="sec" name="sec"> Keep me logged in on this computer <span class="glyphicon glyphicon-question-sign" data-toggle="popover" data-placement="bottom" title="Login Security" data-trigger="hover" data-content="If you are on a private computer you trust then selecting this option will keep you logged in even if you close the browser window. Do not use this on public or shared computers."></span>
-						</label>
-					</div>
-					<div class="form-group text-center submit-box">
-						<button class="btn btn-default btn-lg" type="submit">Login</button>
-					</div>
-				</form>
+				<div class="col-sm-7 col-md-6 col-lg-5 login">
+					<form class="form-horizontal" role="form" action="{{ url_for('login') }}" method="POST">
+						<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+						<div class="form-group">
+							<label for="inputUsername" class="col-sm-2 col-md-2 control-label">Username</label>
+							<div class="col-sm-10 col-md-10">
+								<input type="text" class="form-control" name="username" id="inputUsername" placeholder="" tabindex="1">
+							</div>
+						</div>
+						<div class="form-group">
+							<label for="inputPassword" class="col-sm-2 col-md-2 control-label">Password</label>
+							<div class="col-sm-10 col-md-10">
+								<input type="password" class="form-control" name="password" id="inputPassword" placeholder="" tabindex="2">
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="col-xs-8 col-sm-offset-2 col-sm-6 col-md-offset-2 col-md-6">
+								<div class="checkbox hidden-xs">
+									<label>
+										<input type="checkbox" class="" value="sec" id="sec" name="sec"> Keep me logged in on this computer <span class="glyphicon glyphicon-question-sign" data-toggle="popover" data-placement="top" title="Login Security" data-trigger="hover" data-content="If you are on a private computer you trust then selecting this option will keep you logged in even if you close the browser window. Do not use this on public or shared computers."></span>
+									</label>
+								</div>
+							</div>
+							<div class="col-xs-4 col-sm-4 col-md-4 submit">
+								<button type="submit" class="btn btn-primary btn-lg" tabindex="4">Log In</button>
+							</div>
+						</div>
+					</form>
+				</div>
+				<div class="col-sm-5 col-md-6 col-lg-7 details">
+					<p><strong>Yo!</strong> I'll put some text here eventually</p>
+				</div>
 			</div>
 		</div>
 	</body>

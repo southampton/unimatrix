@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% block head %}
+<script src="{{url_for('static',filename='sortable/sortable.min.js')}}"></script>
+{% endblock %}
+{% block jsready %}
+	var el = document.getElementById('items');
+	var sortable = Sortable.create(el, {
+		handle: ".lidrag"
+	});
+{% endblock %}
+{% block body %}
+
+<div class="row row-cards-pf">
+	<div class="col-xs-12 col-sm-12 col-md-12">
+		<div class="card-pf card-pf-accented">
+			<h1>Software Categories</h1>
+			<p style="padding-bottom: 20px">Changes you make here take effect on the desktop management page on desktops. 
+		</div>
+	</div>
+</div>
+
+<div class="row row-cards-pf">
+	<div class="col-xs-12 {% if pkgstatus %}col-sm-9{%else%}col-sm-12{%endif%}">
+		<div class="row">
+			<div class="col-xs-12 col-sm-8">
+				<div class="card-pf">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">
+						Categories
+						</h2>
+					</div>
+				  <div class="card-pf-body">
+					<ul id="items" class="list-group list-sortable">
+						{% for cat in categories %}
+						<li class="list-group-item lihov" data-id="{{cat.id}}">
+							<span class="pull-right"><a href="" class="btn btn-sm btn-default">Manage Packages</a></span>
+							<span class="fa fa-fw fa-bars lidrag"></span>{{cat.name}}
+						</li>
+						{% endfor %}
+					</ul>
+				  </div>
+				</div>
+			</div>
+			<div class="col-xs-12 col-sm-4">
+				<div class="card-pf">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">
+						Create new category
+						</h2>
+					</div>
+				  <div class="card-pf-body">
+					<p>create will go here</p>
+				  </div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+{% endblock %}
