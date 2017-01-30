@@ -64,6 +64,13 @@ def pkgdb_categories():
 			return "", 200
 
 		elif action == 'new':
-			abort(400)
+			# new order is a json string of an array
+			catname = request.form['name']
+			curd.execute("INSERT INTO `pkg_categories` (`name`,`order`) VALUES (%s,999)",(catname,))
+			g.db.commit()
+
+			flash("New category added","alert-success")
+			return redirect(url_for('pkgdb_categories'))
+
 		else:
 			abort(400)

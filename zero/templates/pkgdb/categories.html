@@ -2,6 +2,30 @@
 {% block head %}
 <script src="{{url_for('static',filename='sortable/sortable.min.js')}}"></script>
 {% endblock %}
+{% block modals %}
+	<div class="modal fade" id="popmodal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+			<form role="form" method="POST" class="form-horizontal" >
+			<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+			<input name="action" type="hidden" value="add"/>
+		        <div class="modal-header">
+		          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+		            <span class="pficon pficon-close"></span>
+		          </button>
+					<h4 class="modal-title" id="poptitle"></h4> 
+		        </div>
+		        <div class="modal-body">
+					<p id="popbody"></p>
+		        </div>
+		        <div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+		        </div>
+			</form>
+          </div>
+        </div>
+      </div>
+{% endblock %}
 {% block jsready %}
 	var el = document.getElementById('items');
 	var sortable = Sortable.create(el, {
@@ -14,11 +38,15 @@
 		$.post( "{{url_for('pkgdb_categories')}}", { 'action': 'update', 'neworder': ids, '_csrf_token': '{{ csrf_token() }}' } )
 			.done(function( data )
 			{
-				alert( "yay");
+				$("#poptitle").html("Category order");
+				$("#popbody").html("The category order was successfully updated");
+				$("#popmodal").modal('show');
 			})
-			.fail(function()
+			.fail(function(xhr, textStatus, errorThrown)
 			{
-				alert( "An error occured whilst updating the category order" );
+				$("#poptitle").html("Error");
+				$("#popbody").html("An error occured whilst updating the category order: " + errorThrown);
+				$("#popmodal").modal('show');
 			});
 	});
 {% endblock %}
@@ -66,7 +94,19 @@
 						</h2>
 					</div>
 				  <div class="card-pf-body">
-					<p>create will go here</p>
+					<form role="form" action="{{ url_for('pkgdb_categories') }}" method="POST">
+						<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+						<input name="action" type="hidden" value="new"/>
+					  <div class="form-group">
+						<label for="nameInput">Name</label>
+						<input type="text" class="form-control" id="nameInput" name="name" placeholder="Category display name">
+					  </div>
+					  <div class="form-group text-center">
+						  <button type="submit" class="btn btn-primary">Create</button>
+					  </div>
+					</form>
+					<p>Please consider using an existing category before creating a new one - the more categories, the more a user has to browse around.</p>
+
 				  </div>
 				</div>
 			</div>
