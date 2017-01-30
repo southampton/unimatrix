@@ -7,6 +7,20 @@
 	var sortable = Sortable.create(el, {
 		handle: ".lidrag"
 	});
+	$('#saveorder').click(function()
+	{
+		ids = JSON.stringify(sortable.toArray());
+
+		$.post( "{{url_for('pkgdb_categories')}}", { 'action': 'update', 'neworder': ids, '_csrf_token': '{{ csrf_token() }}' } )
+			.done(function( data )
+			{
+				alert( "yay");
+			})
+			.fail(function()
+			{
+				alert( "An error occured whilst updating the category order" );
+			});
+	});
 {% endblock %}
 {% block body %}
 
@@ -34,10 +48,13 @@
 						{% for cat in categories %}
 						<li class="list-group-item lihov" data-id="{{cat.id}}">
 							<span class="pull-right"><a href="" class="btn btn-sm btn-default">Manage Packages</a></span>
-							<span class="fa fa-fw fa-bars lidrag"></span>{{cat.name}}
+							<span class="fa fa-fw fa-bars lidrag"></span> {{cat.name}}
 						</li>
 						{% endfor %}
 					</ul>
+					<div class="text-center">
+						<button id="saveorder" class="btn btn-primary btn-lg"><i class="fa fa-sort"></i> Save category order</a>				
+					</div>
 				  </div>
 				</div>
 			</div>

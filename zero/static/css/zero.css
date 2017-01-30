@@ -40,3 +40,8 @@
 	text-decoration: none;
 }
 
+.card-btns-right
+{
+ 	margin-top: 12px;
+	float: right !important;
+}
