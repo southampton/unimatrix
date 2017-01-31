@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-01-27-12"
+VERSION     = "2017-01-30-2"
 
 import os
 import sys
@@ -16,6 +16,7 @@ import platform
 import getpass
 import time
 import json
+import yaml
 
 ################################################################################
 
@@ -23,11 +24,17 @@ def fatal(code,message):
 	sys.stderr.write("Error: " + message + "\n")
 	sys.exit(code)
 
-################################################################################
-
 def fatalex(code,message,exception):
 	sys.stderr.write("Error: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
 	sys.exit(code)
+
+################################################################################
+
+def warn(message):
+	sys.stderr.write("Warning: " + message + "\n")
+
+def warnex(message,exception):
+	sys.stderr.write("Warning: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
 
 ################################################################################
 
@@ -50,6 +57,7 @@ def get_config():
 	config.add_section('server')
 	config.add_section('ssh')
 	config.add_section('reskit')
+	config.add_section('csw')
 	config.add_section('update')
 	
 	## Set up default values
@@ -67,6 +75,10 @@ def get_config():
 	config.set('puppet','server','localhost')
 
 	config.set('reskit','pkgdir','/etc/reskit/packages/')
+	config.set('reskit','server','localhost')
+	config.set('reskit','share','reskit')
+
+	config.set('csw','server','localhost')
 
 	config.set('update','pkcon_binary','/bin/pkcon')
 
@@ -153,14 +165,15 @@ def puppet_save_state(uts,code,output):
 		if not os.path.exists(BASE_DIR + "/state"):
 			os.mkdir(BASE_DIR + "/state")
 	except Exception as ex:
-		sys.stderr.write("Warning! Could not create directory " + BASE_DIR + "/state - unable to save puppet status")
+		warn("Could not create directory " + BASE_DIR + "/state - unable to save puppet status")
+		
 		return
 
 	try:
 		with open(BASE_DIR + "/state/puppet","w") as fp:
 			json.dump(data,fp)
 	except Exception as ex:
-		sys.stderr.write("Warning! Could not write to " + BASE_DIR + "/state/puppet:" + str(type(ex)) + " " + str(ex))
+		warnex("Could not write to " + BASE_DIR + "/state/puppet",ex)
 
 ################################################################################
 
@@ -310,14 +323,14 @@ def backup_save_state(uts,code,output=None):
 		if not os.path.exists(BASE_DIR + "/state"):
 			os.mkdir(BASE_DIR + "/state")
 	except Exception as ex:
-		sys.stderr.write("Warning! Could not create directory " + BASE_DIR + "/state - unable to save backup status")
+		warn("Could not create directory " + BASE_DIR + "/state - unable to save backup status")
 		return
 
 	try:
 		with open(BASE_DIR + "/state/backup","w") as fp:
 			json.dump(data,fp)
 	except Exception as ex:
-		sys.stderr.write("Warning! Could not write to " + BASE_DIR + "/state/backup:" + str(type(ex)) + " " + str(ex))
+		warnex("Could not write to " + BASE_DIR + "/state/backup",ex)
 
 ################################################################################
 
@@ -418,13 +431,18 @@ def update_trigger(parser,args,config):
 	else:
 		fatal(28,"Could not download package updates:\n" + output)
 
-	if args.verbose: print "triggering offline update"
-	(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-trigger"],debug=args.debug)
+	if not os.path.exists("/system-update"):
+		if args.debug: print "the /system-update trigger is absent"
+		if args.verbose: print "triggering offline update"
+		(code, output) = sysexec([config.get('update','pkcon_binary'), "offline-trigger"],debug=args.debug)
 
-	if code == 0:
-		if args.verbose: print "the system will update at the next reboot"
+		if code == 0:
+			if args.verbose: print "the system will update at the next reboot"
+		else:
+			fatal(29,"Could not trigger the offline update:\n" + output)
 	else:
-		fatal(29,"Could not trigger the offline update:\n" + output)
+		if args.debug: print "the /system-update trigger is already present"
+		if args.verbose: print "the system will update at the next reboot"
 
 ################################################################################
 
@@ -461,6 +479,42 @@ def update(parser,args,config):
 ################################################################################
 ################################################################################
 
+def reskit_update_package(package,args,config):
+	if args.verbose: print "starting update of '" + package + "'"
+
+	reskit_pkgdir  = config.get('reskit','pkgdir')
+	reskit_server  = config.get('reskit','server')
+	reskit_share   = config.get('reskit','share')
+
+	package_file = os.path.join(reskit_pkgdir,package)
+
+	## Open the reskit package file
+	## this is a yaml formatted file with
+	## two variables - source and dest (for rsync)
+	try:
+		if args.debug: print "opening file '" + package_file + "'"
+		with open(package_file,"r") as fp:
+			package_data = yaml.safe_load(fp)
+	except Exception as ex:
+		if args.verbose: warnex("Could not read package metadata from '" + package_file + "'",ex)
+		return
+
+	try:
+		package_source = package_data['src']
+		package_dest   = package_data['dest']
+	except Exception as ex:
+		if args.verbose: warnex("Invalid/incorrect metadata in '" + package_file + "'",ex)
+		return
+
+	(code, output) = sysexec("""/usr/bin/rsync -av --delete rsync://%s/%s/%s %s""" % (reskit_server, reskit_share, package_source, package_dest,),shell=True,debug=args.debug)
+
+	if code != 0:
+		if args.verbose: print "reskit update of '" + package + "' failed: \n" + output 
+	else:
+		if args.verbose: print "reskit update of '" + package + "' complete"
+
+################################################################################
+
 def reskit_update(parser,args,config):
 	if args.verbose: print "starting reskit update (this may take several minutes)"
 
@@ -474,22 +528,20 @@ def reskit_update(parser,args,config):
 
 	reskit_files = [f for f in os.listdir(reskit_pkg_dir) if os.path.isfile(os.path.join(reskit_pkg_dir, f))]
 
-	for f in reskit_files:
+	package_name = args.subaction
+	if package_name is None:
+		for f in reskit_files:
+			try:
+				reskit_update_package(f,args,config)
+			except Exception as ex:
+				if args.verbose: warnex("Failed to run reskit update on " + f,ex)
+	else:
+		if args.debug: print "user asked to update specific package '" + package_name + "'"
 
-		fp = os.path.join(reskit_pkg_dir,f)
-
-		if args.debug: 
-			command = [fp,"1"]
+		if package_name in reskit_files:
+			reskit_update_package(package_name,args,config)
 		else:
-			command = [fp]
-
-		if args.debug: print "executing " + fp
-
-		(code, output) = sysexec(command,debug=args.debug)
-
-		if code != 0:
-			if args.verbose:
-				print "reskit update failed on " + fp + ":\n" + output
+			fatal(31,"Package '" + package_name + "' not found")
 
 	if args.verbose: print "reskit update complete"
 
@@ -507,7 +559,6 @@ def reskit_list(parser,args,config):
 	reskit_files = [f for f in os.listdir(reskit_pkg_dir) if os.path.isfile(os.path.join(reskit_pkg_dir, f))]
 
 	for f in reskit_files:
-
 		print f
 
 ################################################################################
@@ -722,6 +773,7 @@ def main():
 	parser = argparse.ArgumentParser(prog='drone',description='workstation management agent',epilog=subcommands,formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument('subcommand', metavar='subcommand', type=str, help='the function to perform')
 	parser.add_argument('action', metavar='action', type=str, help='the action to perform', nargs="?", default=None)
+	parser.add_argument('subaction', metavar='subaction', type=str, help=argparse.SUPPRESS, nargs="?", default=None)
 	parser.add_argument('-d', '--debug', action='store_true', help='turn on debugging output',dest='debug')
 	parser.add_argument('-v', '--verbose', action='store_true', help='turn on verbose output',dest='verbose')
 
