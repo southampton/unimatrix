@@ -100,14 +100,15 @@ def ajax_software(category):
 			# Prepare yum for querying
 			yb = yum.YumBase()
 			yb.setCacheDir()
-			logger = logging.getLogger("yum.verbose.YumPlugins")
-			logger.setLevel(logging.CRITICAL)
 
 			# Prepare groups
-			(installedGroups,availableGroups) = yb.doGroupLists()
+			(installedGroups,availableGroups,installedEnvGroups,availableEnvGroups) = yb.doGroupLists(return_evgrps=True)
 			groups = []
 			for group in installedGroups:
-				groups.append(group.name)
+				groups.append(group.groupid)
+			envgroups = []
+			for group in installedEnvGroups:
+				envgroups.append(group.environmentid)
 
 	# Now we need to check if the entry is installed or not on this system
 	# to determine what button to show.
@@ -125,6 +126,10 @@ def ajax_software(category):
 					if item['name'].startswith("@"):
 						grpName = item['name'][1:]
 						if grpName not in groups:
+							installed = False
+					elif item['name'].startswith("#"):
+						grpName = item['name'][1:]
+						if grpName not in envgroups:
 							installed = False
 					else:
 						if not yb.rpmdb.searchNevra(name=item['name']):

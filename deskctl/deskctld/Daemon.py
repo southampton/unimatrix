@@ -150,8 +150,6 @@ class DeskCtlDaemon(object):
 			try:
 				yb=yum.YumBase()
 				yb.conf.cache = 0
-				logger = logging.getLogger("yum.verbose.YumPlugins")
-				logger.setLevel(logging.CRITICAL)
 
 				## Now we need to get the individual packages or groups
 				## which make up this 'entry'.
@@ -162,13 +160,22 @@ class DeskCtlDaemon(object):
 				for item in items:
 					# start of loop over each item
 
-					# Check if we've been asked to install a package group
+					# Check if we've been asked to install/remove a package group
 					if item['name'].startswith("@"):
 						group = True
+						envgroup = False
 						item_name = item['name'][1:]
 						item_type = "group"
+					# Check if we've been asked to install/remove an environment group
+					elif item['name'].startswith("#"):
+						group = True
+						envgroup = True
+						item_name = item['name'][1:]
+						item_type = "group"
+					# We must have been asked to process a normal package then
 					else:
 						group = False
+						envgroup = False
 						item_name = item['name']
 						item_type = "package"
 
@@ -203,14 +210,20 @@ class DeskCtlDaemon(object):
 						# this is a group action, not a package
 						if task['action'] == 'install':
 							try:
-								res = yb.selectGroup(grpid=item_name)
+								if envgroup:
+									res = yb.selectEnvironment(evgrpid=item_name)
+								else:									
+									res = yb.selectGroup(grpid=item_name)
 							except Exception as ex:
 								syslog.syslog("Could not install group " + item_name + ": " + str(ex))
 								continue
 
 						elif task['action'] == 'remove':
 							try:
-								res = yb.groupRemove(grpid=item_name)
+								if envgroup:
+									res = yb.environmentRemove(evgrpid=item_name)
+								else:
+									res = yb.groupRemove(grpid=item_name)
 							except Exception as ex:
 								syslog.syslog("Could not remove group " + item_name + ": " + str(ex))
 								continue
@@ -246,6 +259,9 @@ class DeskCtlDaemon(object):
 
 		# close sqlite3 before we quit
 		conn.close()
+
+		#
+		syslog.syslog("exiting")
 
 	def addPackageTask(self,task):
 		start = False
