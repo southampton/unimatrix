@@ -72,6 +72,13 @@ def pkgdb_categories():
 			curd.execute("INSERT INTO `pkg_categories` (`name`,`order`) VALUES (%s,999)",(catname,))
 			g.db.commit()
 
+			# regenerate the pkgdb
+			try:
+				plexus = plexus_connect()
+				plexus.regenerate_pkgdb()
+			except Exception as ex:
+				raise app.FatalError("Failed to regenerate the pkgdb: " + str(type(ex)) + " - " + str(ex))
+
 			flash("New category added","alert-success")
 			return redirect(url_for('pkgdb_categories'))
 
@@ -114,12 +121,26 @@ def pkgdb_category(catid):
 					curd.execute("INSERT INTO `pkg_entry_items` (`pkg_entry_id`,`name`) VALUES (%s, %s)",(new_pkg_id,item,))
 					g.db.commit()
 
+			# regenerate the pkgdb
+			try:
+				plexus = plexus_connect()
+				plexus.regenerate_pkgdb()
+			except Exception as ex:
+				raise app.FatalError("Failed to regenerate the pkgdb: " + str(type(ex)) + " - " + str(ex))
+
 			flash("Package added to category","alert-success")
 			return redirect(url_for("pkgdb_category",catid=category['id']))
 
 		elif action == 'delete':
 			curd.execute("DELETE FROM `pkg_categories` WHERE `id` = %s",(category['id'],))
 			g.db.commit()
+
+			# regenerate the pkgdb
+			try:
+				plexus = plexus_connect()
+				plexus.regenerate_pkgdb()
+			except Exception as ex:
+				raise app.FatalError("Failed to regenerate the pkgdb: " + str(type(ex)) + " - " + str(ex))
 
 			flash("Category deleted","alert-success")
 			return redirect(url_for("pkgdb_categories"))
@@ -170,12 +191,26 @@ def pkgdb_entry(eid):
 					curd.execute("INSERT INTO `pkg_entry_items` (`pkg_entry_id`,`name`) VALUES (%s, %s)",(entry['id'],item,))
 					g.db.commit()
 
+			# regenerate the pkgdb
+			try:
+				plexus = plexus_connect()
+				plexus.regenerate_pkgdb()
+			except Exception as ex:
+				raise app.FatalError("Failed to regenerate the pkgdb: " + str(type(ex)) + " - " + str(ex))
+
 			flash("Package details updated and saved","alert-success")
 			return redirect(url_for("pkgdb_entry",eid=entry['id']))
 
 		elif action == 'delete':
 			curd.execute("DELETE FROM `pkg_entries` WHERE `id` = %s",(entry['id'],))
 			g.db.commit()
+
+			# regenerate the pkgdb
+			try:
+				plexus = plexus_connect()
+				plexus.regenerate_pkgdb()
+			except Exception as ex:
+				raise app.FatalError("Failed to regenerate the pkgdb: " + str(type(ex)) + " - " + str(ex))
 
 			flash("Package deleted","alert-success")
 			return redirect(url_for("pkgdb_category",catid=entry['pkg_category_id']))
