@@ -13,23 +13,19 @@
 </div>
 
 <div class="row row-cards-pf">
-	<div class="col-xs-12 {% if pkgstatus %}col-sm-9{%else%}col-sm-12{%endif%}">
-		<div class="row">
-			<div class="col-xs-12 col-sm-3">
-				<div class="card-pf">
-				  <div class="card-pf-body">
-					<ul class="nav nav-pills nav-stacked">
-						{% for cat in categories %}
-						<li  class="category-item{% if cat.id == category %} active{%endif%}"><a data-id="{{cat.id}}" data-toggle="category">{{cat.name}}</a></li>
-						{% endfor %}
-					</ul>
-				  </div>
-				</div>
-			</div>
-			<div class="col-xs-12 col-sm-9">
-				<div class="row" id="pkgarea">
-				</div>
-			</div>
+	<div class="col-xs-12 col-sm-3">
+		<div class="card-pf">
+		  <div class="card-pf-body">
+			<ul class="nav nav-pills nav-stacked">
+				{% for cat in categories %}
+				<li  class="category-item{% if cat.id == category %} active{%endif%}"><a data-id="{{cat.id}}" data-toggle="category">{{cat.name}}</a></li>
+				{% endfor %}
+			</ul>
+		  </div>
+		</div>
+	</div>
+	<div class="col-xs-12 col-sm-9">
+		<div class="row" id="pkgarea">
 		</div>
 	</div>
 </div>
