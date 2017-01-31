@@ -5,7 +5,7 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
-		<title>{% if title %}{{ title }}{% endif %}</title>		
+		<title>{% if title %}{{ title }} - {% endif %}Linux Desktops Console</title>		
 		<link href="{{url_for('static',filename='patternfly/css/patternfly.min.css')}}" rel="stylesheet" media="screen, print">
 		<link href="{{url_for('static',filename='patternfly/css/patternfly-additions.min.css')}}" rel="stylesheet" media="screen, print">
 		<link href="{{url_for('static',filename='css/zero.css')}}" rel="stylesheet" media="screen, print">
@@ -33,7 +33,7 @@
 		{%- if is_logged_in() %}
       <li class="dropdown">
         <a class="dropdown-toggle nav-item-wtf nav-item-iconic" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-          <span title="Username" class="fa fa-fw fa-lock"></span> Authenticated as {{session.username}}
+          <span title="Username" class="fa fa-fw fa-lock"></span> Logged in as {{session.username}}
           <span class="caret"></span>
         </a>
         <ul class="dropdown-menu">
@@ -42,30 +42,36 @@
       </li>
 		{%- else %}
       <li>
-        <a href="#" data-target="#mlogin" data-toggle="modal" class="nav-item-wtf nav-item-iconic">
-          <span title="Help" class="fa fa-fw fa-unlock-alt"></span> Click here to make changes to this computer
+        <a href="{{url_for('login')}}" data-toggle="modal" class="nav-item-wtf nav-item-iconic">
+          <span title="Help" class="fa fa-fw fa-unlock-alt"></span> Click here to login
         </a>
       </li>
 		{%- endif %}
-
     </ul>
   </nav>
 </nav>
+{% if is_logged_in() %}
 <div class="nav-pf-vertical nav-pf-vertical-with-sub-menus">
   <ul class="list-group">
-    <li class="list-group-item{% if active == 'overview' %} active{%endif%}">
+    <li class="list-group-item{% if active == 'default' %} active{%endif%}">
       <a href="{{ url_for('default') }}">
-        <span class="fa fa-tachometer" data-toggle="tooltip" title="Overview"></span>
+        <span class="fa fa-tachometer" data-toggle="tooltip" title="Dashboard"></span>
         <span class="list-group-item-value">Dashboard</span>
       </a>
     </li>
-    <li class="list-group-item{% if active == 'software' %} active{%endif%}">
+    <li class="list-group-item{% if active == 'systems' %} active{%endif%}">
       <a href="{{ url_for('default') }}">
-        <span class="pficon pficon-registry" data-toggle="tooltip" title="Software"></span>
+        <span class="pficon pficon-registry" data-toggle="tooltip" title="Systems"></span>
         <span class="list-group-item-value">Systems</span>
       </a>
     </li>
-    <li class="list-group-item{% if active == 'pkgdb_categories' %} active{%endif%}">
+    <li class="list-group-item{% if active == 'Backups' %} active{%endif%}">
+      <a href="{{ url_for('default') }}">
+        <span class="fa fa-database" data-toggle="tooltip" title="Backups"></span>
+        <span class="list-group-item-value">Backups</span>
+      </a>
+    </li>
+    <li class="list-group-item{% if active == 'pkgdb' %} active{%endif%}">
       <a href="{{ url_for('pkgdb_categories') }}">
         <span class="fa fa-cloud-download" data-toggle="tooltip" title="Packages"></span>
         <span class="list-group-item-value">Packages</span>
@@ -73,7 +79,8 @@
     </li>
   </ul>
 </div>
-<div class="container-fluid container-cards-pf container-pf-nav-pf-vertical">
+{% endif %}
+<div class="container-fluid container-cards-pf{% if is_logged_in() %} container-pf-nav-pf-vertical{%endif%}">
 	<div style="margin-left: auto; margin-right: auto">
 		{%- for category, message in get_flashed_messages(with_categories=true) %}
 			<div class="alert {{ category }}">

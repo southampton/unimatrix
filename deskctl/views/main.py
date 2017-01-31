@@ -92,7 +92,7 @@ def ajax_software(category):
 		abort(404)
 
 	# Get all the entries for this category
-	cur.execute("SELECT * FROM `entries` WHERE `category` = ?",(category,))
+	cur.execute("SELECT * FROM `entries` WHERE `category` = ?  ORDER BY `name`",(category,))
 	entries = cur.fetchall()
 
 	if entries is not None:

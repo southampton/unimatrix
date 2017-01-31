@@ -45,3 +45,19 @@
  	margin-top: 12px;
 	float: right !important;
 }
+
+.btn-group-vl>.btn, .btn-vl {
+	padding: 4px 10px;
+	font-size: 25px;
+	line-height: 1.3333333;
+	border-radius: 2px;
+}
+
+/* Special large buttons on software page */
+.btn-group-vlt>.btn, .btn-vlt {
+	padding: 8px 12px;
+	font-size: 16px;
+	line-height: 1.3333333;
+	border-radius: 2px;
+}
+
