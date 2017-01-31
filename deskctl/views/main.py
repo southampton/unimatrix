@@ -99,6 +99,7 @@ def ajax_software(category):
 		if len(entries) > 0:
 			# Prepare yum for querying
 			yb = yum.YumBase()
+			yb.setCacheDir()
 			logger = logging.getLogger("yum.verbose.YumPlugins")
 			logger.setLevel(logging.CRITICAL)
 
