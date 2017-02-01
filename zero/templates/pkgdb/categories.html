@@ -6,22 +6,18 @@
 	<div class="modal fade" id="popmodal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
         <div class="modal-dialog">
           <div class="modal-content">
-			<form role="form" method="POST" class="form-horizontal" >
-			<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
-			<input name="action" type="hidden" value="add"/>
-		        <div class="modal-header">
-		          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
-		            <span class="pficon pficon-close"></span>
-		          </button>
-					<h4 class="modal-title" id="poptitle"></h4> 
-		        </div>
-		        <div class="modal-body">
-					<p id="popbody"></p>
-		        </div>
-		        <div class="modal-footer">
-					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-		        </div>
-			</form>
+	        <div class="modal-header">
+	          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+	            <span class="pficon pficon-close"></span>
+	          </button>
+				<h4 class="modal-title" id="poptitle"></h4> 
+	        </div>
+	        <div class="modal-body">
+				<p id="popbody"></p>
+	        </div>
+	        <div class="modal-footer">
+				<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+			</div>
           </div>
         </div>
       </div>
@@ -55,61 +51,58 @@
 <div class="row row-cards-pf">
 	<div class="col-xs-12 col-sm-12 col-md-12">
 		<div class="card-pf card-pf-accented">
-			<h1>Software Categories</h1>
-			<p style="padding-bottom: 20px">Changes you make here take effect on the desktop management page on desktops. 
+			<h1><span class="fa fa-fw fa-object-group"></span> Software Categories</h1>
+			<p style="padding-bottom: 20px">Categories and packages you add or edit here will update the list of software users can choose to install on their own machine via the Desktop Manager web interface.</p>
 		</div>
 	</div>
 </div>
 
 <div class="row row-cards-pf">
-	<div class="col-xs-12 {% if pkgstatus %}col-sm-9{%else%}col-sm-12{%endif%}">
-		<div class="row">
-			<div class="col-xs-12 col-sm-8">
-				<div class="card-pf">
-					<div class="card-pf-heading">
-						<h2 class="card-pf-title">
-						Categories
-						</h2>
-					</div>
-				  <div class="card-pf-body">
-					<ul id="items" class="list-group list-sortable">
-						{% for cat in categories %}
-						<li class="list-group-item lihov" data-id="{{cat.id}}">
-							<span class="pull-right"><a href="" class="btn btn-sm btn-default">Manage Packages</a></span>
-							<span class="fa fa-fw fa-bars lidrag"></span> {{cat.name}}
-						</li>
-						{% endfor %}
-					</ul>
-					<div class="text-center">
-						<button id="saveorder" class="btn btn-primary btn-lg"><i class="fa fa-sort"></i> Save category order</a>				
-					</div>
-				  </div>
-				</div>
+	<div class="col-xs-12 col-sm-8">
+		<div class="card-pf">
+			<div class="card-pf-heading">
+				<h2 class="card-pf-title">
+				Categories
+				</h2>
 			</div>
-			<div class="col-xs-12 col-sm-4">
-				<div class="card-pf">
-					<div class="card-pf-heading">
-						<h2 class="card-pf-title">
-						Create new category
-						</h2>
-					</div>
-				  <div class="card-pf-body">
-					<form role="form" action="{{ url_for('pkgdb_categories') }}" method="POST">
-						<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
-						<input name="action" type="hidden" value="new"/>
-					  <div class="form-group">
-						<label for="nameInput">Name</label>
-						<input type="text" class="form-control" id="nameInput" name="name" placeholder="Category display name">
-					  </div>
-					  <div class="form-group text-center">
-						  <button type="submit" class="btn btn-primary">Create</button>
-					  </div>
-					</form>
-					<p>Please consider using an existing category before creating a new one - the more categories, the more a user has to browse around.</p>
+		  <div class="card-pf-body">
+			<p>You can change the display order of categories by clicking and dragging the bars next to the category name and then pressing Save below.</p>
+			<ul id="items" class="list-group list-sortable">
+				{% for cat in categories %}
+				<li class="list-group-item lihov" data-id="{{cat.id}}">
+					<span class="pull-right"><a href="{{url_for('pkgdb_category',catid=cat.id)}}" class="btn btn-sm btn-default">Manage</a></span>
+					<span class="fa fa-fw fa-bars lidrag"></span> {{cat.name}}
+				</li>
+				{% endfor %}
+			</ul>
+			<div class="text-center">
+				<button id="saveorder" class="btn btn-primary btn-lg"><i class="fa fa-sort"></i> Save category order</a>				
+			</div>
+		  </div>
+		</div>
+	</div>
+	<div class="col-xs-12 col-sm-4">
+		<div class="card-pf">
+			<div class="card-pf-heading">
+				<h2 class="card-pf-title">
+				Create new category
+				</h2>
+			</div>
+		  <div class="card-pf-body">
+			<form role="form" action="{{ url_for('pkgdb_categories') }}" method="POST">
+				<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+				<input name="action" type="hidden" value="new"/>
+			  <div class="form-group">
+				<label for="nameInput">Name</label>
+				<input type="text" class="form-control" id="nameInput" name="name" placeholder="Category display name">
+			  </div>
+			  <div class="form-group text-center">
+				  <button type="submit" class="btn btn-primary">Create</button>
+			  </div>
+			</form>
+			<p>Please consider using an existing category before creating a new one - the more categories, the more a user has to browse around.</p>
 
-				  </div>
-				</div>
-			</div>
+		  </div>
 		</div>
 	</div>
 </div>
