@@ -22,7 +22,28 @@ def default():
 	## Get hardware information
 	hardware = deskctld.getHardwareInformation()
 
-	return render_template('dashboard.html', active="overview", title='Desktop Manager - Overview', hardware=hardware)
+	## Friendly CPU info string
+	try:
+		if len(hardware['cpus']) > 0:
+			cpu = str(len(hardware['cpus'])) + "x "
+	
+		if hardware['cpus'][0]['cores'] == 1:
+			cpu = cpu + "single-core "
+		elif hardware['cpus'][0]['cores'] == 2:
+			cpu = cpu + "dual-core "
+		elif hardware['cpus'][0]['cores'] == 4:
+			cpu = cpu + "quad-core "
+		elif hardware['cpus'][0]['cores'] == 8:
+			cpu = cpu + "octa-core "
+		else:
+			cpu = cpu + str(hardware['cpus'][0]['cores']) + "-core "
+
+		cpu = cpu + hardware['cpus'][0]['model']
+	
+	except Exception as ex:
+		cpu = "Unknown"
+
+	return render_template('dashboard.html', active="overview", title='Desktop Manager - Overview', hardware=hardware, cpu=cpu)
 
 @app.route('/software')
 def software(category=None):

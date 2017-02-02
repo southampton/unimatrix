@@ -38,7 +38,9 @@
 								<strong>System</strong><br/>
 								<p>{{ hardware.system.vendor }} {{ hardware.system.model }}</p>
 								<strong>Processor</strong><br/>
-								<p>{{ hardware.cpus['0'].model }}</p>
+								<p>
+								{{ cpu }}
+								</p>
 								<strong>Physical Memory</strong><br/>
 								<p>{{ hardware.physical_memory.installed_ram|filesizeformat(true) }}</p>
 								<strong>Graphics Card</strong><br/>

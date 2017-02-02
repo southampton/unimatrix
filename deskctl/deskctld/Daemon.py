@@ -552,16 +552,16 @@ class DeskCtlDaemon(object):
 				if cpu is not None and cpu not in procs:
 					procs[cpu] = { 'model': model, 'cores': cpu_cores, 'cache': cache_size }
 				
-				processor = p_match.group(1)
+				#processor = int(p_match.group(1))
 				cpu = None
 				cpu_core = None
 				model = None
 
 			if pid_match is not None:
-				cpu = pid_match.group(1)
+				cpu = int(pid_match.group(1))
 
 			if cpu_match is not None:
-				cpu_cores = cpu_match.group(1)
+				cpu_cores = int(cpu_match.group(1))
 
 			if model_match is not None:
 				model = model_match.group(1)
