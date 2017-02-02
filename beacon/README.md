@@ -1,2 +1,2 @@
 # unimatrix-beacon
-Tray icon/application for status notifications
+GNOME shell extension to show the backup status
