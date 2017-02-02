@@ -16,7 +16,7 @@
 				<div class="list-group welcome-list">
 					<a href="{{url_for('software')}}" class="list-group-item">Install software packages<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
 					<a href="{{url_for('permissions',group='users')}}" class="list-group-item">Allow a user to SSH to this system<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
-					<a href="{{url_for('permissions',group='vboxusers')}}" class="list-group-item">Allow a user to use VirtualBox<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
+					{% if vboxexists %}<a href="{{url_for('permissions',group='vboxusers')}}" class="list-group-item">Allow a user to use VirtualBox<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>{%endif%}
 					<a href="{{url_for('permissions',group='sys')}}" class="list-group-item">Grant a user administrator rights<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
 					<a href="{{url_for('backup')}}" class="list-group-item">Check the backup status<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
 					<a href="{{url_for('updates')}}" class="list-group-item">Check the software update status <span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
