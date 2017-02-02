@@ -68,3 +68,14 @@
 	border: none;
 	border-radius: 0px;
 }
+
+.welcome-list
+{
+	font-size: 1.3vw;
+}
+
+.welcome-btn
+{
+	margin-top: -3px;
+	float: right !important;
+}

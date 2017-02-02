@@ -46,7 +46,9 @@ class DeskCtlDaemon(object):
 	pkgTaskCurrent = None
 	pkgProcess     = None
 
+	############################################################################
 	## PRIVATE METHODS #########################################################
+	############################################################################
 
 	def __init__(self, pyro):
 		syslog.openlog("deskctld", syslog.LOG_PID)
@@ -61,10 +63,9 @@ class DeskCtlDaemon(object):
 		signal.signal(signal.SIGTERM, self._signal_handler_master)
 		signal.signal(signal.SIGINT, self._signal_handler_master)
 
-		## Determine hardware information for deskctl-web
-		self._load_hardware_info()
-
 		syslog.syslog('deskctld started')
+
+	############################################################################
 
 	def _signal_handler_master(self, sig, frame):
 		if sig == signal.SIGTERM: 
@@ -77,6 +78,8 @@ class DeskCtlDaemon(object):
 		multiprocessing.active_children()
 		sys.exit(0)
 
+	############################################################################
+
 	def _signal_handler_child(self, sig, frame):
 		if sig == signal.SIGTERM: 
 			sig = "SIGTERM"
@@ -85,6 +88,8 @@ class DeskCtlDaemon(object):
 
 		syslog.syslog('pkg process caught ' + str(sig) + "; exiting")
 		sys.exit(0)
+
+	############################################################################
 
 	## This is called on each pyro loop timeout/run to make sure defunct processes
 	## (finished tasks waiting for us to reap them) are reaped and to start
@@ -98,6 +103,8 @@ class DeskCtlDaemon(object):
 					self.startPackageTask(self.pkgTaskQueue.pop(0))
 
 		return True
+
+	############################################################################
 
 	def sysexec(self,command,shell=False,env={}):
 		try:
@@ -114,13 +121,7 @@ class DeskCtlDaemon(object):
 		except Exception as ex:
 			return (1,str(type(ex)) + " " + str(ex))
 
-	def _load_hardware_info(self):
-		## CPU  lshw -class cpu -json -quiet
-		## Memory
-		## Graphics
-		## Disks
-		## OS version
-		pass
+	############################################################################
 
 	def pkgProcessTask(self,task):
 		setproctitle("deskctld-pkg")
@@ -263,6 +264,8 @@ class DeskCtlDaemon(object):
 		#
 		syslog.syslog("exiting")
 
+	############################################################################
+
 	def addPackageTask(self,task):
 		start = False
 		if self.pkgProcess is None:
@@ -277,17 +280,23 @@ class DeskCtlDaemon(object):
 			syslog.syslog("added package task to queue")
 			self.pkgTaskQueue.append(task)
 
+	############################################################################
+
 	def startPackageTask(self,task):
 		self.pkgTaskCurrent = task
 		syslog.syslog("starting package process")
 		self.pkgProcess = Process(target=self.pkgProcessTask, args=(task,))
 		self.pkgProcess.start()
-		
+
+	############################################################################		
 	## RPC METHODS #############################################################
+	############################################################################
 
 	@Pyro4.expose
 	def ping(self):
 		return True
+
+	############################################################################
 
 	## send a list of package IDs, where the ID corresponds to the ID in the
 	## pkgdb sqlite database. in this way the web interface can ask what the 
@@ -296,9 +305,13 @@ class DeskCtlDaemon(object):
 	def pkgEntryInstall(self,pid):
 		self.addPackageTask({'action': 'install', 'id': pid})
 
+	############################################################################
+
 	@Pyro4.expose
 	def pkgEntryRemove(self,pid):
 		self.addPackageTask({'action': 'remove', 'id': pid})
+
+	############################################################################
 
 	@Pyro4.expose
 	def pkgEntryStatus(self,check_id):
@@ -322,6 +335,8 @@ class DeskCtlDaemon(object):
 
 		return 0 # entry was not in queue
 
+	############################################################################
+
 	@Pyro4.expose
 	def groupAddUser(self,group,username):
 		if group not in self.allowed_groups:
@@ -337,6 +352,8 @@ class DeskCtlDaemon(object):
 
 		if code != 0:
 			raise Exception("Could not add user to group: " + output)
+
+	############################################################################
 
 	@Pyro4.expose
 	def groupRemoveUser(self,group,username):
@@ -354,27 +371,40 @@ class DeskCtlDaemon(object):
 		if code != 0:
 			raise Exception("Could not remove user from group: " + output)
 
+	############################################################################
+
 	@Pyro4.expose
 	def getHardwareInformation(self):
-		return { 'cpus': self.get_cpu_info(), 'physical_memory': self.get_phys_mem_info(), 'os_memory': self.get_mem_info(), 'filesystems': self.get_disk_info(), 'disks': self.get_phys_disk_info(), 'graphics': self.get_graphics_cards(), 'system': self.get_system_details() }
+		return {
+			'cpus'           : self.get_cpu_info(), 
+			'physical_memory': self.get_phys_mem_info(), 
+			'os_memory'      : self.get_mem_info(), 
+			'filesystems'    : self.get_disk_info(), 
+			'disks'          : self.get_phys_disk_info(), 
+			'graphics'       : self.get_graphics_cards(), 
+			'system'         : self.get_system_details()
+		}
+
+	############################################################################
 
 	def get_graphics_cards(self):
 		# Regular expression for graphics cards
 		re_vga = re.compile(r'^[0-9a-f]+:[0-9a-f]+\.[0-9a-f]+\s+VGA\s+compatible\s+controller:\s+(.*)')
 
 		# Get the information from df (it's just easier)
-		p = subprocess.Popen(['/usr/sbin/lspci'], stdout=subprocess.PIPE)
-		(out, _) = p.communicate()
+		(code,output) = self.sysexec(['/usr/sbin/lspci'])
 		
 		cards = []
 
 		# Iterate over the output
-		for line in out.splitlines():
+		for line in output.splitlines():
 			vga_match = re_vga.search(line)
 			if vga_match is not None:
 				cards.append(vga_match.group(1))
 
 		return {'cards': cards}
+
+	############################################################################
 
 	def get_phys_disk_info(self):
 		# Setup
@@ -384,61 +414,89 @@ class DeskCtlDaemon(object):
 		for block_dev in os.listdir('/sys/block'):
 			# Only investigate hd* or sd* devices (so IDE disks and SCSI disks)
 			if (block_dev[0] == 'h' or block_dev[0] == 's') and block_dev[1] == 'd':
+
 				# Read their size (in 512-byte blocks)
 				f = open('/sys/block/' + block_dev + '/size')
 				size = f.readline()
 				f.close()
-				disks[block_dev] = int(size) * 512
+
+				# Read the model name of the disk
+				try:
+					f = open('/sys/block/' + block_dev + '/device/model')
+					model = f.readline()
+					f.close() 
+				except Exception as ex:
+					model = "Unknown disk"
+
+				# Read the vendor name of the disk
+				try:
+					f = open('/sys/block/' + block_dev + '/device/vendor')
+					vendor = f.readline()
+					f.close() 
+				except Exception as ex:
+					vendor = ""
+
+				disks[block_dev] = {'size': int(size) * 512, 'model': model, 'vendor': vendor, 'dev': block_dev}
 
 		return disks
 
+	############################################################################
+
 	def get_disk_info(self):
 		# Regular expression for this
-		re_disk = re.compile(r'^\s*([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+(.*)')
+		re_disk = re.compile(r'^\s*([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)\%\s+(.*)')
 
 		# Get the information from df (it's just easier)
-		p = subprocess.Popen(['/bin/df', '--output=size,used,avail,target', '-x', 'tmpfs', '-x', 'devtmpfs', '-x', 'shm'], stdout=subprocess.PIPE)
-		(out, _) = p.communicate()
+		(code,output) = self.sysexec(['/bin/df', '--output=size,used,avail,pcent,target', '-x', 'tmpfs', '-x', 'devtmpfs', '-x', 'shm'])
 
 		disks = {}
 
 		# Iterate over the output
-		for line in out.splitlines():
+		for line in output.splitlines():
 			disk_match = re_disk.search(line)
 
 			if disk_match is not None:
-				disks[disk_match.group(4)] = {'size': int(disk_match.group(1)) * 1024, 'used': int(disk_match.group(2)) * 1024, 'available': int(disk_match.group(3)) * 1024}
+				# exclude /boot we dont need it
+				if disk_match.group(5) != '/boot':
+
+					disks[disk_match.group(5)] = {'size': int(disk_match.group(1)) * 1024, 'used': int(disk_match.group(2)) * 1024, 'available': int(disk_match.group(3)) * 1024, 'pc': int(disk_match.group(4)) }
 
 		return disks
+
+	############################################################################
 
 	def get_phys_mem_info(self):
 		total = 0
 		for mem in dmidecode.memory().values():
-			if 'Form Factor' in mem['data'] and mem['data']['Form Factor'] == 'DIMM' and 'Size' in mem['data'] and mem['data']['Size'] is not None:
-				parts = mem['data']['Size'].split(' ')
-				number = parts[0]
-				unit = parts[1]
+			if 'Form Factor' in mem['data']:
+				if mem['data']['Form Factor'] in ['DIMM','SODIMM']:
+					if 'Size' in mem['data'] and mem['data']['Size'] is not None:
+						parts = mem['data']['Size'].split(' ')
+						number = parts[0]
+						unit = parts[1]
 
-				# Store size in bytes
-				if unit == 'KB' or unit == 'KiB':
-					size = int(number) * 1024
-				elif unit == 'MB' or unit == 'MiB':
-					size = int(number) * 1048576
-				elif unit == 'GB' or unit == 'GiB':
-					size = int(number) * 1073741824
-				elif unit == 'TB' or unit == 'TiB':
-					size = int(number) * 1099511627776
-				else:
-					size = int(number)
+						# Store size in bytes
+						if unit == 'KB' or unit == 'KiB':
+							size = int(number) * 1024
+						elif unit == 'MB' or unit == 'MiB':
+							size = int(number) * 1048576
+						elif unit == 'GB' or unit == 'GiB':
+							size = int(number) * 1073741824
+						elif unit == 'TB' or unit == 'TiB':
+							size = int(number) * 1099511627776
+						else:
+							size = int(number)
 
-				total = total + size
+						total = total + size
 
 		return {'installed_ram': total}
 
+	############################################################################
+
 	def get_mem_info(self):
 		# Regular expressions for parsing meminfo
-		re_total = re.compile(r'^MemTotal:\s+([0-9]+)\s+kB')
-		re_free = re.compile(r'^MemFree:\s+([0-9]+)\s+kB')
+		re_total     = re.compile(r'^MemTotal:\s+([0-9]+)\s+kB')
+		re_free      = re.compile(r'^MemFree:\s+([0-9]+)\s+kB')
 		re_available = re.compile(r'^MemAvailable:\s+([0-9]+)\s+kB')
 
 		# Set up
@@ -448,8 +506,8 @@ class DeskCtlDaemon(object):
 		meminfo = open('/proc/meminfo', 'r')
 		for line in meminfo:
 			# Match the line against our regexs
-			total_match = re_total.search(line)
-			free_match = re_free.search(line)
+			total_match     = re_total.search(line)
+			free_match      = re_free.search(line)
 			available_match = re_available.search(line)
 
 			if total_match is not None:
@@ -460,6 +518,8 @@ class DeskCtlDaemon(object):
 				results['available'] = int(available_match.group(1)) * 1024
 
 		return results
+
+	############################################################################
 
 	def get_cpu_info(self):
 		# Regular expressions for parsing cpuinfo
@@ -481,9 +541,9 @@ class DeskCtlDaemon(object):
 		cpuinfo = open('/proc/cpuinfo', 'r')
 		for line in cpuinfo:
 			# Match the line against our regexs
-			p_match = re_processor.search(line)
-			pid_match = re_physical_id.search(line)
-			cpu_match = re_cpu_cores.search(line)
+			p_match     = re_processor.search(line)
+			pid_match   = re_physical_id.search(line)
+			cpu_match   = re_cpu_cores.search(line)
 			model_match = re_model_name.search(line)
 			cache_match = re_cache_size.search(line)
 
@@ -515,19 +575,32 @@ class DeskCtlDaemon(object):
 
 		return procs
 
+	############################################################################
+
 	def get_system_details(self):
 		try:
-			vendor = None
-			vendor = dmidecode.system().values()[1]['data']['Manufacturer']
-		except Exception, e:
+			system_values = dmidecode.system().values()
+		except Exception as ex:
+			system_values = []
+
+		vendor = None
+		try:
+			for entry in system_values:
+				if 'data' in entry:
+					if 'Manufacturer' in entry['data']:
+						vendor = entry['data']['Manufacturer']
+						break
+		except Exception as ex:
 			pass
 
+		model = None
 		try:
-			model = None
-			model = dmidecode.system().values()[1]['data']['Product Name']
-		except Exception, e:
+			for entry in system_values:
+				if 'data' in entry:
+					if 'Product Name' in entry['data']:
+						model = entry['data']['Product Name']
+						break
+		except Exception as ex:
 			pass
 
 		return {'vendor': vendor, 'model': model}
-
-

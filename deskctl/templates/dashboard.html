@@ -1,56 +1,81 @@
 {% extends "layout.html" %}
+{% block head %}
+<script src="{{url_for('static',filename='c3d3/c3.min.js')}}"></script>
+<script src="{{url_for('static',filename='c3d3/d3.min.js')}}"></script>
+{% endblock %}
 {% block body %}
 <div class="row row-cards-pf">
-	<div class="col-xs-12 col-sm-12 col-md-12">
-		<div class="card-pf card-pf-accented">
-			<h1 style="padding-bottom: 20px">System Information</h1>
-		</div>
-	</div>
-	<div class="col-xs-4 col-sm-4 col-md-4">
-		<div class="card-pf">
+	<div class="col-xs-12 col-sm-12 col-md-6">
+		<div class="card-pf"  style="min-height: 80vh">
+			<div class="card-pf-heading">
+				<h2 class="card-pf-title">
+				I want to...
+				</h2>
+			</div>
 			<div class="card-pf-body">
-				<h1>CPU</h1>
-				{% for cpu in hardware.cpus %}<p>CPU {{ loop.index }}:<br/>Model: {{ hardware.cpus[cpu].model }}<br />Cores: {{ hardware.cpus[cpu].cores }}<br/>Cache: {{ hardware.cpus[cpu].cache }}</p>{% endfor %}
+				<div class="list-group welcome-list">
+					<a href="{{url_for('software')}}" class="list-group-item">Install software packages<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
+					<a href="{{url_for('permissions',group='users')}}" class="list-group-item">Allow a user to SSH to this system<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
+					<a href="{{url_for('permissions',group='vboxusers')}}" class="list-group-item">Allow a user to use VirtualBox<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
+					<a href="{{url_for('permissions',group='sys')}}" class="list-group-item">Grant a user administrator rights<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
+					<a href="{{url_for('backup')}}" class="list-group-item">Check the backup status<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
+					<a href="{{url_for('updates')}}" class="list-group-item">Check the software update status <span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
+					<a href="{{url_for('permissions',group='wheel')}}" class="list-group-item">Get root access<span class="welcome-btn fa-2x fa fa-arrow-right fa-fw"></span></a>
+				</div>
 			</div>
 		</div>
 	</div>
-	<div class="col-xs-4 col-sm-4 col-md-4">
-		<div class="card-pf">
-			<div class="card-pf-body">
-				<h1>Memory</h1>
-				<div><strong>Physical RAM</strong>: {{ hardware.physical_memory.installed_ram|filesizeformat(true) }}</div>
-				<div><strong>Usable RAM</strong>: {{ hardware.os_memory.total_usable|filesizeformat(true) }}</div>
-				<div><strong>Free RAM</strong>: {{ hardware.os_memory.free|filesizeformat(true) }}</div>
-				<div><strong>Available RAM</strong>: {{ hardware.os_memory.available|filesizeformat(true) }}</div>
+	<div class="col-xs-12 col-sm-12 col-md-6">
+				<div class="card-pf" style="min-height: 80vh">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">
+						System details
+						</h2>
+					</div>
+					<div class="card-pf-body">
+						<div class="row">
+							<div class="col-sm-6">
+								<strong>System</strong><br/>
+								<p>{{ hardware.system.vendor }} {{ hardware.system.model }}</p>
+								<strong>Processor</strong><br/>
+								<p>{{ hardware.cpus['0'].model }}</p>
+								<strong>Physical Memory</strong><br/>
+								<p>{{ hardware.physical_memory.installed_ram|filesizeformat(true) }}</p>
+								<strong>Graphics Card</strong><br/>
+								<p>{{ hardware.graphics.cards[0] }}</p>
+							</div>
+							<div class="col-sm-6">
+								<strong>Disks</strong><br/>
+								<ul class="list-group">
+									{%- for dev,dsk in hardware.disks.iteritems() %}
+									<li class="list-group-item">
+										<span class="badge">{{ dev }}</span>
+										{{ dsk.size|filesizeformat(true) }} {{dsk.vendor}} {{dsk.model}} 
+									</li>
+									{%- endfor %}
+								</ul>
+							</div>
+						</div>
+
+					<br/><strong>Filesystems</strong><br/>
+					{% for fs in hardware.filesystems|sort %}
+					<div class="progress-description">
+						  {{fs}}
+						</div>
+						<div class="progress progress-label-top-right">
+						  <div class="progress-bar {% if hardware.filesystems[fs].pc|int >= 90 %}progress-bar-danger{%elif hardware.filesystems[fs].pc|int >= 80 %}progress-bar-warning{%else%}progress-bar-success{%endif%}" role="progressbar" aria-valuenow="{{hardware.filesystems[fs].pc}}" aria-valuemin="0" aria-valuemax="100" style="width: {{hardware.filesystems[fs].pc}}%;"  data-toggle="tooltip" title="{{hardware.filesystems[fs].pc}}% Used">
+							  <span>{{ hardware.filesystems[fs].used|filesizeformat(true) }} used of {{ hardware.filesystems[fs].size|filesizeformat(true) }}</span>
+						  </div>
+						  <div class="progress-bar progress-bar-remaining" role="progressbar" aria-valuenow="{{100 - hardware.filesystems[fs].pc|int}}" aria-valuemin="0" aria-valuemax="100" style="width: {{100 - hardware.filesystems[fs].pc|int}}%;" data-toggle="tooltip" title="{{100 - hardware.filesystems[fs].pc|int}}% Available">
+							<span class="sr-only">{{100 - hardware.filesystems[fs].pc|int}}% Available</span>
+						  </div>
+						</div>
+		{% endfor %}
+
+				</div>
 			</div>
 		</div>
-	</div>
-	<div class="col-xs-4 col-sm-4 col-md-4">
-		<div class="card-pf">
-			<div class="card-pf-body">
-				<h1>Disks</h1>
-				<h2>Physical Disks</h2>
-				{% for disk in hardware.disks|sort %}
-					<div><strong>{{ disk }}</strong>: {{ hardware.disks[disk]|filesizeformat(true) }}</div>
-				{% endfor %}
-				<h2>Mounted Filesystems</h2>
-				{% for fs in hardware.filesystems|sort %}
-					<div><strong>{{ fs }}</strong>: {{ hardware.filesystems[fs].used|filesizeformat(true) }} used out of {{ hardware.filesystems[fs].size|filesizeformat(true) }}</div>
-				{% endfor %}
-			</div>
-		</div>
-	</div>
-	<div class="col-xs-4 col-sm-4 col-md-4">
-		<div class="card-pf">
-			<div class="card-pf-body">
-				<h1>System Details</h1>
-				<div><strong>Vendor</strong>: {{ hardware.system.vendor }}</div>
-				<div><strong>Model</strong>: {{ hardware.system.model }}</div>
-				{% for card in hardware.graphics.cards %}
-					<div><strong>Graphics Card</strong>: {{ card }}</div>
-				{% endfor %}
-			</div>
-		</div>
+
 	</div>
 </div>
 {% endblock %}
