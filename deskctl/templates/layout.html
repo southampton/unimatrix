@@ -122,11 +122,13 @@
         <span class="list-group-item-value">SSH Access</span>
       </a>
     </li>
+	{% if vboxexists %}
     <li class="list-group-item{% if activegrp == 'vboxusers' %} active{%endif%}">
       <a href="{{ url_for('permissions',group='vboxusers') }}">
         <span class="list-group-item-value">VirtualBox</span>
       </a>
     </li>
+	{% endif %}
     <li class="list-group-item{% if activegrp == 'sys' %} active{%endif%}">
       <a href="{{ url_for('permissions',group='sys') }}">
         <span class="list-group-item-value">Administrators</span>
