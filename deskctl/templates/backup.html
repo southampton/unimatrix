@@ -33,11 +33,23 @@
 							<i class="fa fa-exclamation-circle" style="valign: middle"></i> The last backup was successful but some files could not be backed up
 						</span>
 						<p class="text-muted">Backup last ran on: {{when}}</p>
+					{% elif code == -1 %}
+						<span style="font-size: 1.2vw" class="text-danger">
+							<i class="fa fa-exclamation-circle" style="valign: middle"></i> The last backup failed because a snapshot of the file system could not be taken
+						</span>
+						<p class="text-muted">Backup was attempted on: {{when}}</p>
+						<pre class="updatepre">{% if output is not none %}{{output}}{%endif%}</pre>
+					{% elif code == -2 %}
+						<span style="font-size: 1.2vw" class="text-warning">
+							<i class="fa fa-exclamation-circle" style="valign: middle"></i> The network was down when trying to backup the system last
+						</span>
+						<p class="text-muted">Backup was attempted on: {{when}}</p>
+						<pre class="updatepre">{% if output is not none %}{{output}}{%endif%}</pre>
 					{% else %}
 						<span style="font-size: 1.2vw" class="text-danger">
 							<i class="fa fa-exclamation-circle" style="valign: middle"></i> The last backup attempt failed
 						</span>
-						<p class="text-muted">Backup last ran on: {{when}}</p>
+						<p class="text-muted">Backup was attempted on: {{when}}</p>
 						<pre class="updatepre">{% if output is not none %}{{output}}{%endif%}</pre>
 					{% endif %}
 				  </div>
