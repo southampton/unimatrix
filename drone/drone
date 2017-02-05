@@ -134,15 +134,18 @@ class DroneAgent:
 			return True
 		else:
 			if exit_if_down:
-				if self.verbose: print "network manager reports the network is not up, exiting"
+				if self.verbose: print "network manager reports the network is down, exiting"
 				sys.exit(254)
 			else:
+				if self.verbose: print "network manager reports the network is down"
 				return False
 
 	################################################################################
 	################################################################################
 
 	def puppet_sync(self):
+		self.is_network_up(exit_if_down=True)
+
 		if self.verbose: print "starting sync"
 
 		(code, output) = self.sysexec("""/usr/bin/rsync -e "ssh -i %s/ssh_private_key -o PreferredAuthentications=publickey -oStrictHostKeyChecking=no" -av --delete %s@%s: %s/puppet/""" % (BASE_DIR, self.config.get('puppet','user'),self.config.get('puppet','server'),BASE_DIR),shell=True)
@@ -263,6 +266,10 @@ class DroneAgent:
 	################################################################################
 
 	def backup_now(self):
+		if not self.is_network_up():
+			self.backup_save_state(uts,-2,"The network is down, cannot run backup")
+			if self.verbose: print "network is down, not running backup"
+
 		if self.verbose: print "starting backup (this may take several minutes)"
 
 		uts = int(time.time())
@@ -439,6 +446,7 @@ class DroneAgent:
 
 	def update_trigger(self):
 
+
 		if self.verbose: print "downloading package updates"
 		(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "--only-download", "update"])
 
@@ -530,6 +538,8 @@ class DroneAgent:
 	################################################################################
 
 	def reskit_update(self):
+		self.is_network_up(exit_if_down=True)
+
 		if self.verbose: print "starting reskit update (this may take several minutes)"
 
 		reskit_pkg_dir = self.config.get('reskit','pkgdir')
@@ -590,6 +600,8 @@ class DroneAgent:
 	################################################################################
 
 	def system_register(self):
+		self.is_network_up(exit_if_down=True)
+
 		## work out OS version
 		(distname, distversion, distid) = platform.linux_distribution()
 
