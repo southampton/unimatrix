@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-02-05-02"
+VERSION     = "2017-02-07-01"
 
 import os
 import sys
@@ -761,35 +761,35 @@ class DroneAgent:
 		## Deal with command line arguments
 		subcommands = """Available subcommands:
 
-	  puppet      manages puppet functions
-		status    show the status of the last puppet apply
-		sync      download the latest puppet ruleset
-		apply     apply puppet policy to the system
-		run       performs a 'sync' and then an 'apply'
-		facts     show puppet facts about the system
+  puppet      manages puppet functions
+	status    show the status of the last puppet apply
+	sync      download the latest puppet ruleset
+	apply     apply puppet policy to the system
+	run       performs a 'sync' and then an 'apply'
+	facts     show puppet facts about the system
 
-	  backup      management of workstation backups
-		status    show the status of the last backup
-		now       perform a backup of this system
-		ifneeded  perform a backup of this system if the last backup attempt
-		          was over 12 hours ago. it is intended that you run this 
-		          when the system is finished starting up.
+  backup      management of workstation backups
+	status    show the status of the last backup
+	now       perform a backup of this system
+	ifneeded  perform a backup of this system if the last backup attempt
+	          was over 12 hours ago. it is intended that you run this 
+	          when the system is finished starting up.
 
-	  update
-		trigger   schedule an offline system update to occur at the next reboot
-		history   show the result of the last offline update
-		status    show the packages due to be updated (if any) at next reboot
+  update
+	trigger   schedule an offline system update to occur at the next reboot
+	history   show the result of the last offline update
+	status    show the packages due to be updated (if any) at next reboot
 
-	  reskit
-		update    update the contents of reskit software packages
-		list      list installed reskit software packages
+  reskit
+	update    update the contents of reskit software packages
+	list      list installed reskit software packages
 
-	  system
-		register  (re-)register this system
+  system
+	register  (re-)register this system
 
-	  version     shows the version of the drone agent
+  version     shows the version of the drone agent
 
-	"""
+"""
 
 		self.parser = argparse.ArgumentParser(prog='drone',description='workstation management agent',epilog=subcommands,formatter_class=argparse.RawDescriptionHelpFormatter)
 		self.parser.add_argument('subcommand', metavar='subcommand', type=str, help='the function to perform')
