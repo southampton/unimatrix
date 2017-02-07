@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-02-05-01"
+VERSION     = "2017-02-05-02"
 
 import os
 import sys
@@ -800,6 +800,7 @@ class DroneAgent:
 		self.parser.add_argument('-i', '--ignore-nm-state', action='store_true', help="don't check with NetworkManager before using the network",dest='nmignore')
 
 		self.args       = self.parser.parse_args()
+		self.action     = self.args.action
 		self.subcommand = self.args.subcommand
 		self.debug      = self.args.debug
 		self.verbose    = self.args.verbose
