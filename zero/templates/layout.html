@@ -5,13 +5,22 @@
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="icon" type="image/png" href="{{ url_for('static', filename='icon.png') }}">
-		<title>{% if title %}{{ title }} - {% endif %}Linux Desktops Console</title>		
+		<title>{% if title %}{{ title }} - {% endif %}Linux Desktops Console</title>
 		<link href="{{url_for('static',filename='patternfly/css/patternfly.min.css')}}" rel="stylesheet" media="screen, print">
+		<link href="{{url_for('static',filename='bootstrap-select/bootstrap-select.min.css')}}" rel="stylesheet" media="screen, print">
 		<link href="{{url_for('static',filename='patternfly/css/patternfly-additions.min.css')}}" rel="stylesheet" media="screen, print">
 		<link href="{{url_for('static',filename='css/zero.css')}}" rel="stylesheet" media="screen, print">
+		{%- block css %}{% endblock %}
 		<script src="{{url_for('static',filename='jquery/jquery.min.js')}}"></script>
 		<script src="{{url_for('static',filename='bootstrap/bootstrap.min.js')}}"></script>
+		<script src="{{url_for('static',filename='bootstrap-select/bootstrap-select.min.js')}}"></script>
+		<script src="{{url_for('static',filename='dt/jquery.dataTables.min.js')}}"></script>
 		<script src="{{url_for('static',filename='patternfly/js/patternfly.min.js')}}"></script>
+		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.pfEmpty.min.js')}}"></script>
+		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.pfFilter.min.js')}}"></script>
+		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.pfPagination.min.js')}}"></script>
+		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.resize.min.js')}}"></script>
+		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.select.min.js')}}"></script>
 		{%- block head %}{% endblock %}
 	</head>
 	<body class="cards-pf">
@@ -60,7 +69,7 @@
       </a>
     </li>
     <li class="list-group-item{% if active == 'systems' %} active{%endif%}">
-      <a href="{{ url_for('default') }}">
+      <a href="{{ url_for('systems') }}">
         <span class="pficon pficon-registry" data-toggle="tooltip" title="Systems"></span>
         <span class="list-group-item-value">Systems</span>
       </a>

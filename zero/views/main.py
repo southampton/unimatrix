@@ -20,6 +20,13 @@ def default():
 		return redirect(url_for('login'))
 
 
+@app.route('/systems')
+@zero.lib.user.login_required
+def systems():
+	"""Renders the list of systems"""
+	return render_template('systems.html',active="systems")
+
+
 @zero.lib.user.login_required
 @app.route('/pkgdb/categories',methods=['GET','POST'])
 def pkgdb_categories():
