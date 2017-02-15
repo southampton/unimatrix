@@ -57,9 +57,9 @@ The value of 'code' can either be zero (the backup was a success), a negative in
 - **1** The backup succeeded but some files were not backed up
 - **2** The backup failed, the rsync command on the server returned an error
 - **3** The backup failed, a python exception was generated in the server code
-- **100** An python exception was raised whilst requesting a backup from the plexus daemon
-- **101** An python exception was raised whilst waiting for the plexus backup task to finish
-- **102** An python exception was raised whilst asking plexus for the result of the backup
+- **100** A python exception was raised whilst requesting a backup from the plexus daemon
+- **101** A python exception was raised whilst waiting for the plexus backup task to finish
+- **102** A python exception was raised whilst asking plexus for the result of the backup
 - **other:** the backup failed
 
 When writing an application that queries the status if the code is greater than 1 then its best to just state that the backup failed rather than drill down to every error code. 
