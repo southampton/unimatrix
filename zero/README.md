@@ -33,7 +33,6 @@ If no error occurs then the result will look like this:
 
 ```
 {
-	"error": false,
 	"private_key": "...",
 	"public_key": "...",
 	"backup_key": "...",
@@ -41,6 +40,8 @@ If no error occurs then the result will look like this:
 	"api_key": "..."
 }
 ```
+
+If the ``error`` key is sent then that can be assumed to mean something went wrong - it won't be sent in the JSON response if no error occured. 
 
 The meaning of each of these are as follows:
 
