@@ -1,42 +1,50 @@
 {% extends "layout.html" %}
 {% block body %}
 
-<!-- Toolbar -->
+<!--
+TODO:
+- add IP address
+- add RHEL version
+- add last backup date?
+- add 'status'?
+- add PC type / hardware / nvidia /etc.
+
+data on the view page:
+- backup status
+- startup/shutdown status
+- seen on network recently?
+- software update status
+- puppet status
+- etc.
+-->
+
+<div class="row row-cards-pf">
+	<div class="col-xs-12 col-sm-12 col-md-12">
+		<div class="card-pf card-pf-accented">
+			<h1><span class="fa fa-fw fa-desktop"></span> Systems</h1>
+			<p style="padding-bottom: 20px">The list of systems registered with this LDI server.</p>
+		</div>
+	</div>
+</div>
+
 <div class="row toolbar-pf table-view-pf-toolbar" id="toolbar1">
   <div class="col-sm-12">
     <form class="toolbar-pf-actions">
       <div class="form-group toolbar-pf-filter">
-        <label class="sr-only" for="filter">Rendering Engine</label>
+        <label class="sr-only" for="filter">ID</label>
         <div class="input-group">
           <div class="input-group-btn">
-            <button type="button" class="btn btn-default dropdown-toggle" id="filter" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Rendering Engine <span class="caret"></span></button>
+            <button type="button" class="btn btn-default dropdown-toggle" id="filter" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">ID <span class="caret"></span></button>
             <ul class="dropdown-menu">
-              <li><a href="#" id="filter1">Rendering Engine</a></li>
-              <li><a href="#" id="filter2">Browser</a></li>
-              <li><a href="#" id="filter3">Platform(s)</a></li>
-              <li><a href="#" id="filter4">Engine Version</a></li>
-              <li><a href="#" id="filter5">CSS Grade</a></li>
+              <li><a href="#" id="filter1">ID</a></li>
+              <li><a href="#" id="filter2">Name</a></li>
+              <li><a href="#" id="filter3">Creation date</a></li>
+              <li><a href="#" id="filter4">Registration date</a></li>
+              <li><a href="#" id="filter5">Last seen date</a></li>
             </ul>
           </div>
-          <input type="text" class="form-control" placeholder="Filter By Rendering Engine..." autocomplete="off" id="filterInput">
+          <input type="text" class="form-control" placeholder="Filter By ID..." autocomplete="off" id="filterInput">
         </div>
-      </div>
-      <div class="form-group">
-        <button class="btn btn-default" type="button" id="deleteRows1">Delete Rows</button>
-        <button class="btn btn-default" type="button" id="restoreRows1" disabled>Restore Rows</button>
-        <div class="dropdown btn-group  dropdown-kebab-pf">
-  <button class="btn btn-link dropdown-toggle" type="button" id="dropdownKebab" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-    <span class="fa fa-ellipsis-v"></span>
-  </button>
-  <ul class="dropdown-menu " aria-labelledby="dropdownKebab">
-    <li><a href="#">Action</a></li>
-    <li><a href="#">Another action</a></li>
-    <li><a href="#">Something else here</a></li>
-    <li role="separator" class="divider"></li>
-    <li><a href="#">Separated link</a></li>
-  </ul>
-</div>
-
       </div>
       <div class="toolbar-pf-action-right">
         <div class="form-group toolbar-pf-find">
@@ -70,9 +78,6 @@
           <p><a href="#">Clear All Filters</a></p>
         </div>
       </div>
-      <div class="col-sm-3 table-view-pf-select-results">
-        <strong>0</strong> of <strong>0</strong> selected
-      </div>
     </div>
   </div>
 </div>
@@ -81,13 +86,12 @@
 <table class="table table-striped table-bordered table-hover" id="table1">
   <thead>
     <tr>
-      <th><label class="sr-only" for="selectAll">Select all rows</label><input type="checkbox" id="selectAll" name="selectAll"></th>
-      <th>Rendering Engine</th>
-      <th>Browser</th>
-      <th>Platform(s)</th>
-      <th>Engine Version</th>
-      <th>CSS Grade</th>
-      <th colspan="2">Actions</th>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Creation Date</th>
+      <th>Registration Date</th>
+      <th>Last seen at</th>
+      <th>Actions</th>
     </tr>
   </thead>
 </table>
@@ -125,396 +129,27 @@
     <span class="pficon pficon pficon-add-circle-o"></span>
   </div>
   <h1>
-    Empty State Title
+    No systems!
   </h1>
   <p>
-    Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+    No systems have been registered, yet!
   </p>
-  <p>
-    Learn more about this <a href="#">on the documentation</a>.
-  </p>
-  <div class="blank-slate-pf-main-action">
-    <button class="btn btn-primary btn-lg"> Main Action </button>
-  </div>
-  <div class="blank-slate-pf-secondary-action">
-    <button class="btn btn-default"> Secondary Action </button> <button class="btn btn-default"> Secondary Action </button> <button class="btn btn-default"> Secondary Action </button>
-  </div>
 </div>
 
 <script>
 $(document).ready(function() {
 
-// JSON data for Table View
-var dataSet = [{
-  engine: "Trident",
-  browser: "Internet Explorer 4.0",
-  platforms: "Win 95+",
-  version: "4",
-  grade: "X"
-},{
-  engine: "Trident",
-  browser: "Internet Explorer 5.0",
-  platforms: "Win 95+",
-  version: "5",
-  grade: "C"
-}, {
-  engine: "Trident",
-  browser: "Internet Explorer 5.5",
-  platforms: "Win 95+",
-  version: "5.5",
-  grade: "A"
-}, {
-  engine: "Trident",
-  browser: "Internet Explorer 6",
-  platforms: "Win 98+",
-  version: "6",
-  grade: "A"
-}, {
-  engine: "Trident",
-  browser: "Internet Explorer 7",
-  platforms: "Win XP SP2+",
-  version: "7",
-  grade: "A"
-}, {
-  engine: "Trident",
-  browser: "AOL browser (AOL desktop)",
-  platforms: "Win XP",
-  version: "6",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Firefox 1.0",
-  platforms: "Win 98+ / OSX.2+",
-  version: "1.7",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Firefox 1.5",
-  platforms: "Win 98+ / OSX.2+",
-  version: "1.8",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Firefox 2.0",
-  platforms: "Win 98+ / OSX.2+",
-  version: "1.8",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Firefox 3.0",
-  platforms: "Win 2k+ / OSX.3+",
-  version: "1.9",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Camino 1.0",
-  platforms: "OSX.2+",
-  version: "1.8",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Camino 1.5",
-  platforms: "OSX.3+",
-  version: "1.8",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Netscape 7.2",
-  platforms: "Win 95+ / Mac OS 8.6-9.2",
-  version: "1.7",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Netscape Browser 8",
-  platforms: "Win 98SE+",
-  version: "1.7",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Netscape Navigator 9",
-  platforms: "Win 98+ / OSX.2+",
-  version: "1.8",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Mozilla 1.0",
-  platforms: "Win 95+ / OSX.1+",
-  version: "1",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Mozilla 1.1",
-  platforms: "Win 95+ / OSX.1+",
-  version: "1.1",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Mozilla 1.2",
-  platforms: "Win 95+ / OSX.1+",
-  version: "1.2",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Mozilla 1.3",
-  platforms: "Win 95+ / OSX.1+",
-  version: "1.3",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Mozilla 1.4",
-  platforms: "Win 95+ / OSX.1+",
-  version: "1.4",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Mozilla 1.5",
-  platforms: "Win 95+ / OSX.1+",
-  version: "1.5",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Mozilla 1.6",
-  platforms: "Win 95+ / OSX.1+",
-  version: "1.6",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Mozilla 1.7",
-  platforms: "Win 98+ / OSX.1+",
-  version: "1.7",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Mozilla 1.8",
-  platforms: "Win 98+ / OSX.1+",
-  version: "1.8",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Seamonkey 1.1",
-  platforms: "Win 98+ / OSX.2+",
-  version: "1.8",
-  grade: "A"
-}, {
-  engine: "Gecko",
-  browser: "Epiphany 2.20",
-  platforms: "Gnome",
-  version: "1.8",
-  grade: "A"
-}, {
-  engine: "Webkit",
-  browser: "Safari 1.2",
-  platforms: "OSX.3",
-  version: "125.5",
-  grade: "A"
-}, {
-  engine: "Webkit",
-  browser: "Safari 1.3",
-  platforms: "OSX.3",
-  version: "312.8",
-  grade: "A"
-}, {
-  engine: "Webkit",
-  browser: "Safari 2.0",
-  platforms: "OSX.4+",
-  version: "419.3",
-  grade: "A"
-}, {
-  engine: "Webkit",
-  browser: "Safari 3.0",
-  platforms: "OSX.4+",
-  version: "522.1",
-  grade: "A"
-}, {
-  engine: "Webkit",
-  browser: "OmniWeb 5.5",
-  platforms: "OSX.4+",
-  version: "420",
-  grade: "A"
-}, {
-  engine: "Webkit",
-  browser: "iPod Touch / iPhone",
-  platforms: "iPod",
-  version: "420.1",
-  grade: "A"
-}, {
-  engine: "Webkit",
-  browser: "S60",
-  platforms: "S60",
-  version: "413",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Opera 7.0",
-  platforms: "Win 95+ / OSX.1+",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Opera 7.5",
-  platforms: "Win 95+ / OSX.2+",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Opera 8.0",
-  platforms: "Win 95+ / OSX.2+",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Opera 8.5",
-  platforms: "Win 95+ / OSX.2+",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Opera 9.0",
-  platforms: "Win 95+ / OSX.3+",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Opera 9.2",
-  platforms: "Win 88+ / OSX.3+",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Opera 9.5",
-  platforms: "Win 88+ / OSX.3+",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Opera for Wii",
-  platforms: "Wii",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Nokia N800",
-  platforms: "N800",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Presto",
-  browser: "Nintendo DS browser",
-  platforms: "Nintendo DS",
-  version: "8.5",
-  grade: "C/A<sup>1</sup>"
-}, {
-  engine: "KHTML",
-  browser: "Konqureror 3.1",
-  platforms: "KDE 3.1",
-  version: "3.1",
-  grade: "C"
-}, {
-  engine: "KHTML",
-  browser: "Konqureror 3.3",
-  platforms: "KDE 3.3",
-  version: "3.3",
-  grade: "A"
-}, {
-  engine: "KHTML",
-  browser: "Konqureror 3.5",
-  platforms: "KDE 3.5",
-  version: "3.5",
-  grade: "A"
-}, {
-  engine: "Tasman",
-  browser: "Internet Explorer 4.5",
-  platforms: "Mac OS 8-9",
-  version: "-",
-  grade: "X"
-}, {
-  engine: "Tasman",
-  browser: "Internet Explorer 5.1",
-  platforms: "Mac OS 7.6-9",
-  version: "1",
-  grade: "C"
-}, {
-  engine: "Tasman",
-  browser: "Internet Explorer 5.2",
-  platforms: "Mac OS 8-X",
-  version: "1",
-  grade: "C"
-}, {
-  engine: "Misc",
-  browser: "NetFront 3.1",
-  platforms: "Embedded devices",
-  version: "-",
-  grade: "C"
-}, {
-  engine: "Misc",
-  browser: "NetFront 3.4",
-  platforms: "Embedded devices",
-  version: "-",
-  grade: "A"
-}, {
-  engine: "Misc",
-  browser: "Dillo 0.8",
-  platforms: "Embedded devices",
-  version: "-",
-  grade: "X"
-}, {
-  engine: "Misc",
-  browser: "Links",
-  platforms: "Text only",
-  version: "-",
-  grade: "X"
-}, {
-  engine: "Misc",
-  browser: "Lynx",
-  platforms: "Text only",
-  version: "-",
-  grade: "X"
-}, {
-  engine: "Misc",
-  browser: "IE Mobile",
-  platforms: "Windows Mobile 6",
-  version: "-",
-  grade: "C"
-}, {
-  engine: "Misc",
-  browser: "PSP browser",
-  platforms: "PSP",
-  version: "-",
-  grade: "C"
-}, {
-  engine: "Other browsers",
-  browser: "All others",
-  platforms: "-",
-  version: "-",
-  grade: "U"
-}];
+var dataSet = {{ systems|tojson|safe }};
 
 // DataTable Config
 $("#table1").DataTable({
   columns: [
-    { data: null,
-      className: "table-view-pf-select",
-      render: function (data, type, full, meta) {
-        // Select row checkbox renderer
-        var id = "select" + meta.row;
-        return '<label class="sr-only" for="' + id + '">Select row ' + meta.row +
-          '</label><input type="checkbox" id="' + id + '" name="' + id + '">';
-      },
-      sortable: false
-    },
-    { data: "engine" },
-    { data: "browser" },
-    { data: "platforms" },
-    { data: "version" },
-    { data: "grade"},
-    { data: null,
-      className: "table-view-pf-actions",
-      render: function (data, type, full, meta) {
-        // Inline action button renderer
-        return '<div class="table-view-pf-btn"><button class="btn btn-default" type="button">Actions</button></div>';
-      }
-    }, {
-      data: null,
+    { data: "id" },
+    { data: "name" },
+    { data: "create_date" },
+    { data: "register_date" },
+    { data: "last_seen_date"},
+	{ data: null,
       className: "table-view-pf-actions",
       render: function (data, type, full, meta) {
         // Inline action kebab renderer
@@ -544,19 +179,19 @@ $("#table1").DataTable({
       {
         default: true,
         optionSelector: "#filter1",
-        placeholder: "Filter By Rendering Engine..."
+        placeholder: "Filter By ID"
       }, {
         optionSelector: "#filter2",
-        placeholder: "Filter By Browser..."
+        placeholder: "Filter By Name..."
       }, {
         optionSelector: "#filter3",
-        placeholder: "Filter By Platform(s)..."
+        placeholder: "Filter By Creation Date..."
       }, {
         optionSelector: "#filter4",
-        placeholder: "Filter By Engine Version..."
+        placeholder: "Filter By Registration Date..."
       }, {
         optionSelector: "#filter5",
-        placeholder: "Filter By CSS Grade..."
+        placeholder: "Filter By Last Seen Date..."
       }
     ],
     paginationSelector: "#pagination1",
@@ -567,48 +202,6 @@ $("#table1").DataTable({
     selector: 'td:first-child input[type="checkbox"]',
     style: 'multi'
   },
-});
-
-/**
- * Utility to show empty Table View
- *
- * @param {object} config - Config properties associated with a Table View
- * @param {object} config.data - Data set for DataTable
- * @param {string} config.deleteRowsSelector - Selector for delete rows control
- * @param {string} config.restoreRowsSelector - Selector for restore rows control
- * @param {string} config.tableSelector - Selector for the HTML table
- */
-var emptyTableViewUtil = function (config) {
-  var self = this;
-
-  this.dt = $(config.tableSelector).DataTable(); // DataTable
-  this.deleteRows = $(config.deleteRowsSelector); // Delete rows control
-  this.restoreRows = $(config.restoreRowsSelector); // Restore rows control
-
-  // Handle click on delete rows control
-  this.deleteRows.on('click', function() {
-    self.dt.clear().draw();
-    $(self.restoreRows).prop("disabled", false);
-  });
-
-  // Handle click on restore rows control
-  this.restoreRows.on('click', function() {
-    self.dt.rows.add(config.data).draw();
-    $(this).prop("disabled", true);
-  });
-
-  // Initialize restore rows
-  if (this.dt.data().length === 0) {
-    $(this.restoreRows).prop("disabled", false);
-  }
-};
-
-// Initialize empty Table View util
-new emptyTableViewUtil({
-  data: dataSet,
-  deleteRowsSelector: "#deleteRows1",
-  restoreRowsSelector: "#restoreRows1",
-  tableSelector: "#table1"
 });
 
 /**

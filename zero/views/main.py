@@ -24,7 +24,12 @@ def default():
 @zero.lib.user.login_required
 def systems():
 	"""Renders the list of systems"""
-	return render_template('systems.html',active="systems")
+
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute("SELECT `id`, `name`, `create_date`, `register_date`, `last_seen_date` FROM `systems`")
+	systems = curd.fetchall()
+
+	return render_template('systems.html',active="systems",systems=systems)
 
 
 @zero.lib.user.login_required
