@@ -123,7 +123,7 @@ def api_v1_register():
 			app.logger.info("api_v1_register: Reusing existing allocated backup port number for " + hostname)
 
 	app.logger.info("api_v1_register: registration complete for " + hostname + " using account " + username)
-	return jsonify({'private_key': private_key_str, 'public_key': public_key_str, 'backup_key': backup_key, 'backup_port': backup_port, 'api_key': api_key})
+	return jsonify({'error': False, 'private_key': private_key_str, 'public_key': public_key_str, 'backup_key': backup_key, 'backup_port': backup_port, 'api_key': api_key})
 
 ################################################################################
 # update data 
