@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-02-16-03"
+VERSION     = "2017-02-16-05"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -1019,11 +1019,11 @@ class DroneAgent:
 		## code output of the 'pkcon offline-get-prepared' command
 		(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "offline-get-prepared"])
 
-		update_status = """{ "offline-get-prepared": """" + str(code) + """" }"""
+		update_status = '{ "offline-get-prepared": ' + str(code) + '}'
 
 		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
 		try:
-			payload = {'hostname': hostname, 'api_key': api_key, 'type': 'updates', 'data': update_status}
+			payload = {'hostname': hostname, 'api_key': api_key, 'type': 'update', 'data': update_status}
 			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
 		except Exception as ex:
 			self.fatalex(8,"Unable to contact LDI server",ex)
@@ -1054,6 +1054,8 @@ class DroneAgent:
 		metadata['hwinfo.gpu'] = self.system_get_gpu()
 		metadata['hwinfo.sys'] = self.system_get_sys()
 		metadata['drone.version'] = VERSION
+
+		metadata = json.dumps(metadata)
 
 		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
 		try:
