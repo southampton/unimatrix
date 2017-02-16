@@ -85,13 +85,12 @@ The value of ``facts`` should be the JSON formatted output of ``puppet facts``.
 - Parameters
 -- hostname
 -- api_key
--- backup
--- puppet
--- updates
+-- type
+-- data
 
 This method is used to store the status of puppet, backup and software updates on the LDI server. This is used for reporting. 
 
-The value of ``backup``, ``puppet`` and ``updates`` should be a JSON formatted string. 
+``type`` should either be ``puppet``, ``backup`` or ``updates``, and ``data`` should be a JSON formatted string with the status from ``drone``.
 
 #### event
 

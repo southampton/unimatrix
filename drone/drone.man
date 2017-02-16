@@ -1,0 +1,66 @@
+.TH drone 1 "Feb 15, 2017" "version 0.1" "DRONE WORKSTATION AGENT
+.SH NAME
+drone - management agent for systems registered with the LDI system
+.SH SYNOPSIS
+drone [-h] [-d] [-v] [-i] <subcommand> [action]
+
+.SH DESCRIPTION
+drone is a workstation management tool used for various functions 
+including downloading and applying puppet policy, taking backups,
+applying system updates, registering with the LDI server and
+updating the LDI server with information and events.
+
+.SH COMMANDS
+
+puppet
+  status    show the status of the last puppet apply
+  sync      download the latest puppet ruleset
+  apply     apply puppet policy to the system
+  run       performs a 'sync' and then an 'apply'
+  facts     show puppet facts about the system
+
+backup
+  now       perform a backup of this system
+  status    show the status of the last backup
+  ifneeded  perform a backup of this system if the last backup attempt
+            was over 12 hours ago. it is intended that you run this 
+            when the system is finished starting up.
+
+update
+  trigger   schedule an offline system update on the next reboot
+  history   show the result of the last offline update
+  status    show the packages due to be updated at next reboot
+
+reskit
+  update    update the contents of reskit software packages
+  list      list installed reskit software packages
+
+system
+  register  (re-)register this system
+  status    shows the system backup, puppet and update status
+  hwinfo    shows the hardware information of the system
+
+ldi
+  startup   inform the LDI server that the system has just started up
+  shutdown  inform the LDI server that the system is shutting down
+  ping      inform the LDI server that the system is alive
+  dhcp      inform the LDI server of a new DHCP lease
+  status    inform the LDI server of the system status
+  metadata  inform the LDI server about the system hardware
+  facts     inform the LDI server of our puppet facts
+
+version     shows the version of the drone agent
+
+.SH OPTIONS
+  -h, --help            show a help message and then exits
+  -d, --debug           turn on debugging output
+  -v, --verbose         turn on verbose output
+  -i, --ignore-nm-state
+                        don't check with NetworkManager before using the
+                        network
+
+.SH AUTHOR  
+David Bell, d.bell@soton.ac.uk
+
+.SH COPYRIGHT  
+Copyright (c) 2017 University of Southampton
