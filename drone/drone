@@ -2,7 +2,9 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-02-07-01"
+VERSION     = "2017-02-16-01"
+ANSI_BOLD   = "\033[1m"
+ANSI_RESET  = "\033[0;0m"
 
 import os
 import sys
@@ -17,10 +19,11 @@ import getpass
 import time
 import json
 import yaml
+import dmidecode
 
 class DroneAgent:
 
-	################################################################################
+	############################################################################
 
 	def fatal(self,code,message):
 		sys.stderr.write("Error: " + message + "\n")
@@ -30,7 +33,7 @@ class DroneAgent:
 		sys.stderr.write("Error: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
 		sys.exit(code)
 
-	################################################################################
+	############################################################################
 
 	def warn(self,message):
 		sys.stderr.write("Warning: " + message + "\n")
@@ -38,7 +41,7 @@ class DroneAgent:
 	def warnex(self,message,exception):
 		sys.stderr.write("Warning: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
 
-	################################################################################
+	############################################################################
 
 	def strtime(self,when=None):
 		if when is None:
@@ -48,7 +51,7 @@ class DroneAgent:
 
 		return dt.strftime("%Y-%m-%d %H:%M:%S")
 
-	################################################################################
+	############################################################################
 
 	def get_config(self):
 		self.config = ConfigParser.RawConfigParser()
@@ -93,7 +96,7 @@ class DroneAgent:
 		except Exception as ex:
 			self.fatalex(2,"Could not read the config file " + CONFIG_FILE,ex)
 
-	################################################################################
+	############################################################################
 
 	def sysexec(self,command,shell=False):
 		if self.debug:
@@ -118,7 +121,7 @@ class DroneAgent:
 		except Exception as ex:
 			return (1,str(type(ex)) + " " + str(ex))
 
-	################################################################################
+	############################################################################
 
 	def is_network_up(self,timeout=30,exit_if_down=False):
 		if self.args.nmignore:
@@ -140,8 +143,8 @@ class DroneAgent:
 				if self.verbose: print "network manager reports the network is down"
 				return False
 
-	################################################################################
-	################################################################################
+	############################################################################
+	############################################################################
 
 	def puppet_sync(self):
 		self.is_network_up(exit_if_down=True)
@@ -155,7 +158,7 @@ class DroneAgent:
 		else:
 			if self.verbose: print "sync complete"
 
-	################################################################################
+	############################################################################
 
 	def puppet_apply(self):
 		if self.verbose: print "starting puppet apply"
@@ -180,7 +183,7 @@ class DroneAgent:
 
 		self.puppet_save_state(uts,code,output)
 
-	################################################################################
+	############################################################################
 
 	def puppet_save_state(self,uts,code,output):
 		data = {'when': uts, 'code': code, 'output': output}
@@ -198,7 +201,7 @@ class DroneAgent:
 		except Exception as ex:
 			self.warnex("Could not write to " + BASE_DIR + "/state/puppet",ex)
 
-	################################################################################
+	############################################################################
 
 	def puppet_get_state(self):
 		status_file = BASE_DIR + "/state/puppet" 
@@ -228,7 +231,7 @@ class DroneAgent:
 		else:
 			print "puppet apply has never been run on this system"
 
-	################################################################################
+	############################################################################
 
 	def puppet_facts(self):
 
@@ -239,7 +242,7 @@ class DroneAgent:
 		else:
 			self.fatal(27,"Could not retrieve facts: \n" + output)
 
-	################################################################################
+	############################################################################
 
 	def puppet(self):
 		if self.action == 'sync':
@@ -262,8 +265,8 @@ class DroneAgent:
 			print 'Unrecognised or missing action'
 			self.parser.print_help()
 
-	################################################################################
-	################################################################################
+	############################################################################
+	############################################################################
 
 	def backup_now(self):
 		if not self.is_network_up():
@@ -339,7 +342,7 @@ class DroneAgent:
 		if fail:
 			self.fatal(24,status)
 
-	################################################################################
+	############################################################################
 
 	def backup_save_state(self,uts,code,output=None):
 		data = {'when': uts, 'code': code, 'output': output}
@@ -357,7 +360,7 @@ class DroneAgent:
 		except Exception as ex:
 			self.warnex("Could not write to " + BASE_DIR + "/state/backup",ex)
 
-	################################################################################
+	############################################################################
 
 	def backup_load_state(self):
 		status_file = BASE_DIR + "/state/backup" 
@@ -386,7 +389,7 @@ class DroneAgent:
 
 		return (code,when,output)
 
-	################################################################################
+	############################################################################
 
 	def backup_get_state(self):
 
@@ -407,7 +410,7 @@ class DroneAgent:
 		else:
 			print "a backup has never been run on this system"
 
-	################################################################################
+	############################################################################
 
 	def backup_ifneeded(self):
 		if self.debug: print "checking for last backup"
@@ -425,7 +428,7 @@ class DroneAgent:
 			else:
 				if self.verbose: print "backup is not required"
 
-	################################################################################
+	############################################################################
 
 	def backup(self):
 		if self.action == 'now':
@@ -441,8 +444,8 @@ class DroneAgent:
 			print 'Unrecognised or missing action'
 			self.parser.print_help()
 
-	################################################################################
-	################################################################################
+	############################################################################
+	############################################################################
 
 	def update_trigger(self):
 
@@ -468,21 +471,21 @@ class DroneAgent:
 			if self.debug: print "the /system-update trigger is already present"
 			if self.verbose: print "the system will update at the next reboot"
 
-	################################################################################
+	############################################################################
 
 	def update_status(self):
 
 		(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "offline-get-prepared"])
 		print output.rstrip("\n")
 
-	################################################################################
+	############################################################################
 
 	def update_history(self):
 
 		(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "offline-status"])
 		print output.rstrip("\n")
 
-	################################################################################
+	############################################################################
 
 	def update(self):
 		if self.action == 'status':
@@ -498,8 +501,8 @@ class DroneAgent:
 			print 'Unrecognised or missing action'
 			self.parser.print_help()
 
-	################################################################################
-	################################################################################
+	############################################################################
+	############################################################################
 
 	def reskit_update_package(self,package):
 		if self.verbose: print "starting update of '" + package + "'"
@@ -535,7 +538,7 @@ class DroneAgent:
 		else:
 			if self.verbose: print "reskit update of '" + package + "' complete"
 
-	################################################################################
+	############################################################################
 
 	def reskit_update(self):
 		self.is_network_up(exit_if_down=True)
@@ -569,7 +572,7 @@ class DroneAgent:
 
 		if self.verbose: print "reskit update complete"
 
-	################################################################################
+	############################################################################
 
 	def reskit_list(self):
 		reskit_pkg_dir = self.config.get('reskit','pkgdir')
@@ -585,7 +588,7 @@ class DroneAgent:
 		for f in reskit_files:
 			print f
 
-	################################################################################
+	############################################################################
 
 	def reskit(self):
 		if self.action == 'update':
@@ -596,8 +599,8 @@ class DroneAgent:
 			print 'Unrecognised or missing action'
 			self.parser.print_help()
 
-	################################################################################
-	################################################################################
+	############################################################################
+	############################################################################
 
 	def system_register(self):
 		self.is_network_up(exit_if_down=True)
@@ -734,21 +737,394 @@ class DroneAgent:
 
 		print "Registration completed successfully"
 
-	################################################################################
+	############################################################################
+
+	def system_status(self):
+		print ANSI_BOLD + "backup status:" + ANSI_RESET
+		self.backup_get_state()
+		print ANSI_BOLD + "\npuppet status:" + ANSI_RESET
+		self.puppet_get_state()
+		print ANSI_BOLD + "\nupdate status:" + ANSI_RESET
+		self.update_status()
+
+	############################################################################
+	
+	def system_get_gpu(self):
+		# NOTE this assumes just one VGA card is visible in lspci, and thus
+		# outputs the first one in the list. Its VERY rare that a system would
+		# have /two/ graphics cards the OS can utilise.
+
+		try:
+			re_vga = re.compile(r'^[0-9a-f]+:[0-9a-f]+\.[0-9a-f]+\s+VGA\s+compatible\s+controller:\s+(.*)')
+
+			(code,output) = self.sysexec(['/usr/sbin/lspci'])
+		
+			cards = []
+			for line in output.splitlines():
+				vga_match = re_vga.search(line)
+				if vga_match is not None:
+					cards.append(vga_match.group(1))
+
+			if len(cards) >= 0:
+				return cards[0]
+			else:
+				return "No GPU found"
+		except Exception as ex:
+			return "Could not determine GPU"
+
+	############################################################################
+
+	def system_get_mem(self):
+		try:
+			total = 0
+			for mem in dmidecode.memory().values():
+				if 'Form Factor' in mem['data']:
+					if mem['data']['Form Factor'] in ['DIMM','SODIMM']:
+						if 'Size' in mem['data'] and mem['data']['Size'] is not None:
+							parts = mem['data']['Size'].split(' ')
+							number = parts[0]
+							unit = parts[1]
+
+							# Store size in bytes
+							if unit == 'KB' or unit == 'KiB':
+								size = int(number) * 1024
+							elif unit == 'MB' or unit == 'MiB':
+								size = int(number) * 1048576
+							elif unit == 'GB' or unit == 'GiB':
+								size = int(number) * 1073741824
+							elif unit == 'TB' or unit == 'TiB':
+								size = int(number) * 1099511627776
+							else:
+								size = int(number)
+
+							total = total + size
+
+			human = str(total) + " bytes"
+			if total > 1073741824:
+				human = str(total / 1024 / 1024 / 1024) + " GB"
+			elif total > 1048576:
+				human = str(total / 1024 / 1024) + " MB"
+			elif total > 1024:
+				human = str(total / 1024) + " KB"
+
+			return (total,human)
+		except Exception as ex:
+			return (0,"Could not determine physical memory")
+
+	############################################################################
+
+	def system_get_cpu(self):
+		try:
+
+			re_processor = re.compile(r'^processor\s*:\s+([0-9]+)')
+			re_physical_id = re.compile(r'^physical\sid\s*:\s+([0-9]+)')
+			re_cpu_cores = re.compile(r'^cpu\scores\s*:\s+([0-9]+)')
+			re_model_name = re.compile(r'^model\sname\s*:\s+(.*)')
+			re_cache_size = re.compile(r'^cache\ssize\s*:\s+(.*)')
+
+			# Setup
+			processor = None
+			cpu = None
+			cpu_cores = None
+			model = None
+			cache_size = None
+			procs = {}
+
+			# Read the entire cpuinfo file
+			cpuinfo = open('/proc/cpuinfo', 'r')
+			for line in cpuinfo:
+				# Match the line against our regexs
+				p_match     = re_processor.search(line)
+				pid_match   = re_physical_id.search(line)
+				cpu_match   = re_cpu_cores.search(line)
+				model_match = re_model_name.search(line)
+				cache_match = re_cache_size.search(line)
+
+				if p_match is not None:
+					# We're starting a new CPU, record the old one
+					if cpu is not None and cpu not in procs:
+						procs[cpu] = { 'model': model, 'cores': cpu_cores, 'cache': cache_size }
+				
+					#processor = int(p_match.group(1))
+					cpu = None
+					cpu_core = None
+					model = None
+
+				if pid_match is not None:
+					cpu = int(pid_match.group(1))
+
+				if cpu_match is not None:
+					cpu_cores = int(cpu_match.group(1))
+
+				if model_match is not None:
+					model = model_match.group(1)
+
+				if cache_match is not None:
+					cache_size = cache_match.group(1)
+
+			# Pick up the last CPU
+			if cpu is not None and cpu not in procs:
+				procs[cpu] = { 'model': model, 'cores': cpu_cores, 'cache': cache_size }
+
+			if len(procs) > 0:
+				cpu = str(len(procs)) + "x "
+	
+				if procs[0]['cores'] == 1:
+					cpu = cpu + "single-core "
+				elif procs[0]['cores'] == 2:
+					cpu = cpu + "dual-core "
+				elif procs[0]['cores'] == 4:
+					cpu = cpu + "quad-core "
+				elif procs[0]['cores'] == 8:
+					cpu = cpu + "octa-core "
+				else:
+					cpu = cpu + str(procs[0]['cores']) + "-core "
+
+				return cpu + procs[0]['model']
+
+			else:
+				return "Unknown CPU"
+
+		except Exception as ex:
+			return "Could not determine CPU information"
+
+	############################################################################
+
+	def system_get_sys(self):
+		try:
+			system_values = dmidecode.system().values()
+		except Exception as ex:
+			system_values = []
+
+		vendor = ""
+		try:
+			for entry in system_values:
+				if 'data' in entry:
+					if 'Manufacturer' in entry['data']:
+						vendor = entry['data']['Manufacturer']
+						break
+		except Exception as ex:
+			pass
+
+		model = ""
+		try:
+			for entry in system_values:
+				if 'data' in entry:
+					if 'Product Name' in entry['data']:
+						model = entry['data']['Product Name']
+						break
+		except Exception as ex:
+			pass
+
+		return vendor + " " + model
+
+	############################################################################
+
+	def system_hwinfo(self):
+		cpu = self.system_get_cpu()
+		(memt,mem) = self.system_get_mem()
+		gpu = self.system_get_gpu()
+		sys = self.system_get_sys()
+
+		print ANSI_BOLD + "SYS: " + ANSI_RESET + sys
+		print ANSI_BOLD + "CPU: " + ANSI_RESET + cpu
+		print ANSI_BOLD + "MEM: " + ANSI_RESET + mem
+		print ANSI_BOLD + "GPU: " + ANSI_RESET + gpu
+
+	############################################################################
 
 	def system(self):
 		if self.action == 'register':
 			self.system_register()
+		elif self.action == 'status':
+			self.system_status()
+		elif self.action == 'hwinfo':
+			self.system_hwinfo()
 		else:
 			print 'Unrecognised or missing action'
 			self.parser.print_help()
 
-	################################################################################
+	############################################################################
+
+	def ldi_event(self,hostname,api_key,server_url,event):
+		server_url = server_url + "api/v1/event"
+
+		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		try:
+			payload = {'hostname': hostname, 'api_key': api_key, 'event': event}
+			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
+		except Exception as ex:
+			self.fatalex(8,"Unable to contact LDI server",ex)
+
+		if self.debug: print "return code " + str(r.status_code)
+
+		if r.status_code == 200:
+			if self.verbose: print "LDI server acknowleged the event"
+		else:
+			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+
+	############################################################################
+
+	def ldi_status(self,hostname,api_key,server_url):
+		server_url = server_url + "api/v1/update/status"
+
+		status_file = BASE_DIR + "/state/puppet"
+		if self.debug: print "Opening " + status_file
+		if os.path.exists(status_file):
+			try:
+				with open(status_file,"r") as fp:
+					puppet_status = fp.read()
+			except Exception as ex:
+				self.fatalex(5,"Could not read from puppet status file " + status_file,ex)
+
+		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		try:
+			payload = {'hostname': hostname, 'api_key': api_key, 'type': 'puppet', 'data': puppet_status}
+			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
+		except Exception as ex:
+			self.fatalex(8,"Unable to contact LDI server",ex)
+
+		if self.debug: print "return code " + str(r.status_code)
+
+		if r.status_code == 200:
+			if self.verbose: print "LDI server accepted the puppet status update"
+		else:
+			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+
+		status_file = BASE_DIR + "/state/backup" 
+		if self.debug: print "Opening " + status_file
+		if os.path.exists(status_file):
+			try:
+				with open(status_file,"r") as fp:
+					backup_status = fp.read()
+			except Exception as ex:
+				self.fatalex(5,"Could not read from backup status file " + status_file,ex)
+
+		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		try:
+			payload = {'hostname': hostname, 'api_key': api_key, 'type': 'backup', 'data': backup_status}
+			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
+		except Exception as ex:
+			self.fatalex(8,"Unable to contact LDI server",ex)
+
+		if self.debug: print "return code " + str(r.status_code)
+
+		if r.status_code == 200:
+			if self.verbose: print "LDI server accepted the backup status update"
+		else:
+			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+
+		## the update status is quite different. at the moment we just send 
+		## back a json document just like the above two, but we just set the 
+		## code output of the 'pkcon offline-get-prepared' command
+		(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "offline-get-prepared"])
+
+		update_status = """{ "offline-get-prepared": """" + str(code) + """" }"""
+
+		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		try:
+			payload = {'hostname': hostname, 'api_key': api_key, 'type': 'updates', 'data': update_status}
+			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
+		except Exception as ex:
+			self.fatalex(8,"Unable to contact LDI server",ex)
+
+		if self.debug: print "return code " + str(r.status_code)
+
+		if r.status_code == 200:
+			if self.verbose: print "LDI server accepted the software update status update"
+		else:
+			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+
+	############################################################################
+
+	def ldi_metadata(self,hostname,api_key,server_url):
+		"""metadata is a series of custom-generated bits of data about the 
+		workstation that are not exposed via Puppet facts. True, we could write
+		custom facts, but they would have to be in Ruby. Eww."""
+
+		server_url = server_url + "api/v1/update/metadata"
+
+		metadata = {}
+
+		gpu = self.system_get_gpu()
+		sys = self.system_get_sys()
+
+		metadata['hwinfo.cpu'] = self.system_get_cpu()
+		(memt,metadata['hwinfo.mem']) = self.system_get_mem()
+		metadata['hwinfo.gpu'] = self.system_get_gpu()
+		metadata['hwinfo.sys'] = self.system_get_sys()
+		metadata['drone.version'] = VERSION
+
+		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		try:
+			payload = {'hostname': hostname, 'api_key': api_key, 'metadata': metadata}
+			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
+		except Exception as ex:
+			self.fatalex(8,"Unable to contact LDI server",ex)
+
+		if self.debug: print "return code " + str(r.status_code)
+
+		if r.status_code == 200:
+			if self.verbose: print "LDI server accepted the metadata update"
+		else:
+			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+
+	############################################################################
+
+	def ldi_facts(self,hostname,api_key,server_url):
+		server_url = server_url + "api/v1/update/facts"
+
+		(code, output) = self.sysexec("""%s facts find --render-as json --modulepath %s/puppet/modules/""" % (self.config.get('puppet','binary'),BASE_DIR),shell=True)
+
+		if code != 0:
+			self.fatal(27,"Could not retrieve facts: \n" + output)
+
+		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		try:
+			payload = {'hostname': hostname, 'api_key': api_key, 'facts': output}
+			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
+		except Exception as ex:
+			self.fatalex(8,"Unable to contact LDI server",ex)
+
+		if self.debug: print "return code " + str(r.status_code)
+
+		if r.status_code == 200:
+			if self.verbose: print "LDI server accepted the facts update"
+		else:
+			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+
+	############################################################################
+
+	def ldi(self):
+		hostname = platform.node()
+		api_key = self.config.get('server','api_key')
+
+		server_url = self.config.get('server','address')
+		if not server_url.endswith("/"):
+			server_url = server_url + "/"
+
+		if self.action in ['startup','shutdown','ping']:
+			self.ldi_event(hostname,api_key,server_url,self.action)
+
+		elif self.action == 'status':
+			self.ldi_status(hostname,api_key,server_url)
+
+		elif self.action == 'metadata':
+			self.ldi_metadata(hostname,api_key,server_url)
+
+		elif self.action == 'facts':
+			self.ldi_facts(hostname,api_key,server_url)
+
+		else:
+			print 'Unrecognised or missing action'
+			self.parser.print_help()
+
+	############################################################################
 
 	def version(self):
 		print "drone agent v" + VERSION
 
-	################################################################################
+	############################################################################
 
 	def main(self):
 		## We must be root
@@ -759,40 +1135,51 @@ class DroneAgent:
 		self.get_config()
 
 		## Deal with command line arguments
-		subcommands = """Available subcommands:
+		functions = """Available functions/actions:
 
-  puppet      manages puppet functions
-	status    show the status of the last puppet apply
-	sync      download the latest puppet ruleset
-	apply     apply puppet policy to the system
-	run       performs a 'sync' and then an 'apply'
-	facts     show puppet facts about the system
+  puppet
+    status    show the status of the last puppet apply
+    sync      download the latest puppet ruleset
+    apply     apply puppet policy to the system
+    run       performs a 'sync' and then an 'apply'
+    facts     show puppet facts about the system
 
-  backup      management of workstation backups
-	status    show the status of the last backup
-	now       perform a backup of this system
-	ifneeded  perform a backup of this system if the last backup attempt
-	          was over 12 hours ago. it is intended that you run this 
-	          when the system is finished starting up.
+  backup
+    now       perform a backup of this system
+    status    show the status of the last backup
+    ifneeded  perform a backup of this system if the last backup attempt
+              was over 12 hours ago. it is intended that you run this 
+              when the system is finished starting up.
 
   update
-	trigger   schedule an offline system update to occur at the next reboot
-	history   show the result of the last offline update
-	status    show the packages due to be updated (if any) at next reboot
+    trigger   schedule an offline system update to occur at the next reboot
+    history   show the result of the last offline update
+    status    show the packages due to be updated (if any) at next reboot
 
   reskit
-	update    update the contents of reskit software packages
-	list      list installed reskit software packages
+    update    update the contents of reskit software packages
+    list      list installed reskit software packages
 
   system
-	register  (re-)register this system
+    register  (re-)register this system
+    status    shows the system backup, puppet and update status
+    hwinfo    shows the hardware information of the system
+
+  ldi
+    startup   inform the LDI server that the system has just started up
+    shutdown  inform the LDI server that the system is shutting down
+    ping      inform the LDI server that the system is alive
+    status    inform the LDI server of the system status
+    metadata  inform the LDI server about the system hardware
+    facts     inform the LDI server of our puppet facts
 
   version     shows the version of the drone agent
+  status      an alias for 'drone system status'
 
 """
 
-		self.parser = argparse.ArgumentParser(prog='drone',description='workstation management agent',epilog=subcommands,formatter_class=argparse.RawDescriptionHelpFormatter)
-		self.parser.add_argument('subcommand', metavar='subcommand', type=str, help='the function to perform')
+		self.parser = argparse.ArgumentParser(prog='drone',description='workstation management agent',epilog=functions,formatter_class=argparse.RawDescriptionHelpFormatter)
+		self.parser.add_argument('function', metavar='function', type=str, help='the function to perform')
 		self.parser.add_argument('action', metavar='action', type=str, help='the action to perform', nargs="?", default=None)
 		self.parser.add_argument('subaction', metavar='subaction', type=str, help=argparse.SUPPRESS, nargs="?", default=None)
 		self.parser.add_argument('-d', '--debug', action='store_true', help='turn on debugging output',dest='debug')
@@ -801,27 +1188,33 @@ class DroneAgent:
 
 		self.args       = self.parser.parse_args()
 		self.action     = self.args.action
-		self.subcommand = self.args.subcommand
+		self.function   = self.args.function
 		self.debug      = self.args.debug
 		self.verbose    = self.args.verbose
 
-		if self.subcommand == 'puppet':
+		if self.function == 'puppet':
 			self.puppet()
-		elif self.subcommand == 'backup':
+		elif self.function == 'backup':
 			self.backup()
-		elif self.subcommand == 'update':
+		elif self.function == 'update':
 			self.update()
-		elif self.subcommand == 'reskit':
+		elif self.function == 'reskit':
 			self.reskit()
-		elif self.subcommand == 'system':
+		elif self.function == 'system':
 			self.system()
-		elif self.subcommand == 'version':
+		elif self.function == 'ldi':
+			self.ldi()
+		elif self.function == 'version':
 			self.version()
+		elif self.function == 'help':
+			self.parser.print_help()
+		elif self.function == 'status':
+			self.system_status()
 		else:
-			print 'Unrecognised subcommand "' + self.subcommand + '"'
+			print 'Unrecognised function "' + self.function + '"'
 			self.parser.print_help()
 
-	################################################################################
+	############################################################################
 
 if __name__ == "__main__":
 	drone = DroneAgent()
