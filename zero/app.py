@@ -259,6 +259,28 @@ Username:             %s
 		  KEY `name` (`name`(255))
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
 
+		cursor.execute("""CREATE TABLE IF NOT EXISTS `systems_data` (
+          `sid` mediumint(11) NOT NULL,
+          `facts` TEXT,
+          `metadata` TEXT,
+          `backup_status` TEXT,
+          `update_status` TEXT,
+          `puppet_status` TEXT,
+          PRIMARY KEY (`sid`),
+          CONSTRAINT `system_data_ibfk_1` FOREIGN KEY (`sid`) REFERENCES `systems` (`id`) ON DELETE CASCADE
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
+
+		cursor.execute("""CREATE TABLE IF NOT EXISTS `systems_events` (
+          `id` mediumint(11) NOT NULL AUTO_INCREMENT,
+          `sid` mediumint(11) NOT NULL,
+          `name` varchar(255) NOT NULL,
+          `when` datetime NOT NULL,
+          `status` tinyint(4) NOT NULL DEFAULT '-1',
+          `data` TEXT,
+          PRIMARY KEY (`id`),
+          CONSTRAINT `system_events_ibfk_1` FOREIGN KEY (`sid`) REFERENCES `systems` (`id`) ON DELETE CASCADE
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
+
 		cursor.execute("""CREATE TABLE IF NOT EXISTS `systems_backup_ports` (
 		  `port` mediumint(11) NOT NULL,
 		  `sid` mediumint(11),
