@@ -13,7 +13,7 @@ from flask import g
 def error500(error):
 	
 	# Record the error in the log
-	logerr()	
+	logerr()
 
 	# Return a standard error page		
 	return stderr("Internal Error","An internal server error occured",500)

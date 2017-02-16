@@ -2,18 +2,20 @@
 
 from zero import app
 from zero.lib.user import is_logged_in, authenticate, is_user_in_group
-from zero.lib.systems import register_system_backup_port, get_system_backup_port
+from zero.lib.systems import register_system_backup_port, get_system_backup_port, system_api_auth, system_api_checkin
+from zero.lib.errors import stderr
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import MySQLdb as mysql
 import re
 from paramiko import RSAKey
 import StringIO
 import bcrypt
+import json
 
 ################################################################################
 
 @app.route('/api/v1/register', methods=['POST'])
-@app.disable_csrf_check
+@app.register_api_function
 def api_v1_register():
 	"""REST API endpoint to allow workstations to register"""
 
@@ -104,7 +106,7 @@ def api_v1_register():
 
 	else:
 		try:
-			curd.execute("UPDATE `systems` SET `register_date` = NOW(), `last_seen_date` = NOW(), `ssh_public_key` = %s, `backup_key` = %s WHERE `id` = %s", (public_key_str, backup_key, sysid['id'],))
+			curd.execute("UPDATE `systems` SET `register_date` = NOW(), `last_seen_date` = NOW(), `ssh_public_key` = %s, `backup_key` = %s, `api_key` = %s WHERE `id` = %s", (public_key_str, backup_key, enc_api_key, sysid['id']))
 			g.db.commit()
 		except Exception as ex:
 			app.logger.debug("api_v1_register: failed to update system record during re-registration: " + str(type(ex)) + " - " + str(ex))
@@ -128,22 +130,98 @@ def api_v1_register():
 ################################################################################
 # update data 
 @app.route('/api/v1/update/metadata', methods=['POST'])
+@app.register_api_function
 def api_v1_update_metadata():
 	"""REST API endpoint to allow workstations to describe their details to the server"""
-	pass
+	## check machine authentication and get the resulting system object
+	system = system_api_auth()
+
+	## get the json data tlob
+	metadata = request.form['metadata']
+
+	## check what we're given is actually valid JSON
+	try:
+		json.loads(metadata)
+	except Exception as ex:
+		app.logger.info("api_v1_update_metadata: Authenticated machine " + system['name'] + " presented invalid JSON")
+		app.logger.debug(metadata)
+		return stderr("Invalid JSON data","The 'data' parameter must be valid JSON",code=400)
+
+	## update the database
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute('INSERT INTO `systems_data` (`sid`, `metadata`) VALUES (%s,%s) ON DUPLICATE KEY UPDATE `metadata` = %s', (system['id'],metadata,metadata,))
+	g.db.commit()
+
+	## mark the system 'last seen at'
+	system_api_checkin(system)
+
+	return jsonify({"success": True})
 
 @app.route('/api/v1/update/facts', methods=['POST'])
+@app.register_api_function
 def api_v1_update_facts():
 	"""REST API endpoint to allow workstations to upload puppet facts"""
-	pass
+	## check machine authentication and get the resulting system object
+	system = system_api_auth()
+
+	## get the json data tlob
+	facts = request.form['facts']
+
+	## check what we're given is actually valid JSON
+	try:
+		json.loads(facts)
+	except Exception as ex:
+		app.logger.info("api_v1_update_facts: Authenticated machine " + system['name'] + " presented invalid JSON")
+		app.logger.debug(facts)
+		return stderr("Invalid JSON data","The 'data' parameter must be valid JSON",code=400)
+
+	## update the database
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute('INSERT INTO `systems_data` (`sid`, `facts`) VALUES (%s, %s) ON DUPLICATE KEY UPDATE `facts` = %s', (system['id'],facts,facts,))
+	g.db.commit()
+
+	## mark the system 'last seen at'
+	system_api_checkin(system)
+
+	return jsonify({"success": True})
 
 @app.route('/api/v1/update/status', methods=['POST'])
+@app.register_api_function
 def api_v1_update_status():
 	"""REST API endpoint to allow workstations to update their backup/puppet/update status"""
-	pass
+	## check machine authentication and get the resulting system object
+	system = system_api_auth()
+
+	status_type = request.form['type']
+	if status_type not in ['backup','puppet','update']:
+		abort(400)
+	else:
+		status_field = status_type + "_status"
+
+	## get the json data tlob
+	jsondata = request.form['data']
+
+	## check what we're given is actually valid JSON
+	try:
+		json.loads(jsondata)
+	except Exception as ex:
+		app.logger.info("api_v1_update_status: Authenticated machine " + system['name'] + " presented invalid JSON")
+		return stderr("Invalid JSON data","The 'data' parameter must be valid JSON",code=400)
+
+	## update the database
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute('INSERT INTO `systems_data` (`sid`, `' + status_field + '`) VALUES (%s,%s) ON DUPLICATE KEY UPDATE `' + status_field + '` = %s', (system['id'],jsondata,jsondata,))
+
+	g.db.commit()
+
+	## mark the system 'last seen at'
+	system_api_checkin(system)
+
+	return jsonify({"success": True})
 
 # update data 
 @app.route('/api/v1/event', methods=['POST'])
+@app.register_api_function
 def api_v1_event():
 	"""REST API endpoint to allow workstations to register an event. Currently
 	the events are sent in the parameter 'event' and the supported events are:
@@ -151,4 +229,5 @@ def api_v1_event():
 	- startup (machine has just started up)
 	- shutdown (machine is being shut down)
 	"""
-	pass
+	system = system_api_auth()
+	return "OK", 200

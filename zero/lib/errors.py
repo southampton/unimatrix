@@ -2,23 +2,29 @@
 # -*- coding: utf-8 -*-
 
 from zero import app
-from flask import g, render_template, make_response, session, request
+from flask import g, render_template, make_response, session, request, jsonify
 import traceback
 
 ################################################################################
 
 ## standard error (uses render_template and thus standard page layout)
-def stderr(title,message,code=200,template="error.html"):
+def stderr(title,message,code=500,template="error.html"):
 	"""This function is called by other error functions to show the error to the
 	end user. It takes an error title and an error message.
 	"""
 
-	# Should we show a traceback?	
+	# Should we show a traceback?
 	if app.debug:
 		debug = traceback.format_exc()
 	else:
 		debug = ""
 
+	if 'api_call' in g:
+		if g.api_call:
+			## JSON error response for REST API calls
+			return jsonify({'error': True, 'errmsg': title + " - " + message}), code
+
+	## normal HTML response for non-API pages
 	return render_template(template,title=title,message=message,debug=debug), code
 
 ################################################################################
@@ -33,8 +39,13 @@ def fatalerr(title=u"fatal error ☹",message="Whilst processing your request an
 		else:
 			debug = "Please ask your administrator to consult the error log for more information."
 
+	if 'api_call' in g:
+		if g.api_call:
+			## JSON error response for REST API calls
+			return jsonify({'error': True, 'errmsg': title + " - " + message}), 500
+	
 	# Build the response. Not using a template here to prevent any Jinja 
-	# issues from causing this to fail.
+	# issues from causing this to fail. This is the 'last line' error page.
 	html = u"""
 <!doctype html>
 <html>

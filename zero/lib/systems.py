@@ -1,9 +1,47 @@
 #!/usr/bin/python
 
 from zero import app
-from flask import g, flash
+from flask import g, flash, request, abort
 import MySQLdb as mysql
 import traceback
+import bcrypt
+
+################################################################################
+
+def system_api_auth():
+	hostname = request.form['hostname']
+	api_key  = request.form['api_key']
+
+	app.logger.debug("system_api_auth: request to auth " + hostname)
+
+	# Locate the hostname in the database
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute("SELECT * FROM `systems` WHERE `name` = %s",(request.form['hostname'].lower(),))
+	system = curd.fetchone()
+
+	## that hostname is not valid, no such system!
+	if system == None:
+		abort(404)
+
+	if isinstance(api_key, unicode):
+		api_key = api_key.encode('utf8')
+	if isinstance(system['api_key'], unicode):
+		system['api_key'] = system['api_key'].encode('utf8')
+
+	## check the API key - its bcrypt encrypted in the DB
+	if bcrypt.checkpw(api_key, system['api_key']):
+		return system
+	else:
+		abort(403)
+
+################################################################################
+
+def system_api_checkin(system):
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute('UPDATE `systems` SET `last_seen_date` = NOW() WHERE `id` = %s',(system['id'],))
+	g.db.commit()
+
+################################################################################
 
 def get_system_backup_port(system_id):
 	curd = g.db.cursor(mysql.cursors.DictCursor)

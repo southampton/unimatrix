@@ -34,6 +34,10 @@ class ZeroFlask(Flask):
 		self._exempt_views = set()
 		self.before_request(self._csrf_protect)
 
+		# API calls
+		self._api_calls = set()
+		self.before_request(self._api_call_handler)
+
 		# CSRF token function in templates
 		self.jinja_env.globals['csrf_token'] = self._generate_csrf_token
 
@@ -181,6 +185,36 @@ Further Details:
 		view_location = view.__module__ + '.' + view.__name__
 		self._exempt_views.add(view_location)
 		self.logger.debug('Added CSRF check exemption for ' + view_location)
+		return view
+
+	################################################################################
+
+	def _api_call_handler(self):
+		"""Checks if the view being processed is a REST API view and if so marks
+		it as such so error pages generate something more useful than HTML"""
+
+		view = self.view_functions.get(request.endpoint)
+		if view is not None:
+			view_location = view.__module__ + '.' + view.__name__
+			if view_location in self._api_calls:
+				g.api_call = True
+				self.logger.debug('View ' + view_location + ' is a REST API function')
+
+	def register_api_function(self, view):
+		"""A decorator that marks the view as an API function. This disables 
+		CSRF checking and enables error response via JSON API response.
+		Example usage might look something like this:
+			@app.register_api_function
+			@app.route('/some_view')
+			def some_view():
+				return jsonify(data)
+		:param view: The view to be wrapped by the decorator.
+		"""
+
+		view_location = view.__module__ + '.' + view.__name__
+		self._exempt_views.add(view_location)
+		self._api_calls.add(view_location)
+		self.logger.debug('Marked ' + view_location + " as an API call")
 		return view
 
 	################################################################################
