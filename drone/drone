@@ -716,8 +716,8 @@ class DroneAgent:
 		if self.verbose: print "Set permissions on " + BASE_DIR + "/backup_key"
 
 		## Merge the new settings into the existing config
-		config.set('backup','port',json['backup_port'])
-		config.set('server','api_key',json['api_key'])
+		self.config.set('backup','port',json['backup_port'])
+		self.config.set('server','api_key',json['api_key'])
 
 		if self.debug: print "Saving changes to the drone config file " + BASE_DIR + "/drone.conf"
 		try:
