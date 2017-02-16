@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-02-16-01"
+VERSION     = "2017-02-16-03"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -722,7 +722,7 @@ class DroneAgent:
 		if self.debug: print "Saving changes to the drone config file " + BASE_DIR + "/drone.conf"
 		try:
 			with open(BASE_DIR + '/drone.conf', 'w') as f:
-				config.write(f)
+				self.config.write(f)
 		except Exception as ex:
 			self.fatalex(18,"Failed to write to " + BASE_DIR + "/drone.conf",ex)
 
