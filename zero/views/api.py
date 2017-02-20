@@ -124,6 +124,10 @@ def api_v1_register():
 		else:
 			app.logger.info("api_v1_register: Reusing existing allocated backup port number for " + hostname)
 
+	## create an event to say the system updated it facts
+	curd.execute("INSERT INTO `systems_events` (`sid`, `name`, `when`, `status`) VALUES (%s,'register',NOW(),0)", (sysid['id'],))
+	g.db.commit()
+
 	app.logger.info("api_v1_register: registration complete for " + hostname + " using account " + username)
 	return jsonify({'private_key': private_key_str, 'public_key': public_key_str, 'backup_key': backup_key, 'backup_port': backup_port, 'api_key': api_key})
 
@@ -150,6 +154,10 @@ def api_v1_update_metadata():
 	## update the database
 	curd = g.db.cursor(mysql.cursors.DictCursor)
 	curd.execute('INSERT INTO `systems_data` (`sid`, `metadata`) VALUES (%s,%s) ON DUPLICATE KEY UPDATE `metadata` = %s', (system['id'],metadata,metadata,))
+
+	## create an event to say the system updated it metadata
+	curd.execute("INSERT INTO `systems_events` (`sid`, `name`, `when`, `status`) VALUES (%s,'update_metadata',NOW(),0)", (system['id'],))
+
 	g.db.commit()
 
 	## mark the system 'last seen at'
@@ -178,6 +186,10 @@ def api_v1_update_facts():
 	## update the database
 	curd = g.db.cursor(mysql.cursors.DictCursor)
 	curd.execute('INSERT INTO `systems_data` (`sid`, `facts`) VALUES (%s, %s) ON DUPLICATE KEY UPDATE `facts` = %s', (system['id'],facts,facts,))
+
+	## create an event to say the system updated it facts
+	curd.execute("INSERT INTO `systems_events` (`sid`, `name`, `when`, `status`) VALUES (%s,'update_facts',NOW(),0)", (system['id'],))
+
 	g.db.commit()
 
 	## mark the system 'last seen at'
@@ -210,7 +222,10 @@ def api_v1_update_status():
 
 	## update the database
 	curd = g.db.cursor(mysql.cursors.DictCursor)
-	curd.execute('INSERT INTO `systems_data` (`sid`, `' + status_field + '`) VALUES (%s,%s) ON DUPLICATE KEY UPDATE `' + status_field + '` = %s', (system['id'],jsondata,jsondata,))
+	curd.execute("INSERT INTO `systems_data` (`sid`, `" + status_field + "`) VALUES (%s,%s) ON DUPLICATE KEY UPDATE `" + status_field + "` = %s", (system['id'],jsondata,jsondata,))
+
+	## create an event to say the system updated it status
+	curd.execute("INSERT INTO `systems_events` (`sid`, `name`, `when`, `status`, `data`) VALUES (%s,'update_status',NOW(),0,%s)", (system['id'],status_field))
 
 	g.db.commit()
 
@@ -230,4 +245,18 @@ def api_v1_event():
 	- shutdown (machine is being shut down)
 	"""
 	system = system_api_auth()
-	return "OK", 200
+
+	event_name = request.form['event']
+
+	if event_name not in ['ping','startup','shutdown']:
+		abort(400)
+
+	## update the database
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute('INSERT INTO `systems_events` (`sid`, `name`, `when`, `status`) VALUES (%s,%s,NOW(),0)', (system['id'],event_name,))
+	g.db.commit()
+
+	## mark the system 'last seen at'
+	system_api_checkin(system)
+
+	return jsonify({"success": True})
