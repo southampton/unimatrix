@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-02-20-01"
+VERSION     = "2017-02-28-08"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -20,26 +20,37 @@ import time
 import json
 import yaml
 import dmidecode
+import fcntl
 
 class DroneAgent:
 
 	############################################################################
 
-	def fatal(self,code,message):
-		sys.stderr.write("Error: " + message + "\n")
-		sys.exit(code)
+	def fatal(self,message):
+		sys.stderr.write("ERROR: " + message + "\n")
+		sys.exit(1)
 
-	def fatalex(self,code,message,exception):
-		sys.stderr.write("Error: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
-		sys.exit(code)
+	def fatalex(self,message,exception):
+		sys.stderr.write("ERROR: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
+		sys.exit(1)
 
 	############################################################################
 
 	def warn(self,message):
-		sys.stderr.write("Warning: " + message + "\n")
+		sys.stderr.write("WARN: " + message + "\n")
 
 	def warnex(self,message,exception):
-		sys.stderr.write("Warning: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
+		sys.stderr.write("WARN: " + message + " - " + str(type(exception)) + " " + str(exception) + "\n")
+
+	############################################################################
+
+	def print_debug(self,message):
+		if self.debug:
+			sys.stderr.write("DEBUG: " + message + "\n")
+
+	def print_verbose(self,message):
+		if self.verbose:
+			print message
 
 	############################################################################
 
@@ -94,28 +105,29 @@ class DroneAgent:
 		try:
 			self.config.read(CONFIG_FILE)
 		except Exception as ex:
-			self.fatalex(2,"Could not read the config file " + CONFIG_FILE,ex)
+			self.fatalex("Could not read the config file " + CONFIG_FILE,ex)
 
 	############################################################################
 
 	def sysexec(self,command,shell=False):
 		if self.debug:
 			if type(command) is list:
-				print "Executing command " + str(" ".join(command))
+				print "DEBUG: Executing command " + str(" ".join(command))
 			else:
-				print "Executing command " + str(command)
+				print "DEBUG: Executing command " + str(command)
 
 		try:
-			proc = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=shell)
+			proc = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.STDOUT,shell=shell,close_fds=True)
 			(stdoutdata, stderrdata) = proc.communicate()
 			if stdoutdata is None:
 				stdoutdata = ""
 
 			if self.debug:
-				print "return code: " + str(proc.returncode)
-				print "---"
-				print stdoutdata
-				print "---"
+				print "DEBUG: return code: " + str(proc.returncode)
+				if len(stdoutdata) > 0:
+					print "DEBUG-BEGIN"
+					sys.stdout.write(stdoutdata)
+					print "DEBUG-END"
 			
 			return (proc.returncode,str(stdoutdata))
 		except Exception as ex:
@@ -125,22 +137,22 @@ class DroneAgent:
 
 	def is_network_up(self,timeout=30,exit_if_down=False):
 		if self.args.nmignore:
-			if self.debug: print "skipping network test because -i was specified"
+			print_debug("skipping network test because -i was specified")
 			return True
 
-		if self.verbose: print "checking network status"
+		self.print_verbose("checking network status")
 
 		(code,output) = self.sysexec(["/usr/bin/nm-online","-q","--timeout=" + str(timeout)])
 	
 		if code == 0:
-			if self.verbose: print "network manager reports the network is up"
+			self.print_verbose("network manager reports the network is up")
 			return True
 		else:
 			if exit_if_down:
-				if self.verbose: print "network manager reports the network is down, exiting"
+				self.print_verbose("network manager reports the network is down, exiting")
 				sys.exit(254)
 			else:
-				if self.verbose: print "network manager reports the network is down"
+				self.print_verbose("network manager reports the network is down")
 				return False
 
 	############################################################################
@@ -149,19 +161,19 @@ class DroneAgent:
 	def puppet_sync(self):
 		self.is_network_up(exit_if_down=True)
 
-		if self.verbose: print "starting sync"
+		self.print_verbose("starting sync")
 
 		(code, output) = self.sysexec("""/usr/bin/rsync -e "ssh -i %s/ssh_private_key -o PreferredAuthentications=publickey -oStrictHostKeyChecking=no" -av --delete %s@%s: %s/puppet/""" % (BASE_DIR, self.config.get('puppet','user'),self.config.get('puppet','server'),BASE_DIR),shell=True)
 
 		if code != 0:
-			self.fatal(3,"sync failed: \n" + output)
+			self.fatal("sync failed: \n" + output)
 		else:
-			if self.verbose: print "sync complete"
+			self.print_verbose("sync complete")
 
 	############################################################################
 
 	def puppet_apply(self):
-		if self.verbose: print "starting puppet apply"
+		self.print_verbose("starting puppet apply")
 
 		(code, output) = self.sysexec("""%s apply --detailed-exitcodes --modulepath %s/puppet/modules/ %s/puppet/manifests/site.pp""" % (self.config.get('puppet','binary'),BASE_DIR,BASE_DIR),shell=True)
 
@@ -170,16 +182,16 @@ class DroneAgent:
 
 		if code == 0:
 			status = "system complies with policy, no changes were required"
-			if self.verbose: print status
+			self.print_verbose(status)
 		elif code == 2:
 			status = "system complies with policy, changes made to system:"
 			status = status + "\n" + output
-			if self.verbose: print status
+			self.print_verbose(status)
 
 		else:
 			status = "apply failed: \n" + output
 			self.puppet_save_state(uts,code,output)
-			self.fatal(4,status)
+			self.fatal(status)
 
 		self.puppet_save_state(uts,code,output)
 
@@ -211,7 +223,7 @@ class DroneAgent:
 				with open(status_file,"r") as fp:
 					data = json.load(fp)
 			except Exception as ex:
-				self.fatalex(5,"Could not read from puppet status file " + status_file,ex)
+				self.fatalex("Could not read from puppet status file " + status_file,ex)
 
 			try:
 				print "the last puppet apply finished at " + self.strtime(data['when'])
@@ -226,7 +238,7 @@ class DroneAgent:
 					print data['output'].rstrip("\n")
 
 			except Exception as ex:
-				self.fatalex(30,"Could not load puppet status",ex)
+				self.fatalex("Could not load puppet status",ex)
 
 		else:
 			print "puppet apply has never been run on this system"
@@ -240,7 +252,7 @@ class DroneAgent:
 		if code == 0:
 			print output
 		else:
-			self.fatal(27,"Could not retrieve facts: \n" + output)
+			self.fatal("Could not retrieve facts: \n" + output)
 
 	############################################################################
 
@@ -268,97 +280,193 @@ class DroneAgent:
 	############################################################################
 	############################################################################
 
-	def backup_now(self):
-		if not self.is_network_up():
-			self.backup_save_state(uts,-2,"The network is down, cannot run backup")
-			if self.verbose: print "network is down, not running backup"
+	def get_backup_lock(self):
+		## Check the state directory exists, and if it doesnt, create it
+		self.print_debug("Checking the state directory exists")
+		try:
+			if not os.path.exists(BASE_DIR + "/state"):
+				os.mkdir(BASE_DIR + "/state")
+		except Exception as ex:
+			self.fatalex("Could not create directory " + BASE_DIR + "/state",ex)
 
-		if self.verbose: print "starting backup (this may take several minutes)"
+		## Mark that a backup is in progress
+		self.print_debug("Checking the backup state file exists")
+		try:
+			if not os.path.exists(BASE_DIR + "/state/backup"):
+				self.print_debug("creating the backup state file")
+				with open(BASE_DIR + "/state/backup","w") as fp:
+					fp.write("")
+		except Exception as ex:
+			self.fatalex("Could not create backup state file " + BASE_DIR + "/state/backup",ex)
+
+		## Open the lock the file
+		self.print_debug("opening the backup state file for locking")
+		try:
+			fd = open(BASE_DIR + "/state/backup","w")
+		except Exception as ex:
+			self.fatalex("Could not open backup state file " + BASE_DIR + "/state/backup",ex)
+
+		## Try to lock
+		self.print_debug("attempting to lock the backup state file")
+		try:
+			fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+		except IOError as ex:
+			# we don't error here, as a backup already in progress isnt an
+			# error as such, it just means we don't need to run a backup again.
+			print "a backup is already in progress, please try again later"
+			sys.exit(0)
+		except Exception as ex:
+			self.fatalex("unable to lock the backup state file",ex)
+
+		## Write out the status that a backup is in progress
+		self.print_debug("writing out the in-progress state to the backup state file")
+		try:
+			json.dump({'when': int(time.time()), 'code': -3, 'output': 'backup in progress'},fd)
+			fd.truncate()
+			fd.flush()
+		except Exception as ex:
+			self.warnex("unable to save to the backup state file",ex)
+
+		return fd
+
+	############################################################################
+	############################################################################
+
+	def backup_now(self):
+		bLock = self.get_backup_lock()
+
+		if not self.is_network_up():
+			self.backup_save_state(bLock,uts,-2,"The network is down, cannot run backup")
+			self.print_verbose("network is down, not running backup")
+
+		self.print_verbose("starting backup (this may take several minutes)")
 
 		uts = int(time.time())
 		## Ensure the mount point for the snapshot exists
-		if self.debug: print "checking config.backup.lv_snap_mount path"
+		self.print_debug("checking config.backup.lv_snap_mount path")
 		if not os.path.exists(self.config.get('backup','lv_snap_mount')):
-			self.backup_save_state(uts,-1,"The lv_snap_mount directory does not exist")
-			self.fatal(20,"The lv_snap_mount directory - " + self.config.get('backup','lv_snap_mount') + " - does not exist")
+			self.backup_save_state(bLock,uts,-1,"The lv_snap_mount directory does not exist")
+			self.fatal("The lv_snap_mount directory - " + self.config.get('backup','lv_snap_mount') + " - does not exist")
+
+		## Check to see if homesnap is already mounted, and if it is, unmount it
+		self.print_debug("checking to see if the snapshot is already mounted")
+		mounted = False
+		try:
+			with open("/proc/mounts","r") as mfp:
+				mounts = mfp.readlines()
+		except Exception as ex:
+			if self.verbose:
+				self.warnex("Could not check if the snapshot is already mounted",ex)
+
+		for line in mounts:
+			if self.config.get('backup','lv_snap_mount') in line:
+				mounted = True
+
+		if mounted:
+			self.print_debug("unmounting existing mounted snapshot")
+			(code, output) = self.sysexec("""/bin/umount %s""" % (self.config.get('backup','lv_snap_mount'),),shell=True)
+
+			if code == 0:
+				self.print_verbose("existing stale snapshot unmounted")
+			else:
+				self.warn("Could not unmount existing stale snapshot, backup will fail:\n" + output)
+
+		## Check to see if the logical volume snapshot already exists, and if it is, delete it
+		self.print_debug("checking to see if the snapshot lv already exists")
+		(code, output) = self.sysexec("""lvdisplay %s/%s""" % (self.config.get('backup','vgname'),self.config.get('backup','lv_snap_name')),shell=True)
+
+		if code == 0:
+			self.print_debug("deleting stale lv snapshot")
+			(code, output) = self.sysexec("""/sbin/lvremove -f %s/%s""" % (self.config.get('backup','vgname'), self.config.get('backup','lv_snap_name'),),shell=True)
+
+			if code == 0:
+				self.print_verbose("existing stale snapshot removed")
+			else:
+				self.warn("Could not delete stale snapshot, backup will fail:\n" + output)
 
 		## Create the snapshot of home
-		if self.debug: print "creating snapshot"
+		self.print_debug("creating snapshot")
 		(code, output) = self.sysexec("""/sbin/lvcreate -n %s -kn -s %s/%s""" % (self.config.get('backup','lv_snap_name'), self.config.get('backup','vgname'), self.config.get('backup','lv_source_name'),),shell=True)
 
 		if code == 0:
-			if self.verbose: print "snapshot created"
+			self.print_verbose("snapshot created")
 		else:
-			self.backup_save_state(uts,-1,"Could not create disk snapshot: \n" + output)
-			self.fatal(21,"Could not create snapshot:\n" + output)
+			self.backup_save_state(bLock,uts,-1,"Could not create disk snapshot: \n" + output)
+			self.fatal("Could not create snapshot:\n" + output)
 
 		## Mount it
-		if self.debug: print "mounting snapshot"
+		self.print_debug("mounting snapshot")
 		(code, output) = self.sysexec("""/bin/mount -o ro,nouuid /dev/mapper/%s-%s %s""" % (self.config.get('backup','vgname'), self.config.get('backup','lv_snap_name'), self.config.get('backup','lv_snap_mount'),),shell=True)
 
 		if code == 0:
-			if self.verbose: print "snapshot mounted"
+			self.print_verbose("snapshot mounted")
 		else:
-			self.backup_save_state(uts,-1,"Could not mount disk snapshot: \n" + output)
-			self.fatal(21,"Could not mount snapshot:\n" + output)
+			self.backup_save_state(bLock,uts,-1,"Could not mount disk snapshot: \n" + output)
+			self.fatal("Could not mount snapshot:\n" + output)
 
 		## k we're ready! start the backup!
 		uts = int(time.time())
 		(code, output) = self.sysexec("""%s %s@%s -i %s/ssh_private_key -o "ExitOnForwardFailure yes" -R %s:localhost:%s """ % (self.config.get('ssh','binary'), self.config.get('backup','user'), self.config.get('backup','server'), BASE_DIR, self.config.get('backup','port'),self.config.get('backup','rsyncd_port'),),shell=True)
 
 		fail = False
-		if code == 0:
+		backup_code = code
+		if backup_code == 0:
 			status = "backup complete, all files backed up"
-			self.backup_save_state(uts,code)
+			backup_output = ""
 		elif code == 1:
 			status = "backup partially complete, some files did not backup"
-			self.backup_save_state(uts,code)
+			backup_output = ""
 		else:
 			fail = True # we use this later to exit with an error
 			status = "backup failed"
-			self.backup_save_state(uts,code,output)
+			backup_output = output
 
-		if self.verbose: print status
+		self.print_verbose(status)
 
-		if self.debug: print "unmounting snapshot"
+		self.print_debug("unmounting snapshot")
 		## Now we umount the snapshot and delete it as we don't need it anymore
 		(code, output) = self.sysexec("""/bin/umount %s""" % (self.config.get('backup','lv_snap_mount'),),shell=True)
 
 		if code == 0:
-			if self.verbose: print "snapshot unmounted"
+			self.print_verbose("snapshot unmounted")
 		else:
-			self.fatal(22,"Could not unmount snapshot:\n" + output)
+			self.warn("Could not unmount snapshot:\n" + output)
 
 		## Create the snapshot of home
-		if self.debug: print "removing snapshot"
+		self.print_debug("removing snapshot")
 		(code, output) = self.sysexec("""/sbin/lvremove -f %s/%s""" % (self.config.get('backup','vgname'), self.config.get('backup','lv_snap_name'),),shell=True)
 
 		if code == 0:
-			if self.verbose: print "snapshot removed"
+			self.print_verbose("snapshot removed")
 		else:
-			self.fatal(23,"Could not delete snapshot:\n" + output)
+			self.warn("Could not delete snapshot:\n" + output)
+
+		## Save the final state, and unlock the lock
+		self.backup_save_state(bLock,uts,backup_code,backup_output)
 
 		# fatal exit if the backup failed
 		if fail:
-			self.fatal(24,status)
+			self.fatal(status)
 
 	############################################################################
 
-	def backup_save_state(self,uts,code,output=None):
+	def backup_save_state(self,bLock,uts,code,output=None):
 		data = {'when': uts, 'code': code, 'output': output}
 
+		## Try to write to the backup status file
 		try:
-			if not os.path.exists(BASE_DIR + "/state"):
-				os.mkdir(BASE_DIR + "/state")
-		except Exception as ex:
-			self.warn("Could not create directory " + BASE_DIR + "/state - unable to save backup status")
-			return
-
-		try:
-			with open(BASE_DIR + "/state/backup","w") as fp:
-				json.dump(data,fp)
+			bLock.seek(0)
+			json.dump(data,bLock)
+			bLock.truncate()
 		except Exception as ex:
 			self.warnex("Could not write to " + BASE_DIR + "/state/backup",ex)
+
+		## Try to unlock and close
+		try:
+			fcntl.flock(bLock, fcntl.LOCK_UN)
+			bLock.close()
+		except Exception as ex:
+			self.warnex("Could not unlock the backup status file",ex)
 
 	############################################################################
 
@@ -370,7 +478,7 @@ class DroneAgent:
 				with open(status_file,"r") as fp:
 					data = json.load(fp)
 			except Exception as ex:
-				self.fatalex(5,"Could not read from backup status file " + status_file,ex)
+				self.fatalex("Could not read from backup status file " + status_file,ex)
 
 			try:
 				code = data['code']
@@ -380,7 +488,7 @@ class DroneAgent:
 				else:
 					output = None
 			except Exception as ex:
-				self.fatalex(29,"Could not load backup status",ex)
+				self.fatalex("Could not load backup status",ex)
 
 		else:
 			code   = None
@@ -396,6 +504,11 @@ class DroneAgent:
 		(code,when,output) = self.backup_load_state()
 
 		if code is not None:
+
+			if code == -3:
+				print "a backup is currently in progress"
+				print "the backup began at " + self.strtime(when)
+				return
 
 			print "the last backup attempt was made at " + self.strtime(when)
 
@@ -413,20 +526,20 @@ class DroneAgent:
 	############################################################################
 
 	def backup_ifneeded(self):
-		if self.debug: print "checking for last backup"
+		self.print_debug("checking for last backup")
 		(code,when,output) = self.backup_load_state()
 
 		if code is None:
-			if self.verbose: print "no backup status found, triggering backup"
+			self.print_verbose("no backup status found, triggering backup")
 			self.backup_now()
 		else:
 			last = datetime.datetime.utcfromtimestamp(int(when))
 
 			if (datetime.datetime.utcnow() - last) > datetime.timedelta(hours=12):
-				if self.verbose: print "backup is required, triggering backup"
+				self.print_verbose("backup is required, triggering backup")
 				self.backup_now()
 			else:
-				if self.verbose: print "backup is not required"
+				self.print_verbose("backup is not required")
 
 	############################################################################
 
@@ -450,26 +563,26 @@ class DroneAgent:
 	def update_trigger(self):
 
 
-		if self.verbose: print "downloading package updates"
+		self.print_verbose("downloading package updates")
 		(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "--only-download", "update"])
 
 		if code == 0:
-			if self.verbose: print "package updates downloaded"
+			self.print_verbose("package updates downloaded")
 		else:
-			self.fatal(28,"Could not download package updates:\n" + output)
+			self.fatal("Could not download package updates:\n" + output)
 
 		if not os.path.exists("/system-update"):
-			if self.debug: print "the /system-update trigger is absent"
-			if self.verbose: print "triggering offline update"
+			self.print_debug("the /system-update trigger is absent")
+			self.print_verbose("triggering offline update")
 			(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "offline-trigger"])
 
 			if code == 0:
-				if self.verbose: print "the system will update at the next reboot"
+				self.print_verbose("the system will update at the next reboot")
 			else:
-				self.fatal(29,"Could not trigger the offline update:\n" + output)
+				self.fatal("Could not trigger the offline update:\n" + output)
 		else:
-			if self.debug: print "the /system-update trigger is already present"
-			if self.verbose: print "the system will update at the next reboot"
+			self.print_debug("the /system-update trigger is already present")
+			self.print_verbose("the system will update at the next reboot")
 
 	############################################################################
 
@@ -505,7 +618,7 @@ class DroneAgent:
 	############################################################################
 
 	def reskit_update_package(self,package):
-		if self.verbose: print "starting update of '" + package + "'"
+		self.print_verbose("starting update of '" + package + "'")
 
 		reskit_pkgdir  = self.config.get('reskit','pkgdir')
 		reskit_server  = self.config.get('reskit','server')
@@ -517,7 +630,7 @@ class DroneAgent:
 		## this is a yaml formatted file with
 		## two variables - source and dest (for rsync)
 		try:
-			if self.debug: print "opening file '" + package_file + "'"
+			self.print_debug("opening file '" + package_file + "'")
 			with open(package_file,"r") as fp:
 				package_data = yaml.safe_load(fp)
 		except Exception as ex:
@@ -534,24 +647,24 @@ class DroneAgent:
 		(code, output) = self.sysexec("""/usr/bin/rsync -av --delete rsync://%s/%s/%s %s""" % (reskit_server, reskit_share, package_source, package_dest,),shell=True)
 
 		if code != 0:
-			if self.verbose: print "reskit update of '" + package + "' failed: \n" + output 
+			self.print_verbose("reskit update of '" + package + "' failed: \n" + output)
 		else:
-			if self.verbose: print "reskit update of '" + package + "' complete"
+			self.print_verbose("reskit update of '" + package + "' complete")
 
 	############################################################################
 
 	def reskit_update(self):
 		self.is_network_up(exit_if_down=True)
 
-		if self.verbose: print "starting reskit update (this may take several minutes)"
+		self.print_verbose("starting reskit update (this may take several minutes)")
 
 		reskit_pkg_dir = self.config.get('reskit','pkgdir')
 
-		if self.debug: print "checking config.reskit.pkgdir"
+		self.print_debug("checking config.reskit.pkgdir")
 		if not os.path.exists(reskit_pkg_dir):
-			self.fatal(25,"The reskit pkgdir directory - " + reskit_pkg_dir + " - does not exist")
+			self.fatal("The reskit pkgdir directory - " + reskit_pkg_dir + " - does not exist")
 		if not os.path.isdir(reskit_pkg_dir):
-			self.fatal(26,"The reskit pkgdir path - " + reskit_pkg_dir + " - is not a directory")
+			self.fatal("The reskit pkgdir path - " + reskit_pkg_dir + " - is not a directory")
 
 		reskit_files = [f for f in os.listdir(reskit_pkg_dir) if os.path.isfile(os.path.join(reskit_pkg_dir, f))]
 
@@ -563,25 +676,25 @@ class DroneAgent:
 				except Exception as ex:
 					if self.verbose: self.warnex("Failed to run reskit update on " + f,ex)
 		else:
-			if self.debug: print "user asked to update specific package '" + package_name + "'"
+			self.print_debug("user asked to update specific package '" + package_name + "'")
 
 			if package_name in reskit_files:
 				self.reskit_update_package(package_name)
 			else:
-				self.fatal(31,"Package '" + package_name + "' not found")
+				self.fatal("Package '" + package_name + "' not found")
 
-		if self.verbose: print "reskit update complete"
+		self.print_verbose("reskit update complete")
 
 	############################################################################
 
 	def reskit_list(self):
 		reskit_pkg_dir = self.config.get('reskit','pkgdir')
 
-		if self.debug: print "checking config.reskit.pkgdir"
+		self.print_debug("checking config.reskit.pkgdir")
 		if not os.path.exists(reskit_pkg_dir):
-			self.fatal(25,"The reskit pkgdir directory - " + reskit_pkg_dir + " - does not exist")
+			self.fatal("The reskit pkgdir directory - " + reskit_pkg_dir + " - does not exist")
 		if not os.path.isdir(reskit_pkg_dir):
-			self.fatal(26,"The reskit pkgdir path - " + reskit_pkg_dir + " - is not a directory")
+			self.fatal("The reskit pkgdir path - " + reskit_pkg_dir + " - is not a directory")
 
 		reskit_files = [f for f in os.listdir(reskit_pkg_dir) if os.path.isfile(os.path.join(reskit_pkg_dir, f))]
 
@@ -610,17 +723,17 @@ class DroneAgent:
 
 		if distid == 'Maipo':
 			ident = 'rhel7'
-			if self.verbose: print "Detected operating system as RHEL/CentOS 7: " + distname + " " + distversion + " " + distid
+			self.print_verbose("Detected operating system as RHEL/CentOS 7: " + distname + " " + distversion + " " + distid)
 		else:
-			self.fatal(7,"Your operating system is not supported. Detected as: " + distname + " " + distversion + " " + distid)
+			self.fatal("Your operating system is not supported. Detected as: " + distname + " " + distversion + " " + distid)
 			return False
 
 		## Now get the hostname
 		register_hostname = platform.node()
-		if self.verbose: print "Detected hostname as " + register_hostname
+		self.print_verbose("Detected hostname as " + register_hostname)
 
 		if not re.match(r"^(uos|iss|lnx|UOS|ISS|LNX)\-[0-9]{2,8}$",register_hostname):
-			self.fatal(8,"The hostname of this machine is invalid. It must be of the form uos-<number>")
+			self.fatal("The hostname of this machine is invalid. It must be of the form uos-<number>")
 
 		register_username = raw_input("Username: ")
 		register_password = getpass.getpass()
@@ -639,105 +752,105 @@ class DroneAgent:
 			else:
 				print "SSL certificate verification disabled"
 
-		if self.verbose: print "Registering with API endpoint " + register_url
+		self.print_verbose("Registering with API endpoint " + register_url)
 
 		try:
 			payload = {'ident': ident, 'hostname': register_hostname, 'username': register_username, 'password': register_password}
 			r = requests.post(register_url, data=payload, verify = self.config.getboolean('server','verify'))
 		except Exception as ex:
-			self.fatalex(8,"Unable to contact registration server",ex)
+			self.fatalex("Unable to contact registration server",ex)
 
-		if self.debug: print "return code " + str(r.status_code)
+		self.print_debug("return code " + str(r.status_code))
 
 		if r.status_code == 200:
 			try:
 				json = r.json()
 
 				if 'error' in json:
-					self.fatal(10,"registration server returned an error: " + json['reason'])
+					self.fatal("registration server returned an error: " + json['reason'])
 
 				else:
-					if self.verbose: print "Registration server accepted our request"
+					self.print_verbose("Registration server accepted our request")
 
 			except Exception as ex:
-				self.fatalex(11,"failed to parse reponse from registration server",ex)
+				self.fatalex("failed to parse reponse from registration server",ex)
 
 		else:
-			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+			self.fatal("unexpected HTTP return code from server: " + str(r.status_code))
 
 		# Save the SSH public key
-		if self.debug: print "Saving SSH public key to " + BASE_DIR + "/ssh_public_key"
+		self.print_debug("Saving SSH public key to " + BASE_DIR + "/ssh_public_key")
 		try:
 			with open(BASE_DIR + '/ssh_public_key', 'w') as f:
 				f.write(json['public_key'])
 				f.write("\n")
 		except Exception as ex:
-			self.fatalex(13,"Failed to write to " + BASE_DIR + "/ssh_public_key",ex)
+			self.fatalex("Failed to write to " + BASE_DIR + "/ssh_public_key",ex)
 
-		if self.verbose: print "Saved SSH public key to " + BASE_DIR + "/ssh_public_key"
+		self.print_verbose("Saved SSH public key to " + BASE_DIR + "/ssh_public_key")
 
 		# Save the SSH private key
-		if self.debug: print "Saving SSH private key to " + BASE_DIR + "/ssh_private_key"
+		self.print_debug("Saving SSH private key to " + BASE_DIR + "/ssh_private_key")
 		try:
 			with open(BASE_DIR + '/ssh_private_key', 'w') as f:
 				f.write(json['private_key'])
 		except Exception as ex:
-			self.fatalex(14,"Failed to write to " + BASE_DIR + "/ssh_private_key",ex)
+			self.fatalex("Failed to write to " + BASE_DIR + "/ssh_private_key",ex)
 
-		if self.verbose: print "Saved SSH private key to " + BASE_DIR + "/ssh_private_key"
+		self.print_verbose("Saved SSH private key to " + BASE_DIR + "/ssh_private_key")
 
 		# Set perms on the key
-		if self.debug: print "Setting permissions on " + BASE_DIR + "/ssh_private_key"
+		self.print_debug("Setting permissions on " + BASE_DIR + "/ssh_private_key")
 		try:
 			os.chmod(BASE_DIR + '/ssh_private_key', 0600)
 		except Exception as ex:
-			self.fatalex(15,"Failed to set the permissions of " + BASE_DIR + "/ssh_private_key",ex)
+			self.fatalex("Failed to set the permissions of " + BASE_DIR + "/ssh_private_key",ex)
 
-		if self.verbose: print "Set permissions on " + BASE_DIR + "/ssh_private_key"
+		self.print_verbose("Set permissions on " + BASE_DIR + "/ssh_private_key")
 
 		# Save the backup key (for rsyncd)
-		if self.debug: print "Saving the backup key to " + BASE_DIR + "/backup_key"
+		self.print_debug("Saving the backup key to " + BASE_DIR + "/backup_key")
 		try:
 			with open(BASE_DIR + '/backup_key', 'w') as f:
 				f.write("backup:" + json['backup_key'] + "\n")
 		except Exception as ex:
-			self.fatalex(16,"Failed to write to " + BASE_DIR + "/backup_key",ex)
+			self.fatalex("Failed to write to " + BASE_DIR + "/backup_key",ex)
 
-		if self.verbose: print "Saved backup key to " + BASE_DIR + "/backup_key"
+		self.print_verbose("Saved backup key to " + BASE_DIR + "/backup_key")
 
 		# Set perms on the key
-		if self.debug: print "Setting permissions on " + BASE_DIR + "/backup_key"
+		self.print_debug("Setting permissions on " + BASE_DIR + "/backup_key")
 		try:
 			os.chmod(BASE_DIR + '/backup_key', 0600)
 
 		except Exception as ex:
-			self.fatalex(17,"Failed to set the permissions of " + BASE_DIR + "/backup_key",ex)
+			self.fatalex("Failed to set the permissions of " + BASE_DIR + "/backup_key",ex)
 
-		if self.verbose: print "Set permissions on " + BASE_DIR + "/backup_key"
+		self.print_verbose("Set permissions on " + BASE_DIR + "/backup_key")
 
 		## Merge the new settings into the existing config
 		self.config.set('backup','port',json['backup_port'])
 		self.config.set('server','api_key',json['api_key'])
 
-		if self.debug: print "Saving changes to the drone config file " + BASE_DIR + "/drone.conf"
+		self.print_debug("Saving changes to the drone config file " + BASE_DIR + "/drone.conf")
 		try:
 			with open(BASE_DIR + '/drone.conf', 'w') as f:
 				self.config.write(f)
 		except Exception as ex:
-			self.fatalex(18,"Failed to write to " + BASE_DIR + "/drone.conf",ex)
+			self.fatalex("Failed to write to " + BASE_DIR + "/drone.conf",ex)
 
-		if self.verbose: print "Saved drone configuration to " + BASE_DIR + "/drone.conf"
+		self.print_verbose("Saved drone configuration to " + BASE_DIR + "/drone.conf")
 
 		# Set perms on the drone config
-		if self.debug: print "Setting permissions on " + BASE_DIR + "/drone.conf"
+		self.print_debug("Setting permissions on " + BASE_DIR + "/drone.conf")
 		try:
 			os.chmod(BASE_DIR + '/drone.conf', 0600)
 		except Exception as ex:
-			self.fatalex(19,"Failed to set the permissions of " + BASE_DIR + "/drone.conf",ex)
+			self.fatalex("Failed to set the permissions of " + BASE_DIR + "/drone.conf",ex)
 
 		print "Registration completed successfully"
 
-		if self.verbose: print "Updating system information and status"
+		self.print_verbose("Updating system information and status")
 
 		self.ldi_metadata(register_hostname,json['api_key'],server_url)
 		self.ldi_facts(register_hostname,json['api_key'],server_url)
@@ -954,19 +1067,19 @@ class DroneAgent:
 	def ldi_event(self,hostname,api_key,server_url,event):
 		server_url = server_url + "api/v1/event"
 
-		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
 		try:
 			payload = {'hostname': hostname, 'api_key': api_key, 'event': event}
 			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
 		except Exception as ex:
-			self.fatalex(8,"Unable to contact LDI server",ex)
+			self.fatalex("Unable to contact LDI server",ex)
 
-		if self.debug: print "return code " + str(r.status_code)
+		self.print_debug("return code " + str(r.status_code))
 
 		if r.status_code == 200:
-			if self.verbose: print "LDI server acknowleged the event"
+			self.print_verbose("LDI server acknowleged the event")
 		else:
-			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+			self.fatal("unexpected HTTP return code from server: " + str(r.status_code))
 
 	############################################################################
 
@@ -974,50 +1087,50 @@ class DroneAgent:
 		server_url = server_url + "api/v1/update/status"
 
 		status_file = BASE_DIR + "/state/puppet"
-		if self.debug: print "Opening " + status_file
+		self.print_debug("Opening " + status_file)
 		if os.path.exists(status_file):
 			try:
 				with open(status_file,"r") as fp:
 					puppet_status = fp.read()
 			except Exception as ex:
-				self.fatalex(5,"Could not read from puppet status file " + status_file,ex)
+				self.fatalex("Could not read from puppet status file " + status_file,ex)
 
-		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
 		try:
 			payload = {'hostname': hostname, 'api_key': api_key, 'type': 'puppet', 'data': puppet_status}
 			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
 		except Exception as ex:
-			self.fatalex(8,"Unable to contact LDI server",ex)
+			self.fatalex("Unable to contact LDI server",ex)
 
-		if self.debug: print "return code " + str(r.status_code)
+		self.print_debug("return code " + str(r.status_code))
 
 		if r.status_code == 200:
-			if self.verbose: print "LDI server accepted the puppet status update"
+			self.print_verbose("LDI server accepted the puppet status update")
 		else:
-			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+			self.fatal("unexpected HTTP return code from server: " + str(r.status_code))
 
 		status_file = BASE_DIR + "/state/backup" 
-		if self.debug: print "Opening " + status_file
+		self.print_debug("Opening " + status_file)
 		if os.path.exists(status_file):
 			try:
 				with open(status_file,"r") as fp:
 					backup_status = fp.read()
 			except Exception as ex:
-				self.fatalex(5,"Could not read from backup status file " + status_file,ex)
+				self.fatalex("Could not read from backup status file " + status_file,ex)
 
-		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
 		try:
 			payload = {'hostname': hostname, 'api_key': api_key, 'type': 'backup', 'data': backup_status}
 			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
 		except Exception as ex:
-			self.fatalex(8,"Unable to contact LDI server",ex)
+			self.fatalex("Unable to contact LDI server",ex)
 
-		if self.debug: print "return code " + str(r.status_code)
+		self.print_debug("return code " + str(r.status_code))
 
 		if r.status_code == 200:
-			if self.verbose: print "LDI server accepted the backup status update"
+			self.print_verbose("LDI server accepted the backup status update")
 		else:
-			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+			self.fatal("unexpected HTTP return code from server: " + str(r.status_code))
 
 		## the update status is quite different. at the moment we just send 
 		## back a json document just like the above two, but we just set the 
@@ -1026,19 +1139,19 @@ class DroneAgent:
 
 		update_status = '{ "offline-get-prepared": ' + str(code) + '}'
 
-		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
 		try:
 			payload = {'hostname': hostname, 'api_key': api_key, 'type': 'update', 'data': update_status}
 			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
 		except Exception as ex:
-			self.fatalex(8,"Unable to contact LDI server",ex)
+			self.fatalex("Unable to contact LDI server",ex)
 
-		if self.debug: print "return code " + str(r.status_code)
+		self.print_debug("return code " + str(r.status_code))
 
 		if r.status_code == 200:
-			if self.verbose: print "LDI server accepted the software update status update"
+			self.print_verbose("LDI server accepted the software update status update")
 		else:
-			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+			self.fatal("unexpected HTTP return code from server: " + str(r.status_code))
 
 	############################################################################
 
@@ -1062,19 +1175,19 @@ class DroneAgent:
 
 		metadata = json.dumps(metadata)
 
-		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
 		try:
 			payload = {'hostname': hostname, 'api_key': api_key, 'metadata': metadata}
 			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
 		except Exception as ex:
-			self.fatalex(8,"Unable to contact LDI server",ex)
+			self.fatalex("Unable to contact LDI server",ex)
 
-		if self.debug: print "return code " + str(r.status_code)
+		self.print_debug("return code " + str(r.status_code))
 
 		if r.status_code == 200:
-			if self.verbose: print "LDI server accepted the metadata update"
+			self.print_verbose("LDI server accepted the metadata update")
 		else:
-			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+			self.fatal("unexpected HTTP return code from server: " + str(r.status_code))
 
 	############################################################################
 
@@ -1084,21 +1197,21 @@ class DroneAgent:
 		(code, output) = self.sysexec("""%s facts find --render-as json --modulepath %s/puppet/modules/""" % (self.config.get('puppet','binary'),BASE_DIR),shell=True)
 
 		if code != 0:
-			self.fatal(27,"Could not retrieve facts: \n" + output)
+			self.fatal("Could not retrieve facts: \n" + output)
 
-		if self.debug: print "POSTing to " + server_url + " with hostname " + hostname
+		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
 		try:
 			payload = {'hostname': hostname, 'api_key': api_key, 'facts': output}
 			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
 		except Exception as ex:
-			self.fatalex(8,"Unable to contact LDI server",ex)
+			self.fatalex("Unable to contact LDI server",ex)
 
-		if self.debug: print "return code " + str(r.status_code)
+		self.print_debug("return code " + str(r.status_code))
 
 		if r.status_code == 200:
-			if self.verbose: print "LDI server accepted the facts update"
+			self.print_verbose("LDI server accepted the facts update")
 		else:
-			self.fatal(12,"unexpected HTTP return code from server: " + str(r.status_code))
+			self.fatal("unexpected HTTP return code from server: " + str(r.status_code))
 
 	############################################################################
 
@@ -1136,7 +1249,7 @@ class DroneAgent:
 	def main(self):
 		## We must be root
 		if not os.geteuid() == 0:
-			self.fatal(1,"You must be root to run this command")
+			self.fatal("You must be root to run this command")
 
 		## Load the config
 		self.get_config()
