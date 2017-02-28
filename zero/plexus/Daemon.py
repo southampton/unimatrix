@@ -260,7 +260,7 @@ class PlexusDaemon(object):
 
 			# create the tables
 			slcur.execute('CREATE TABLE categories (`id` integer, `name` text, `order` integer)')
-			slcur.execute('CREATE TABLE entries (`id` integer, `category` integer, `name` text, `desc` text, `icon` text)')
+			slcur.execute('CREATE TABLE entries (`id` integer, `category` integer, `name` text collate nocase, `desc` text, `icon` text)')
 			slcur.execute('CREATE TABLE items (`id` integer, `entry` integer, `name` text)')
 
 			curd = self._get_cursor()
