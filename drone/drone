@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-02-28-08"
+VERSION     = "2017-03-01-01"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -640,11 +640,22 @@ class DroneAgent:
 		try:
 			package_source = package_data['src']
 			package_dest   = package_data['dest']
+			package_delete = True
+
+			if 'delete' in package_data:
+				if package_data['delete'] in ["False","false","no","NO"]:
+					package_delete = False
+
 		except Exception as ex:
 			if self.verbose: self.warnex("Invalid/incorrect metadata in '" + package_file + "'",ex)
 			return
 
-		(code, output) = self.sysexec("""/usr/bin/rsync -av --delete rsync://%s/%s/%s %s""" % (reskit_server, reskit_share, package_source, package_dest,),shell=True)
+		if package_delete:
+			cmd = "/usr/bin/rsync -av --delete"
+		else:
+			cmd = "/usr/bin/rsync -av"
+
+		(code, output) = self.sysexec("""%s rsync://%s/%s/%s %s""" % (cmd, reskit_server, reskit_share, package_source, package_dest,),shell=True)
 
 		if code != 0:
 			self.print_verbose("reskit update of '" + package + "' failed: \n" + output)
