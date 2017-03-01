@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-03-01-01"
+VERSION     = "2017-03-01-02"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -643,7 +643,9 @@ class DroneAgent:
 			package_delete = True
 
 			if 'delete' in package_data:
-				if package_data['delete'] in ["False","false","no","NO"]:
+				if package_data['delete'] == False:
+					package_delete = False
+				elif package_data['delete'] in ["False","false","no","NO"]:
 					package_delete = False
 
 		except Exception as ex:
