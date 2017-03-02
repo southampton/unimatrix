@@ -11,6 +11,7 @@ import logging
 import os
 import json
 import re
+import time
 
 ################################################################################
 
@@ -343,31 +344,46 @@ def policy():
 
 	return render_template('policy.html', title='Desktop Manager - System Policy',active="policy",when=when,code=code,output=output)
 
-@app.route('/backup')
+@app.route('/backup',methods=['GET','POST'])
 def backup():
-	status_file = "/etc/soton/state/backup" 
+	if request.method == 'GET':
 
-	if os.path.exists(status_file):
-		try:
-			with open(status_file,"r") as fp:
-				data = json.load(fp)
-		except Exception as ex:
-			raise app.FatalError("Could not read from backup status file " + status_file + ": " + str(ex))
+		status_file = "/etc/soton/state/backup" 
 
-		try:
-			when = app.strtime(data['when'])
-			code = data['code']
-			if 'output' in data:
-				output = data['output']
-			else:
-				output = None
-		except Exception as ex:
-			raise app.FatalError("Could not read backup status: " + str(ex))
+		if os.path.exists(status_file):
+			try:
+				with open(status_file,"r") as fp:
+					data = json.load(fp)
+			except Exception as ex:
+				raise app.FatalError("Could not read from backup status file " + status_file + ": " + str(ex))
 
-	else:
-		when   = None
-		code   = None
-		output = None
+			try:
+				when = app.strtime(data['when'])
+				code = data['code']
+				if 'output' in data:
+					output = data['output']
+				else:
+					output = None
+			except Exception as ex:
+				raise app.FatalError("Could not read backup status: " + str(ex))
 
-	return render_template('backup.html', title='Desktop Manager - Backup',active="backup",when=when,code=code,output=output)
+		else:
+			when   = None
+			code   = None
+			output = None
 
+		return render_template('backup.html', title='Desktop Manager - Backup',active="backup",when=when,code=code,output=output)
+
+	elif request.method == 'POST':
+		## Connect to the desktop management service
+		deskctld = deskctld_connect()
+
+		## Request a backup
+		deskctld.backup_now()
+
+		## Sleep for 2 seconds to allow the backup to start so we can report that
+		time.sleep(2)
+
+		## redirect back
+		flash("Your request to backup this workstation was accepted","alert-info")
+		return redirect(url_for('backup'))

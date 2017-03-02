@@ -45,6 +45,7 @@ class DeskCtlDaemon(object):
 	pkgTaskQueue   = []
 	pkgTaskCurrent = None
 	pkgProcess     = None
+	backupProcess  = None
 
 	############################################################################
 	## PRIVATE METHODS #########################################################
@@ -80,13 +81,22 @@ class DeskCtlDaemon(object):
 
 	############################################################################
 
-	def _signal_handler_child(self, sig, frame):
+	def _signal_handler_pkg(self, sig, frame):
 		if sig == signal.SIGTERM: 
 			sig = "SIGTERM"
 		elif sig == signal.SIGINT:
 			sig = "SIGINT"
 
-		syslog.syslog('pkg process caught ' + str(sig) + "; exiting")
+		syslog.syslog('pkg worker process caught ' + str(sig) + "; exiting")
+		sys.exit(0)
+
+	def _signal_handler_backup(self, sig, frame):
+		if sig == signal.SIGTERM: 
+			sig = "SIGTERM"
+		elif sig == signal.SIGINT:
+			sig = "SIGINT"
+
+		syslog.syslog('backup worker process caught ' + str(sig) + "; exiting")
 		sys.exit(0)
 
 	############################################################################
@@ -126,8 +136,8 @@ class DeskCtlDaemon(object):
 	def pkgProcessTask(self,task):
 		setproctitle("deskctld-pkg")
 		syslog.openlog("deskctld-pkg", syslog.LOG_PID)
-		signal.signal(signal.SIGTERM, self._signal_handler_child)
-		signal.signal(signal.SIGINT, self._signal_handler_child)
+		signal.signal(signal.SIGTERM, self._signal_handler_pkg)
+		signal.signal(signal.SIGINT, self._signal_handler_pkg)
 		syslog.syslog('deskctld-pkg started')
 
 		## open the pkgdb sqlite database
@@ -604,3 +614,38 @@ class DeskCtlDaemon(object):
 			pass
 
 		return {'vendor': vendor, 'model': model}
+
+	############################################################################
+
+	@Pyro4.expose
+	def backup_now(self):
+		start = not self.is_backup_in_progress()
+		
+		if start:
+			syslog.syslog("starting backup process")
+			self.backupProcess = Process(target=self.backupProcessTask)
+			self.backupProcess.start()
+
+	@Pyro4.expose
+	def is_backup_in_progress(self):
+		if self.pkgProcess is not None:
+			if self.pkgProcess.is_alive():
+				return True
+		
+		return False
+
+	############################################################################
+
+	def pkgProcessTask(self):
+		setproctitle("deskctld-backuo")
+		syslog.openlog("deskctld-bacup", syslog.LOG_PID)
+		signal.signal(signal.SIGTERM, self._signal_handler_backup)
+		signal.signal(signal.SIGINT, self._signal_handler_backup)
+		syslog.syslog('backup worker process started')
+
+		(code, output) = self.sysexec(["/sbin/drone","backup","now"])
+
+		if code == 0:
+			syslog.syslog('backup successful')
+		else:
+			syslog.syslog('backup non-zero exit, run drone backup status')

@@ -5,7 +5,11 @@
 	<div class="col-xs-12 col-sm-12 col-md-12">
 		<div class="card-pf card-pf-accented">
 			<div class="software-bar-right">
-				<a href="{{url_for('backup')}}" class="btn btn-default btn-vl"><i class="fa fa-refresh"></i></a>
+				<form action="{{ url_for('backup') }}" method="POST" style="display: inline">
+					<input name="_csrf_token" type="hidden" value="{{ csrf_token() }}"/>
+					<button type="submit" class="btn btn-default btn-vl" data-toggle="tooltip" title="Backup now"><i class="fa fa-upload"></i></button>
+				</form>
+				<a href="{{url_for('backup')}}" class="btn btn-default btn-vl" title="Refresh status"><i class="fa fa-refresh"></i></a>
 			</div>
 			<h1><span class="pficon pficon-history"></span> Backup</h1>
 			<p style="padding-bottom: 20px">This system is backed up automatically at least once a day. You do not need to keep your computer on overnight for backups to work - backups will be automatically triggered when you turn your computer on.</p>
@@ -18,7 +22,7 @@
 		<div class="row">
 			<div class="col-xs-12 col-sm-12">
 				<div class="card-pf">
-				  <div class="card-pf-body">
+					<div class="card-pf-body">
 					{% if code is none %}
 						<span style="font-size: 1.2vw" class="text-warning">
 							<i class="fa fa-exclamation-circle" style="valign: middle"></i> This system has never been backed up
@@ -45,6 +49,11 @@
 						</span>
 						<p class="text-muted">Backup was attempted on: {{when}}</p>
 						<pre class="updatepre">{% if output is not none %}{{output}}{%endif%}</pre>
+					{% elif code == -3 %}
+						<span style="font-size: 1.2vw" class="text-info">
+							<i class="fa fa-spin fa-cog" style="valign: middle"></i> The system is currently being backed up
+						</span>
+						<p class="text-muted">Backup started at: {{when}}</p>
 					{% else %}
 						<span style="font-size: 1.2vw" class="text-danger">
 							<i class="fa fa-exclamation-circle" style="valign: middle"></i> The last backup attempt failed
