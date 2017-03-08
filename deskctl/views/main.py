@@ -222,7 +222,7 @@ def permissions(group):
 		group_desc  = "The users listed below can logon to this system remotely via SSH"
 	elif group == "vboxusers":
 		group_title = "VirtualBox Users"
-		group_desc  = "The users listed below can create and run virtual machines within VirtualBox"
+		group_desc  = "The users listed below can use VirtualBox USB devices and rebuild the VirtualBox kernel module"
 	elif group == "sys":
 		group_title = "Administrators"
 		group_desc  = "The users listed below are granted semi-administrator access, including software management, and detailed settings management. Most users, especially laptop users, should be listed here."
