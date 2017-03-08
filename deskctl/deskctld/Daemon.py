@@ -628,15 +628,15 @@ class DeskCtlDaemon(object):
 
 	@Pyro4.expose
 	def is_backup_in_progress(self):
-		if self.pkgProcess is not None:
-			if self.pkgProcess.is_alive():
+		if self.backupProcess is not None:
+			if self.backupProcess.is_alive():
 				return True
 		
 		return False
 
 	############################################################################
 
-	def pkgProcessTask(self):
+	def backupProcessTask(self):
 		setproctitle("deskctld-backuo")
 		syslog.openlog("deskctld-bacup", syslog.LOG_PID)
 		signal.signal(signal.SIGTERM, self._signal_handler_backup)
