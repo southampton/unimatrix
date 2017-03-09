@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-03-01-02"
+VERSION     = "2017-03-09-01"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -561,8 +561,6 @@ class DroneAgent:
 	############################################################################
 
 	def update_trigger(self):
-
-
 		self.print_verbose("downloading package updates")
 		(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "--only-download", "update"])
 
@@ -587,14 +585,12 @@ class DroneAgent:
 	############################################################################
 
 	def update_status(self):
-
 		(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "offline-get-prepared"])
 		print output.rstrip("\n")
 
 	############################################################################
 
 	def update_history(self):
-
 		(code, output) = self.sysexec([self.config.get('update','pkcon_binary'), "offline-status"])
 		print output.rstrip("\n")
 
@@ -1229,6 +1225,8 @@ class DroneAgent:
 	############################################################################
 
 	def ldi(self):
+		self.is_network_up(exit_if_down=True)
+
 		hostname = platform.node()
 		api_key = self.config.get('server','api_key')
 
