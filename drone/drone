@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-03-09-01"
+VERSION     = "2017-03-10-01"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -1176,12 +1176,15 @@ class DroneAgent:
 		gpu = self.system_get_gpu()
 		sys = self.system_get_sys()
 
-		metadata['hwinfo.cpu'] = self.system_get_cpu()
-		(memt,metadata['hwinfo.mem']) = self.system_get_mem()
-		metadata['hwinfo.gpu'] = self.system_get_gpu()
-		metadata['hwinfo.sys'] = self.system_get_sys()
-		metadata['drone.version'] = VERSION
 
+		(memt, mem) = self.system_get_mem()
+		metadata['hwinfo'] = {
+			'cpu': self.system_get_cpu(),
+			'mem': mem,
+			'gpu': self.system_get_gpu(),
+			'sys': self.system_get_sys(),
+		}
+		metadata['drone'] = {'version': VERSION}
 		metadata = json.dumps(metadata)
 
 		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
