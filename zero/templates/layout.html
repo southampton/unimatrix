@@ -34,7 +34,7 @@
       <span class="icon-bar"></span>
     </button>
     <a href="/" class="navbar-brand" style="padding-top: 0px; padding-bottom: 0px; line-height: 56px;">
-      <span class="brand-primary">LINUX DESKTOP</span> <span class="brand-secondary">MANAGEMENT CONSOLE</span>
+      <span class="brand-primary">LINUX DESKTOPS</span> <span class="brand-secondary">MANAGEMENT CONSOLE</span>
     </a>
   </div>
   <nav class="collapse navbar-collapse">
@@ -89,7 +89,7 @@
   </ul>
 </div>
 {% endif %}
-<div class="container-fluid container-cards-pf{% if is_logged_in() %} container-pf-nav-pf-vertical{%endif%}">
+<div class="container-fluid {% if is_logged_in() %} container-pf-nav-pf-vertical{%endif%}">
 	<div style="margin-left: auto; margin-right: auto">
 		{%- for category, message in get_flashed_messages(with_categories=true) %}
 			<div class="alert {{ category }}">

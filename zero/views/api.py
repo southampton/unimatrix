@@ -104,6 +104,8 @@ def api_v1_register():
 			app.logger.error("api_v1_register: failed to register system backup port " + str(type(ex)) + " - " + str(ex))
 			return jsonify({'error': True, 'reason': "The server was unable to assign a backup port number"})
 
+		sysid = {'id': curd.lastrowid}
+
 	else:
 		try:
 			curd.execute("UPDATE `systems` SET `register_date` = NOW(), `last_seen_date` = NOW(), `ssh_public_key` = %s, `backup_key` = %s, `api_key` = %s WHERE `id` = %s", (public_key_str, backup_key, enc_api_key, sysid['id']))
@@ -124,7 +126,7 @@ def api_v1_register():
 		else:
 			app.logger.info("api_v1_register: Reusing existing allocated backup port number for " + hostname)
 
-	## create an event to say the system updated it facts
+	## create an event to say the system was registered
 	curd.execute("INSERT INTO `systems_events` (`sid`, `name`, `when`, `status`) VALUES (%s,'register',NOW(),0)", (sysid['id'],))
 	g.db.commit()
 

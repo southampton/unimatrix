@@ -5,6 +5,128 @@ from flask import g, flash, request, abort
 import MySQLdb as mysql
 import traceback
 import bcrypt
+from datetime import datetime, timedelta
+
+################################################################################
+
+def get_system_by_name(name):
+
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute("""SELECT 
+       `systems`.`id` AS `id`, 
+       `systems`.`name` AS `name`, 
+       `systems`.`create_date` AS `create_date`,
+       `systems`.`register_date` AS `register_date`,
+       `systems`.`last_seen_date` AS `last_seen_date`,
+       `systems`.`last_seen_addr` AS `last_seen_addr`,
+       `systems_data`.`facts` AS `facts`,
+       `systems_data`.`metadata` AS `metadata`,
+       `systems_data`.`backup_status` AS `backup_status`,
+       `systems_data`.`update_status` AS `update_status`,
+       `systems_data`.`puppet_status` AS `puppet_status`
+       FROM `systems` 
+       LEFT JOIN `systems_data` 
+       ON `systems`.`id` = `systems_data`.`sid` WHERE `systems`.`name` = %s""",(name,))
+
+	system = curd.fetchone()
+
+	## json load 
+	try:
+		system['facts'] = json.loads(system['facts'])
+	except Exception as ex:
+		system['facts'] = None
+
+	try:
+		system['metadata'] = json.loads(system['metadata'])
+	except Exception as ex:
+		system['metadata'] = None
+
+	try:
+		system['backup_status'] = json.loads(system['backup_status'])
+	except Exception as ex:
+		system['backup_status'] = None
+
+	try:
+		system['update_status'] = json.loads(system['update_status'])
+	except Exception as ex:
+		system['update_status'] = None
+
+	try:
+		system['puppet_status'] = json.loads(system['puppet_status'])
+	except Exception as ex:
+		system['puppet_status'] = None
+
+	time_three_days_ago     = datetime.now() - timedelta(days=3)
+
+	## ostatus
+	## 0 - OK
+	## 1 - backup failed
+	## 2 - partial
+	## 3 - too old (backup was too long ago)
+	## 4 - no backups (error)
+
+	# determine server backup status ('sstatus')
+	## 0 - success
+	## 1 - error
+	## 2 - partial
+	## 3 - too old
+	## 4 - no backups
+
+	curd.execute("""SELECT * FROM `tasks` WHERE `name` = 'backup' AND `sid` = %s ORDER BY `id` DESC LIMIT 0,1""",(system['id'],))
+	last_backup = curd.fetchone()
+
+	if last_backup == None:
+		system['backup_sstatus'] = 4
+		system['backup_ostatus'] = 4
+		system['backup_swhen'] = None
+	else:
+		system['backup_swhen'] = last_backup['end']
+
+		if int(last_backup['status']) != 0:
+			system['backup_sstatus'] = 0
+			system['backup_ostatus'] = 0
+		if int(last_backup['status']) == 1: # 1 in the 'tasks' table actually means partial - for reasons, I'm sure.
+			system['backup_sstatus'] = 2
+			system['backup_ostatus'] = 2
+		else: 
+			system['backup_sstatus'] = 1
+			system['backup_ostatus'] = 1
+ 
+		time_last_server_backup = datetime.utcfromtimestamp(int(last_backup['end']))
+		if time_last_server_backup < time_three_days_ago:
+			system['backup_sstatus'] = 3
+			system['backup_ostatus'] = 3
+
+	## determine client backup status ('cstatus')
+	if system['backup_status'] is not None:
+
+		if 'code' in system['backup_status']:
+			if int(system['backup_status']) == 0:
+				system['backup_cstatus'] = 0
+				system['backup_ostatus'] = 0
+			elif int(system['backup_status']) == 1:
+				system['backup_cstatus'] = 2
+				system['backup_ostatus'] = 2
+			else:
+				system['backup_cstatus'] = 1
+				system['backup_ostatus'] = 1
+
+		if 'when' in system['backup_status']: 
+			## time, minus 3 days ago (before that, and we consider the backup status
+			## to be 'bad' because there hasnt been a backup in a long time)
+			time_last_client_backup = datetime.utcfromtimestamp(int(system['backup_status']['when']))
+			if time_last_client_backup < time_three_days_ago:
+				system['backup_cstatus'] = 3
+	else:
+		system['backup_cstatus'] = 4
+		system['backup_ostatus'] = 4
+
+	## determine overall system status
+
+	## determine power status
+
+
+	return system
 
 ################################################################################
 
@@ -36,9 +158,18 @@ def system_api_auth():
 
 ################################################################################
 
-def system_api_checkin(system):
+def system_api_checkin(system,addr=None):
+	if addr is None:
+		if request:
+			if request.remote_addr:
+				addr = request.remote_addr
+			else:
+				addr = "Unknown"
+		else:
+			addr = "Unknown"
+
 	curd = g.db.cursor(mysql.cursors.DictCursor)
-	curd.execute('UPDATE `systems` SET `last_seen_date` = NOW() WHERE `id` = %s',(system['id'],))
+	curd.execute('UPDATE `systems` SET `last_seen_date` = NOW(), `last_seen_addr` = %s WHERE `id` = %s',(addr,system['id'],))
 	g.db.commit()
 
 ################################################################################
