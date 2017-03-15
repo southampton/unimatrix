@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<div class="clearfix row" id="content">
+	<div id="main" class="col-md-12 clearfix" role="main">
+		<div class="page-tabs-header">
+			<div class="row">
+				<div class="col-sm-12 col-md-6 cols-nopad-right">
+					<h1><span class="fa fa-fw fa-desktop"></span> {{system['name']}}</h1>
+				</div>
+				<div class="col-sm-12 col-md-6 cols-nopad-left cols-nopad-right">
+					<ul class="nav nav-tabs nav-justified nav-tabs-pattern" id="tabs-pattern" role="tablist">
+						<li role="presentation"><a href="{{url_for('system',name=system.name)}}">Overview</a></li>
+						<li role="presentation" class="active"><a href="#">Metadata</a></li>
+						<li role="presentation"><a href="{{url_for('system_events',name=system.name)}}">Events</a></li>
+						<li role="presentation"><a href="#">Backups</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div class="row row-cards-pf">
+			<div class="col-xs-12 col-sm-12 col-md-12">
+				<div class="card-pf"  style="min-height: 294px">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">Drone metadata</h2>
+					</div>
+					<div class="card-pf-body">
+						<pre>{{system['metadata']|obj2json}}</pre>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="row row-cards-pf">
+			<div class="col-xs-12 col-sm-12 col-md-12">
+				<div class="card-pf"  style="min-height: 294px">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">Puppet facts</h2>
+					</div>
+					<div class="card-pf-body">
+						<pre>{{system['facts']['values']|obj2json}}</pre>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+{% endblock %}

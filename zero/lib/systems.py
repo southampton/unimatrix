@@ -11,7 +11,14 @@ import json
 
 ################################################################################
 
-def get_system_by_name(name):
+def get_system_events(sid):
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute("""SELECT * FROM `systems_events` WHERE `sid` = %s""",(sid,))
+	return curd.fetchall()
+	
+################################################################################
+
+def get_system_by_name(name,extended=True):
 
 	curd = g.db.cursor(mysql.cursors.DictCursor)
 	curd.execute("""SELECT 
@@ -66,157 +73,158 @@ def get_system_by_name(name):
 	time_one_day_ago    = datetime.now() - timedelta(days=1)
 	time_three_days_ago = datetime.now() - timedelta(days=3)
 
-	## ostatus
-	## 0 - OK
-	## 1 - backup failed
-	## 2 - partial
-	## 3 - too old (backup was too long ago)
-	## 4 - no backups (error)
-	## 5 - backup in progress 
+	if extended:
+		## ostatus
+		## 0 - OK
+		## 1 - backup failed
+		## 2 - partial
+		## 3 - too old (backup was too long ago)
+		## 4 - no backups (error)
+		## 5 - backup in progress 
 
-	# determine server backup status ('sstatus')
-	## 0 - success
-	## 1 - error
-	## 2 - partial
-	## 3 - too old
-	## 4 - no backups
-	## 5 - backup in progress
+		# determine server backup status ('sstatus')
+		## 0 - success
+		## 1 - error
+		## 2 - partial
+		## 3 - too old
+		## 4 - no backups
+		## 5 - backup in progress
 
-	## is a backup in progress?
-	plexus = plexus_connect()
-	tasks = plexus.active_tasks()
-	backup_inprogress = False
-	for task in tasks:
-		if task['sid'] == system['id'] and task['name'] == 'backup':
-			backup_inprogress = True
+		## is a backup in progress?
+		plexus = plexus_connect()
+		tasks = plexus.active_tasks()
+		backup_inprogress = False
+		for task in tasks:
+			if task['sid'] == system['id'] and task['name'] == 'backup':
+				backup_inprogress = True
 
-	if backup_inprogress:
-		system['backup_ostatus'] = 5
-		system['backup_sstatus'] = 5
-	else:
-		## determine status from the last backup job
-		curd.execute("""SELECT * FROM `tasks` WHERE `name` = 'backup' AND `sid` = %s AND `end` IS NOT NULL ORDER BY `id` DESC LIMIT 0,1""",(system['id'],))
-		last_backup = curd.fetchone()
-
-		if last_backup == None:
-			system['backup_sstatus'] = 4
-			system['backup_ostatus'] = 4
-			system['backup_swhen'] = None
+		if backup_inprogress:
+			system['backup_ostatus'] = 5
+			system['backup_sstatus'] = 5
 		else:
-			system['backup_swhen'] = last_backup['end']
+			## determine status from the last backup job
+			curd.execute("""SELECT * FROM `tasks` WHERE `name` = 'backup' AND `sid` = %s AND `end` IS NOT NULL ORDER BY `id` DESC LIMIT 0,1""",(system['id'],))
+			last_backup = curd.fetchone()
 
-			if int(last_backup['status']) == 0:
-				system['backup_sstatus'] = 0
-				system['backup_ostatus'] = 0
-			elif int(last_backup['status']) == 1: # 1 in the 'tasks' table actually means partial - for reasons, I'm sure.
-				system['backup_sstatus'] = 2
-				system['backup_ostatus'] = 2
+			if last_backup == None:
+				system['backup_sstatus'] = 4
+				system['backup_ostatus'] = 4
+				system['backup_swhen'] = None
 			else:
-				system['backup_sstatus'] = 1
-				system['backup_ostatus'] = 1
-	 
-			if last_backup['end'] < time_three_days_ago:
-				system['backup_sstatus'] = 3
-				system['backup_ostatus'] = 3
+				system['backup_swhen'] = last_backup['end']
 
-	## determine client backup status ('cstatus')
-	## see drone config for the value of cstatus (https://github.com/southampton/unimatrix/blob/master/drone/README.md)
-	if system['backup_status'] is not None:
-
-		if 'code' in system['backup_status']:
-			system['backup_cstatus'] = system['backup_status']['code']
-
-			if int(system['backup_status']['code']) == 0:
-				pass # we dont change the overall status, as the backup server might have thought something was wrong
-			elif int(system['backup_status']['code']) == -3:
-				pass # -3 means backup already in progress, so we 
-				# dont want to show that the system 
-			else:
-				if not backup_inprogress:
+				if int(last_backup['status']) == 0:
+					system['backup_sstatus'] = 0
+					system['backup_ostatus'] = 0
+				elif int(last_backup['status']) == 1: # 1 in the 'tasks' table actually means partial - for reasons, I'm sure.
+					system['backup_sstatus'] = 2
+					system['backup_ostatus'] = 2
+				else:
+					system['backup_sstatus'] = 1
 					system['backup_ostatus'] = 1
+		 
+				if last_backup['end'] < time_three_days_ago:
+					system['backup_sstatus'] = 3
+					system['backup_ostatus'] = 3
+
+		## determine client backup status ('cstatus')
+		## see drone config for the value of cstatus (https://github.com/southampton/unimatrix/blob/master/drone/README.md)
+		if system['backup_status'] is not None:
+
+			if 'code' in system['backup_status']:
+				system['backup_cstatus'] = system['backup_status']['code']
+
+				if int(system['backup_status']['code']) == 0:
+					pass # we dont change the overall status, as the backup server might have thought something was wrong
+				elif int(system['backup_status']['code']) == -3:
+					pass # -3 means backup already in progress, so we 
+					# dont want to show that the system 
+				else:
+					if not backup_inprogress:
+						system['backup_ostatus'] = 1
 
 
-		if 'when' in system['backup_status']: 
-			## time, minus 3 days ago (before that, and we consider the backup status
-			## to be 'bad' because there hasnt been a backup in a long time)
-			time_last_client_backup = datetime.utcfromtimestamp(int(system['backup_status']['when']))
-			if time_last_client_backup < time_three_days_ago:
-				system['backup_cstatus'] = 3
-	else:
-		app.logger.info(str(type(system['backup_status'])))
-		system['backup_cstatus'] = 4
-		if not backup_inprogress:
-			system['backup_ostatus'] = 4
+			if 'when' in system['backup_status']: 
+				## time, minus 3 days ago (before that, and we consider the backup status
+				## to be 'bad' because there hasnt been a backup in a long time)
+				time_last_client_backup = datetime.utcfromtimestamp(int(system['backup_status']['when']))
+				if time_last_client_backup < time_three_days_ago:
+					system['backup_cstatus'] = 3
+		else:
+			app.logger.info(str(type(system['backup_status'])))
+			system['backup_cstatus'] = 4
+			if not backup_inprogress:
+				system['backup_ostatus'] = 4
 
-	## backup success rate
-	curd.execute("""SELECT `status` FROM `tasks` WHERE `name` = 'backup' AND `sid` = %s AND `end` IS NOT NULL""",(system['id'],))
-	backups = curd.fetchall()
+		## backup success rate
+		curd.execute("""SELECT `status` FROM `tasks` WHERE `name` = 'backup' AND `sid` = %s AND `end` IS NOT NULL""",(system['id'],))
+		backups = curd.fetchall()
 
-	total   = 0
-	success = 0
-	for backup in backups:
-		total = total + 1
-		if int(backup['status']) == 0:
-			success = success + 1
+		total   = 0
+		success = 0
+		for backup in backups:
+			total = total + 1
+			if int(backup['status']) == 0:
+				success = success + 1
 	
-	if total > 0 and success > 0:
-		system['backup_success_rate'] = int((success / total) * 100)
-	else:
-		system['backup_success_rate'] = 0
+		if total > 0 and success > 0:
+			system['backup_success_rate'] = int((success / total) * 100)
+		else:
+			system['backup_success_rate'] = 0
 
-	## determine system ping status
-	last_ping_delta = datetime.now() - system['last_seen_date']
-	system['last_seen_delta'] = last_ping_delta.days
+		## determine system ping status
+		last_ping_delta = datetime.now() - system['last_seen_date']
+		system['last_seen_delta'] = last_ping_delta.days
 
-	if last_ping_delta.days > 28:
-		system['seen_status'] = 3
-	elif last_ping_delta.days > 7:
-		system['seen_status'] = 2
-	elif last_ping_delta.days > 3:
-		system['seen_status'] = 1
-	else:
-		system['seen_status'] = 0
+		if last_ping_delta.days > 28:
+			system['seen_status'] = 3
+		elif last_ping_delta.days > 7:
+			system['seen_status'] = 2
+		elif last_ping_delta.days > 3:
+			system['seen_status'] = 1
+		else:
+			system['seen_status'] = 0
 
-	## workout startup and shutdown datetimes
-	curd.execute("""SELECT `when` FROM `systems_events` WHERE `name` = 'startup' AND `sid` = %s ORDER BY `id` DESC LIMIT 0,1""",(system['id'],))
-	last_startup = curd.fetchone()
-	curd.execute("""SELECT `when` FROM `systems_events` WHERE `name` = 'shutdown' AND `sid` = %s ORDER BY `id` DESC LIMIT 0,1""",(system['id'],))
-	last_shutdown = curd.fetchone()
+		## workout startup and shutdown datetimes
+		curd.execute("""SELECT `when` FROM `systems_events` WHERE `name` = 'startup' AND `sid` = %s ORDER BY `id` DESC LIMIT 0,1""",(system['id'],))
+		last_startup = curd.fetchone()
+		curd.execute("""SELECT `when` FROM `systems_events` WHERE `name` = 'shutdown' AND `sid` = %s ORDER BY `id` DESC LIMIT 0,1""",(system['id'],))
+		last_shutdown = curd.fetchone()
 
-	system['last_startup']  = 'No record'
-	system['last_shutdown'] = 'No record'
+		system['last_startup']  = 'No record'
+		system['last_shutdown'] = 'No record'
 
-	if last_startup is not None:
-		system['last_startup']  = last_startup['when']
+		if last_startup is not None:
+			system['last_startup']  = last_startup['when']
 
-	if last_shutdown is not None:
-		system['last_shutdown'] = last_shutdown['when']
+		if last_shutdown is not None:
+			system['last_shutdown'] = last_shutdown['when']
 
-	if last_startup is not None and last_shutdown is not None:
-		if last_shutdown['when'] > last_startup['when']:
-			if last_ping_delta.seconds > 14400:
-				system['seen_status'] = -1 # system is probably shut down / powered off
+		if last_startup is not None and last_shutdown is not None:
+			if last_shutdown['when'] > last_startup['when']:
+				if last_ping_delta.seconds > 14400:
+					system['seen_status'] = -1 # system is probably shut down / powered off
 
-	if 'code' in system['puppet_status']:
-		system['puppet_status']['code'] = int(system['puppet_status']['code'])
+		if 'code' in system['puppet_status']:
+			system['puppet_status']['code'] = int(system['puppet_status']['code'])
 
-	## update status
-	if system['update_status']:
-		if 'yum_updates' in system['update_status']:
-			if system['update_status']['yum_updates'] > 10:
-				system['update_status_code'] = 1 # alert
-			else:
-				if 'offline-get-prepared' in system['update_status']:
-					if system['update_status']['offline-get-prepared'] == 0:
-						system['update_status_code'] = 2 # if <= 10 updates, and updates are preped, show 'preped'
+		## update status
+		if system['update_status']:
+			if 'yum_updates' in system['update_status']:
+				if system['update_status']['yum_updates'] > 10:
+					system['update_status_code'] = 1 # alert
+				else:
+					if 'offline-get-prepared' in system['update_status']:
+						if system['update_status']['offline-get-prepared'] == 0:
+							system['update_status_code'] = 2 # if <= 10 updates, and updates are preped, show 'preped'
+						else:
+							system['update_status_code'] = 1 # alert
 					else:
 						system['update_status_code'] = 1 # alert
-				else:
-					system['update_status_code'] = 1 # alert
+			else:
+				system['update_status_code'] = -1 # unknown
 		else:
 			system['update_status_code'] = -1 # unknown
-	else:
-		system['update_status_code'] = -1 # unknown
 
 	return system
 

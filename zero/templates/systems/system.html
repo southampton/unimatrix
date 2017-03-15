@@ -10,10 +10,10 @@
 				</div>
 				<div class="col-sm-12 col-md-6 cols-nopad-left cols-nopad-right">
 					<ul class="nav nav-tabs nav-justified nav-tabs-pattern" id="tabs-pattern" role="tablist">
-						<li role="presentation" class="active"><a href="#overview">Overview</a></li>
-						<li role="presentation"><a href="#">Metadata</a></li>
-						<li role="presentation"><a href="#">Events</a></li>
-						<li role="presentation"><a href="#">Backups</a></li>
+						<li role="presentation" class="active"><a href="#">Overview</a></li>
+						<li role="presentation"><a href="{{url_for('system_metadata',name=system.name)}}">Metadata</a></li>
+						<li role="presentation"><a href="{{url_for('system_events',name=system.name)}}">Events</a></li>
+						<li role="presentation"><a href="{{url_for('system',name=system.name)}}">Backups</a></li>
 					</ul>
 				</div>
 			</div>
@@ -114,7 +114,7 @@
 					</div>
 					<div class="card-pf-body">
 						<div class="pull-right">
-							<span class="fa fa-fw fa-5x {% if system['update_status_code'] == -1 %}fa-question-circle text-warning{% elif system['update_status_code'] == 0 %}fa-check-circle text-success{% elif system['update_status_code'] == 1 %}fa-exclamation-circle text-danger{% elif system['update_status_code'] == 2 %}fa-question-circle text-warning{% elif system['update_status_code'] == 4 %}fa-clock-o text-info{%endif%}"></span>
+							<span class="fa fa-fw fa-5x {% if system['update_status_code'] == -1 %}fa-question-circle text-warning{% elif system['update_status_code'] == 0 %}fa-check-circle text-success{% elif system['update_status_code'] == 1 %}fa-exclamation-circle text-danger{% elif system['update_status_code'] == 2 %}fa-clock-o text-info{%endif%}"></span>
 						</div>
 						<strong>Available updates:</strong>
 						<p>{{system['update_status']['yum_updates'] or 'Unknown'}} available updates</p>

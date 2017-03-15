@@ -4,6 +4,7 @@ from zero.lib.user import is_logged_in
 from flask import Flask, request, session, g, abort, render_template, url_for
 import MySQLdb as mysql
 import datetime
+import json
 
 ################################################################################
 
@@ -27,3 +28,9 @@ def jinja_filter_ut2str(ut):
 		return ut.strftime('%Y-%m-%d %H:%M:%S %Z')
 	else:
 		return ut
+
+################################################################################
+
+@app.template_filter('obj2json')
+def jinja_filter_obj2json(data):
+	return json.dumps(data,indent=4)

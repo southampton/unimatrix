@@ -3,7 +3,7 @@
 from zero import app
 import zero.lib.user
 from zero.lib.user import is_logged_in
-from zero.lib.systems import get_system_by_name
+from zero.lib.systems import get_system_by_name, get_system_events
 from zero.lib.plexus import plexus_connect
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import MySQLdb as mysql
@@ -118,3 +118,30 @@ def system(name):
 		abort(404)
 	else:
 		return render_template("systems/system.html",system=system)
+
+@app.route('/sys/<name>/metadata')
+@zero.lib.user.login_required
+def system_metadata(name):
+	"""Shows metadata for a registered system"""
+
+	system = get_system_by_name(name)
+
+	if system is None:
+		abort(404)
+	else:
+		return render_template("systems/metadata.html",system=system)
+
+@app.route('/sys/<name>/events')
+@zero.lib.user.login_required
+def system_events(name):
+	"""Shows events for a registered system"""
+
+	system = get_system_by_name(name,extended=False)
+
+	if system is None:
+		abort(404)
+	else:
+
+		## Get all events
+		events = get_system_events(system['id'])
+		return render_template("systems/events.html",system=system,events=events)
