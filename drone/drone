@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-03-15-01"
+VERSION     = "2017-03-15-05"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -337,16 +337,15 @@ class DroneAgent:
 		bLock = self.get_backup_lock()
 
 		if not self.is_network_up():
-			self.backup_save_state(bLock,uts,-2,"The network is down, cannot run backup")
+			self.backup_save_state(bLock,-2,"The network is down, cannot run backup")
 			self.print_verbose("network is down, not running backup")
 
 		self.print_verbose("starting backup (this may take several minutes)")
 
-		uts = int(time.time())
 		## Ensure the mount point for the snapshot exists
 		self.print_debug("checking config.backup.lv_snap_mount path")
 		if not os.path.exists(self.config.get('backup','lv_snap_mount')):
-			self.backup_save_state(bLock,uts,-1,"The lv_snap_mount directory does not exist")
+			self.backup_save_state(bLock,-1,"The lv_snap_mount directory does not exist")
 			self.fatal("The lv_snap_mount directory - " + self.config.get('backup','lv_snap_mount') + " - does not exist")
 
 		## Check to see if homesnap is already mounted, and if it is, unmount it
@@ -392,7 +391,7 @@ class DroneAgent:
 		if code == 0:
 			self.print_verbose("snapshot created")
 		else:
-			self.backup_save_state(bLock,uts,-1,"Could not create disk snapshot: \n" + output)
+			self.backup_save_state(bLock,-1,"Could not create disk snapshot: \n" + output)
 			self.fatal("Could not create snapshot:\n" + output)
 
 		## Mount it
@@ -402,11 +401,10 @@ class DroneAgent:
 		if code == 0:
 			self.print_verbose("snapshot mounted")
 		else:
-			self.backup_save_state(bLock,uts,-1,"Could not mount disk snapshot: \n" + output)
+			self.backup_save_state(bLock,-1,"Could not mount disk snapshot: \n" + output)
 			self.fatal("Could not mount snapshot:\n" + output)
 
 		## k we're ready! start the backup!
-		uts = int(time.time())
 		(code, output) = self.sysexec("""%s %s@%s -i %s/ssh_private_key -o "ExitOnForwardFailure yes" -R %s:localhost:%s """ % (self.config.get('ssh','binary'), self.config.get('backup','user'), self.config.get('backup','server'), BASE_DIR, self.config.get('backup','port'),self.config.get('backup','rsyncd_port'),),shell=True)
 
 		fail = False
@@ -443,7 +441,7 @@ class DroneAgent:
 			self.warn("Could not delete snapshot:\n" + output)
 
 		## Save the final state, and unlock the lock
-		self.backup_save_state(bLock,uts,backup_code,backup_output)
+		self.backup_save_state(bLock,backup_code,backup_output)
 
 		# fatal exit if the backup failed
 		if fail:
@@ -451,8 +449,8 @@ class DroneAgent:
 
 	############################################################################
 
-	def backup_save_state(self,bLock,uts,code,output=None):
-		data = {'when': uts, 'code': code, 'output': output}
+	def backup_save_state(self,bLock,code,output=None):
+		data = {'when': int(time.time()), 'code': code, 'output': output}
 
 		## Try to write to the backup status file
 		try:
@@ -468,6 +466,31 @@ class DroneAgent:
 			bLock.close()
 		except Exception as ex:
 			self.warnex("Could not unlock the backup status file",ex)
+
+		## we should tell the server the state, if we can
+		self.print_verbose("Sending the new backup status to the LDI server")
+
+		hostname = platform.node()
+		api_key = self.config.get('server','api_key')
+		server_url = self.config.get('server','address')
+		if not server_url.endswith("/"):
+			server_url = server_url + "/"
+		server_url = server_url + "api/v1/update/status"
+
+		## Tell the server via a POST 
+		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
+		try:
+			payload = {'hostname': hostname, 'api_key': api_key, 'type': 'backup', 'data': json.dumps(data)}
+			r = requests.post(server_url, data=payload, verify = self.config.getboolean('server','verify'))
+		except Exception as ex:
+			self.fatalex("Unable to contact LDI server",ex)
+
+		self.print_debug("return code " + str(r.status_code))
+
+		if r.status_code == 200:
+			self.print_verbose("LDI server accepted the backup status update")
+		else:
+			self.print_verbose("Unable to update LDI server due to an unexpected HTTP return code from server: " + str(r.status_code))
 
 	############################################################################
 
