@@ -58,7 +58,7 @@ def logon_ok():
 
 	# Log a successful login
 	app.logger.info('User "' + session['username'] + '" logged in from "' + request.remote_addr + '" using ' + request.user_agent.string)
-		
+
 	# Determine if "next" variable is set (the URL to be sent to)
 	next = request.form.get('next', default=None)
 	
