@@ -3,6 +3,7 @@ from zero.lib.errors import logerr, fatalerr
 from zero.lib.user import is_logged_in
 from flask import Flask, request, session, g, abort, render_template, url_for
 import MySQLdb as mysql
+import datetime
 
 ################################################################################
 
@@ -15,3 +16,14 @@ def before_request():
 		return fatalerr(message='Could not connect to the MySQL/MariaDB server')
 
 	app.jinja_env.globals['is_logged_in'] = is_logged_in
+
+################################################################################
+
+@app.template_filter('ut2str')
+def jinja_filter_ut2str(ut):
+	if type(ut) is int:
+		return datetime.datetime.fromtimestamp(int(ut)).strftime('%Y-%m-%d %H:%M:%S %Z')
+	elif type(ut) is datetime.datetime:
+		return ut.strftime('%Y-%m-%d %H:%M:%S %Z')
+	else:
+		return ut

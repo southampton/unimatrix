@@ -1,0 +1,167 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<div class="clearfix row" id="content">
+	<div id="main" class="col-md-12 clearfix" role="main">
+		<div class="page-tabs-header">
+			<div class="row">
+				<div class="col-sm-12 col-md-6 cols-nopad-right">
+					<h1><span class="fa fa-fw fa-desktop"></span> {{system['name']}}</h1>
+				</div>
+				<div class="col-sm-12 col-md-6 cols-nopad-left cols-nopad-right">
+					<ul class="nav nav-tabs nav-justified nav-tabs-pattern" id="tabs-pattern" role="tablist">
+						<li role="presentation" class="active"><a href="#overview">Overview</a></li>
+						<li role="presentation"><a href="#">Metadata</a></li>
+						<li role="presentation"><a href="#">Events</a></li>
+						<li role="presentation"><a href="#">Backups</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+
+		<div class="row row-cards-pf">
+			<div class="col-xs-4 col-sm-4 col-md-4">
+				<div class="card-pf"  style="min-height: 294px">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">System status</h2>
+					</div>
+					<div class="card-pf-body">
+						<div class="pull-right">
+							<span class="fa fa-fw fa-5x {% if system['seen_status'] == 0 %}fa-check-circle text-success{% elif system['seen_status'] == -1 %}fa-power-off text-info{% elif system['seen_status'] == 1 %}fa-exclamation-circle text-warning{% elif system['seen_status'] == 2 %}fa-times-circle text-danger{% else %}fa-question-circle text-danger{%endif%}"></span>
+						</div>
+						<strong>Last seen:</strong>
+						<p>{% if system['last_seen_delta'] == 0 %}Today{%elif system['last_seen_delta'] == 1 %}Yesterday{%else%}{{system['last_seen_delta']}} days ago{%endif%} <span class="text-muted">at {{system['last_seen_date']|ut2str}}</span></p>
+						<strong>Last seen address:</strong>
+						<p>{{system['last_seen_addr']}}</p>
+						<strong>Last startup:</strong>
+						<p>{{system['last_startup']|ut2str}}</p>
+						<strong>Last shutdown:</strong>
+						<p>{{system['last_shutdown']|ut2str}}</p>
+					</div>
+				</div>
+				<div class="card-pf"  style="min-height: 294px">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">Puppet status</h2>
+					</div>
+					<div class="card-pf-body">
+						<div class="pull-right">
+							{% if system['puppet_status'] %}
+							<span class="fa fa-fw fa-5x {% if system['puppet_status']['code'] == 0 %}fa-check-circle text-success{% elif system['puppet_status']['code'] == 1 %}fa-times-circle text-danger{% elif system['puppet_status']['code'] == 2 %}fa-check-circle text-success{% else %}fa-check-circle text-danger{%endif%}"></span>
+							{% else %}
+							<span class="fa fa-fw fa-5x fa-question-circle text-warning"></span>
+							{% endif %}
+						</div>
+
+						<strong>Puppet status:</strong>
+						<p>{% if system['puppet_status']['code'] is defined %}
+							{% if system['puppet_status']['code'] == 0 %}System in compliance with policy
+							{% elif system['puppet_status']['code'] == 1 %}Puppet run failed
+							{% elif system['puppet_status']['code'] == 2 %}System in compliance with policy after changes were made
+							{% elif system['puppet_status']['code'] == 3 %}Puppet run partially failed
+							{% elif system['puppet_status']['code'] == 4 %}Puppet run partially failed
+							{% else %}Puppet run failed
+							{%endif%}
+							{% else %}
+							Unknown {{system['puppet_status'] }}
+							{% endif %}
+						</p>
+						<strong>Last Puppet run:</strong>
+						<p>{{system['puppet_status']['when']|ut2str}}</p>
+					</div>
+				</div>
+			</div>
+			<div class="col-xs-4 col-sm-4 col-md-4">
+				<div class="card-pf"  style="min-height: 294px">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">Backup status</h2>
+					</div>
+					<div class="card-pf-body">
+						<div class="pull-right">
+							<span class="fa fa-fw fa-5x {% if system['backup_ostatus'] == 0 %}fa-check-circle text-success{% elif system['backup_ostatus'] == 1 %}fa-times-circle text-danger{% elif system['backup_ostatus'] == 2 %}fa-exclamation-circle text-warning{% elif system['backup_ostatus'] == 3 %}fa-question-circle text-warning{% elif system['backup_ostatus'] == 4 %}fa-question-circle text-warning{% elif system['backup_ostatus'] == 5 %}fa-cog fa-spin text-info{%endif%}"></span>
+						</div>
+
+						<strong>Backup status:</strong>
+						<p>{% if system['backup_ostatus'] == 0 %}Backup OK
+							{% elif system['backup_ostatus'] == 1 %}Backup failure
+							{% elif system['backup_ostatus'] == 2 %}Partial backup - some files were missed
+							{% elif system['backup_ostatus'] == 3 %}Last backup attempt over 3 days ago
+							{% elif system['backup_ostatus'] == 4 %}No backup has ever been taken!
+							{% elif system['backup_ostatus'] == 5 %}Backup in progress
+							{%endif%}</p>
+						<strong>The backup server reports:</strong>
+						<p>{% if system['backup_sstatus'] == 0 %}Backup OK
+							{% elif system['backup_sstatus'] == 1 %}Backup failure
+							{% elif system['backup_sstatus'] == 2 %}Partial backup - some files were missed
+							{% elif system['backup_sstatus'] == 3 %}Last backup attempt over 3 days ago
+							{% elif system['backup_sstatus'] == 4 %}No backup has ever been taken!
+							{% elif system['backup_sstatus'] == 5 %}Backup in progress
+							{%endif%} {% if system['backup_swhen'] %} <span class="text-muted"> at {{system['backup_swhen']|ut2str}}</span>{%endif%}</p>
+						<strong>The system reports:</strong>
+						<p>{% if system['backup_cstatus'] == 0 %}Backup OK
+							{% elif system['backup_cstatus'] == -1 %}Unable to take a disk snapshot
+							{% elif system['backup_cstatus'] == -2 %}Network was down during backup attempt
+							{% elif system['backup_cstatus'] == -3 %}Backup in progress
+							{% elif system['backup_cstatus'] == 1 %}Partial backup - some files were missed
+							{% else %}Backup failure
+							{%endif%} {% if system['backup_status']['when'] %} <span class="text-muted"> at {{system['backup_status']['when']|ut2str}}</span>{%endif%}</p>
+						<strong>Backup success rate:</strong>
+						<p>{{system['backup_success_rate']}}%</p>
+					</div>
+				</div>
+				<div class="card-pf"  style="min-height: 294px">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">Software update status</h2>
+					</div>
+					<div class="card-pf-body">
+						<div class="pull-right">
+							<span class="fa fa-fw fa-5x {% if system['update_status_code'] == -1 %}fa-question-circle text-warning{% elif system['update_status_code'] == 0 %}fa-check-circle text-success{% elif system['update_status_code'] == 1 %}fa-exclamation-circle text-danger{% elif system['update_status_code'] == 2 %}fa-question-circle text-warning{% elif system['update_status_code'] == 4 %}fa-clock-o text-info{%endif%}"></span>
+						</div>
+						<strong>Available updates:</strong>
+						<p>{{system['update_status']['yum_updates'] or 'Unknown'}} available updates</p>
+						<strong>Staged updates:</strong>
+						<p>{% if system['update_status']['offline-get-prepared'] is defined %}
+							{% if system['update_status']['offline-get-prepared'] == 0 %}Updates are marked for install at next startup
+							{% elif system['update_status']['offline-get-prepared'] == 4 %}No updates are currently staged
+							{% else %}Could not determine offline status 
+							{%endif%}
+							{%else%}
+							Unknown
+							{%endif%}
+						</p>
+						</p>
+					</div>
+				</div>
+			</div>
+			<div class="col-xs-4 col-sm-4 col-md-4">
+				<div class="card-pf" style="min-height: 608px">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">System information</h2>
+					</div>
+					<div class="card-pf-body">
+						<strong>Operating system:</strong>
+						<p>{{system['facts']['values']['lsbdistdescription']}}</p>
+						<strong>Hardware:</strong>
+						<p>{{system['metadata']['hwinfo']['sys']}}</p>
+						<strong>CPU:</strong>
+						<p>{{system['metadata']['hwinfo']['cpu']}}</p>
+						<strong>RAM:</strong>
+						<p>{{system['metadata']['hwinfo']['mem']}}</p>
+						<strong>GPU:</strong>
+						<p>{{system['metadata']['hwinfo']['gpu']}}</p>
+						<strong>First registered on:</strong>
+						<p>{{system['create_date']|ut2str}}</p>
+						<strong>Registered on:</strong>
+						<p>{{system['register_date']|ut2str}}</p>
+						<strong>Uptime:</strong>
+						<p>{{system['facts']['values']['uptime']}}</p>
+						<strong>Drone version:</strong>
+						<p>{{system['metadata']['drone']['version']}}</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+{% endblock %}

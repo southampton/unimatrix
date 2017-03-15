@@ -33,6 +33,7 @@ data on the view page:
 			<th></th>
 			<th>SYS</th>
 			<th>CPU</th>
+			<th>RAM</th>
 			<th>GPU</th>
 			<th>Last seen</th>
 			<th>Last address</th>
@@ -45,6 +46,7 @@ data on the view page:
 				<td class="table-view-pf-actions"><a href="{{url_for('system',name=system.name)}}" class="btn btn-lg btn-default" style="text-align: left">{{system.name}}</a></td>
 				<td>{{system.metadata.hwinfo.sys}}</td>
 				<td>{{system.metadata.hwinfo.cpu}}</td>
+				<td>{{system.metadata.hwinfo.mem}}</td>
 				<td>{{system.metadata.hwinfo.gpu}}</td>
 				<td>{{system.last_seen_date}}</td>
 				<td>{{system.last_seen_addr}}</td>
