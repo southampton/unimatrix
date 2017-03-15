@@ -286,6 +286,7 @@ Username:             %s
 		  `create_date` datetime DEFAULT NULL,
 		  `register_date` datetime DEFAULT NULL,
 		  `last_seen_date` datetime DEFAULT NULL,
+		  `last_seen_addr` varchar(128),
           `ssh_public_key` TEXT,
           `backup_key` varchar(128),
           `api_key` varchar(128),

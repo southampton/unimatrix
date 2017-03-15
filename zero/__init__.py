@@ -10,3 +10,4 @@ import zero.views.errors
 import zero.views.user
 import zero.views.main
 import zero.views.api
+import zero.views.pkgdb
