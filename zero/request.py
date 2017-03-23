@@ -31,6 +31,17 @@ def jinja_filter_ut2str(ut):
 
 ################################################################################
 
+@app.template_filter('dt2uts')
+def jinja_filter_dt2uts(dt):
+	if type(dt) is int:
+		return str(dt)
+	elif type(dt) is datetime.datetime:
+		return str(int((dt - datetime.datetime(1970,1,1)).total_seconds()))
+	else:
+		return str(dt)
+
+################################################################################
+
 @app.template_filter('obj2json')
 def jinja_filter_obj2json(data):
 	return json.dumps(data,indent=4)

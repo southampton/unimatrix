@@ -11,6 +11,13 @@ import json
 
 ################################################################################
 
+def get_system_backups(sid):
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute("""SELECT * FROM `tasks` WHERE `sid` = %s""",(sid,))
+	return curd.fetchall()
+
+################################################################################
+
 def get_system_events(sid):
 	curd = g.db.cursor(mysql.cursors.DictCursor)
 	curd.execute("""SELECT * FROM `systems_events` WHERE `sid` = %s""",(sid,))
@@ -168,7 +175,7 @@ def get_system_by_name(name,extended=True):
 				success = success + 1
 	
 		if total > 0 and success > 0:
-			system['backup_success_rate'] = int((success / total) * 100)
+			system['backup_success_rate'] = int((float(success) / float(total)) * 100)
 		else:
 			system['backup_success_rate'] = 0
 

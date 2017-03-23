@@ -114,6 +114,7 @@ class BackupTask(object):
 		# 3 = failed, python exception
 		try:
 			self.curd.execute("UPDATE `tasks` SET `status` = %s, `end` = NOW(), `result` = %s WHERE `id` = %s", (status, result, self.task_id))
+			self.curd.execute("UPDATE `systems` SET `last_seen_date` = NOW() WHERE `id` = %s", (self.system['id'],))
 			self.db.commit()
 		except Exception as ex:
 			syslog.syslog('backup task ' + str(self.task_id) + " could not mark itself finished: " + str(type(ex)) + " " + str(ex))			

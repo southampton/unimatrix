@@ -3,7 +3,7 @@
 from zero import app
 import zero.lib.user
 from zero.lib.user import is_logged_in
-from zero.lib.systems import get_system_by_name, get_system_events
+from zero.lib.systems import get_system_by_name, get_system_events, get_system_backups
 from zero.lib.plexus import plexus_connect
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, make_response, render_template, jsonify
 import MySQLdb as mysql
@@ -141,7 +141,20 @@ def system_events(name):
 	if system is None:
 		abort(404)
 	else:
-
 		## Get all events
 		events = get_system_events(system['id'])
 		return render_template("systems/events.html",system=system,events=events)
+
+@app.route('/sys/<name>/backups')
+@zero.lib.user.login_required
+def system_backups(name):
+	"""Shows backup logs for a registered system"""
+
+	system = get_system_by_name(name,extended=False)
+
+	if system is None:
+		abort(404)
+	else:
+		## Get all backups
+		backups = get_system_backups(system['id'])
+		return render_template("systems/backups.html",system=system,backups=backups)

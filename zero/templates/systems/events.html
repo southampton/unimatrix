@@ -13,7 +13,7 @@
 						<li role="presentation"><a href="{{url_for('system',name=system.name)}}">Overview</a></li>
 						<li role="presentation"><a href="{{url_for('system_metadata',name=system.name)}}">Metadata</a></li>
 						<li role="presentation" class="active"><a href="#">Events</a></li>
-						<li role="presentation"><a href="#">Backups</a></li>
+						<li role="presentation"><a href="{{url_for('system_backups',name=system.name)}}">Backups</a></li>
 					</ul>
 				</div>
 			</div>
@@ -22,6 +22,37 @@
 		<div class="row row-cards-pf">
 			<div class="col-xs-12 col-sm-12 col-md-12">
 				<div class="card-pf" style="padding: 0px; border-top: none;">
+
+<div class="row toolbar-pf table-view-pf-toolbar" id="toolbar1">
+	<div class="col-sm-12">
+		<form class="toolbar-pf-actions">
+			<div class="form-group toolbar-pf-filter">
+				<label class="sr-only" for="filter">Name</label>
+				<div class="input-group">
+					<div class="input-group-btn">
+						<button type="button" class="btn btn-default dropdown-toggle" id="filter" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Name <span class="caret"></span></button>
+						<ul class="dropdown-menu">
+							<li><a href="#" id="filter1">Name</a></li>
+							<li><a href="#" id="filter2">Status</a></li>
+							<li><a href="#" id="filter3">Data</a></li>
+						</ul>
+					</div>
+					<input type="text" class="form-control" placeholder="Filter By Name..." autocomplete="off" id="filterInput">
+				</div>
+			</div>
+		</form>
+		<div class="row toolbar-pf-results">
+			<div class="col-sm-9">
+				<div class="hidden">
+					<h5>0 Results</h5>
+					<p>Active filters:</p>
+					<ul class="list-inline"></ul>
+					<p><a href="#">Clear All Filters</a></p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 
 	<table class="table table-striped table-bordered table-hover" id="table1">
 	  <thead>
@@ -91,28 +122,40 @@
 </div>
 
 <script>
-$(document).ready(function() {
+$(document).ready(function()
+{
+	$("#table1").DataTable(
+	{
+		dom: "t",
+		language: {
+			zeroRecords: "No records found"
+		},
+		order: [[ 0, 'desc' ]],
+		pfConfig:
+		{
+			emptyStateSelector: "#emptyState1",
+			paginationSelector: "#pagination1",
+			pageSize: 25,
+			filterCaseInsensitive: true,
+			filterCols: [null,
+			{
+			default: true,
+			optionSelector: "#filter1",
+			placeholder: "Filter By Name..."
+			}, null, {
+			optionSelector: "#filter2",
+			placeholder: "Filter By Status..."
+			}, {
+			optionSelector: "#filter3",
+			placeholder: "Filter By Data..."
+			}],
 
-$("#table1").DataTable({
-  dom: "t",
-  language: {
-    zeroRecords: "No records found"
-  },
-  order: [[ 0, 'desc' ]],
-  pfConfig: {
-    emptyStateSelector: "#emptyState1",
-    paginationSelector: "#pagination1",
-    pageSize: 25,
-  },
-  select: {
-    selector: 'td:first-child input[type="checkbox"]',
-    style: 'multi'
-  },
-});
-
+			paginationSelector: "#pagination1",
+			toolbarSelector: "#toolbar1",
+		}
+	});
 });
 </script>
-
 
 <script>
 // Initialize Datatables
