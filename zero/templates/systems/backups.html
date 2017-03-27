@@ -58,19 +58,21 @@
 	  <thead>
 		<tr>
 			<th>ID</th>
-			<th>When</th>
+			<th>Backup start</th>
+			<th>Backup end</th>
 			<th>Status</th>
+			<th>Result</th>
 		</tr>
 	  </thead>
 
 		<tbody>
-			{% for event in events %}
+			{% for backup in backups %}
 			<tr>
-				<td>{{event.id}}</td>
-				<td>{{event.name}}</td>
-				<td>{{event.when|ut2str}}</td>
-				<td>{% if event.status == 0 %}Success{%else%}Failure{%endif%}</td>
-				<td>{{event.data or ''}}</td>
+				<td>{{backup.id}}</td>
+				<td>{{backup.start|ut2str}}</td>
+				<td>{{backup.end|ut2str}}</td>
+				<td>{% if backup.status == 0 %}Success{% elif backup.status == -1 %}In progress{%else%}Failure{%endif%}</td>
+				<td>{{backup.result or ''}}</td>
 			</tr>
 			{%endfor%}
 	</table>
@@ -108,10 +110,10 @@
 		<span class="fa fa-fw fa-exclamation-triangle"></span>
 	  </div>
 	  <h1>
-		No events!
+		No backups!
 	  </h1>
 	  <p>
-		No events have been recorded, yet!
+		I could not find any record of a backup!
 	  </p>
 	</div>
 	

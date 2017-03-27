@@ -13,7 +13,7 @@ import json
 
 def get_system_backups(sid):
 	curd = g.db.cursor(mysql.cursors.DictCursor)
-	curd.execute("""SELECT * FROM `tasks` WHERE `sid` = %s""",(sid,))
+	curd.execute("""SELECT * FROM `tasks` WHERE `sid` = %s AND `name` = 'backup'""",(sid,))
 	return curd.fetchall()
 
 ################################################################################
