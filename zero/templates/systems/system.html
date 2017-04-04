@@ -117,7 +117,7 @@
 							<span class="fa fa-fw fa-5x {% if system['update_status_code'] == -1 %}fa-question-circle text-warning{% elif system['update_status_code'] == 0 %}fa-check-circle text-success{% elif system['update_status_code'] == 1 %}fa-exclamation-circle text-danger{% elif system['update_status_code'] == 2 %}fa-clock-o text-info{%endif%}"></span>
 						</div>
 						<strong>Available updates:</strong>
-						<p>{{system['update_status']['yum_updates'] or 'Unknown'}} available updates</p>
+						<p>{% if system['update_status']['yum_updates'] is defined %}{{system['update_status']['yum_updates']}}{%else%}Unknown{%endif%} available updates</p>
 						<strong>Staged updates:</strong>
 						<p>{% if system['update_status']['offline-get-prepared'] is defined %}
 							{% if system['update_status']['offline-get-prepared'] == 0 %}Updates are marked for install at next startup

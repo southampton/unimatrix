@@ -117,7 +117,7 @@ def system(name):
 	if system is None:
 		abort(404)
 	else:
-		return render_template("systems/system.html",system=system)
+		return render_template("systems/system.html",active="systems",system=system)
 
 @app.route('/sys/<name>/metadata')
 @zero.lib.user.login_required
@@ -129,7 +129,7 @@ def system_metadata(name):
 	if system is None:
 		abort(404)
 	else:
-		return render_template("systems/metadata.html",system=system)
+		return render_template("systems/metadata.html",active="systems",system=system)
 
 @app.route('/sys/<name>/events')
 @zero.lib.user.login_required
@@ -143,7 +143,7 @@ def system_events(name):
 	else:
 		## Get all events
 		events = get_system_events(system['id'])
-		return render_template("systems/events.html",system=system,events=events)
+		return render_template("systems/events.html",active="systems",system=system,events=events)
 
 @app.route('/sys/<name>/backups')
 @zero.lib.user.login_required
@@ -157,7 +157,7 @@ def system_backups(name):
 	else:
 		## Get all backups
 		backups = get_system_backups(system['id'])
-		return render_template("systems/backups.html",system=system,backups=backups)
+		return render_template("systems/backups.html",active="systems",system=system,backups=backups)
 
 
 @app.route('/backup/<id>')
@@ -176,4 +176,4 @@ def backup(id):
 	curd.execute("SELECT * FROM `systems` WHERE `id` = %s",(task['sid'],))
 	system = curd.fetchone()
 
-	return render_template("backup.html",task=task,system=system)
+	return render_template("backup.html",task=task,active="backups",system=system)

@@ -218,16 +218,19 @@ def get_system_by_name(name,extended=True):
 		## update status
 		if system['update_status']:
 			if 'yum_updates' in system['update_status']:
-				if system['update_status']['yum_updates'] > 10:
-					system['update_status_code'] = 1 # alert
+				if system['update_status']['yum_updates'] == 0:
+					system['update_status_code'] = 0
 				else:
-					if 'offline-get-prepared' in system['update_status']:
-						if system['update_status']['offline-get-prepared'] == 0:
-							system['update_status_code'] = 2 # if <= 10 updates, and updates are preped, show 'preped'
+					if system['update_status']['yum_updates'] > 10:
+						system['update_status_code'] = 1 # alert
+					else:
+						if 'offline-get-prepared' in system['update_status']:
+							if system['update_status']['offline-get-prepared'] == 0:
+								system['update_status_code'] = 2 # if <= 10 updates, and updates are preped, show 'preped'
+							else:
+								system['update_status_code'] = 1 # alert
 						else:
 							system['update_status_code'] = 1 # alert
-					else:
-						system['update_status_code'] = 1 # alert
 			else:
 				system['update_status_code'] = -1 # unknown
 		else:
