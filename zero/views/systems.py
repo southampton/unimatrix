@@ -158,3 +158,22 @@ def system_backups(name):
 		## Get all backups
 		backups = get_system_backups(system['id'])
 		return render_template("systems/backups.html",system=system,backups=backups)
+
+
+@app.route('/backup/<id>')
+@zero.lib.user.login_required
+def backup(id):
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute("SELECT * FROM `tasks` WHERE `id` = %s",(id,))
+	task = curd.fetchone()
+
+	if task is None:
+		abort(404)
+
+	if task['name'] != "backup":
+		abort(404)
+
+	curd.execute("SELECT * FROM `systems` WHERE `id` = %s",(task['sid'],))
+	system = curd.fetchone()
+
+	return render_template("backup.html",task=task,system=system)

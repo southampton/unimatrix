@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="row row-cards-pf">
+	<div class="col-xs-12 col-sm-12 col-md-12">
+		<div class="card-pf card-pf-accented">
+			<h1 style="padding-bottom: 20px"><span class="fa fa-fw fa-database"></span> Backup task</h1>
+		</div>
+	</div>
+</div>
+
+		<div class="row row-cards-pf">
+			<div class="col-xs-4 col-sm-4 col-md-4">
+				<div class="card-pf">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">Details</h2>
+					</div>
+					<div class="card-pf-body">
+						<div class="pull-right">
+							<span class="fa fa-fw fa-5x {% if task['status'] == 0 %}fa-check-circle text-success{% elif task['status'] == -1 %}fa-cog fa-spin text-info{% elif task['status'] == 1 %}fa-exclamation-circle text-warning{% else %}fa-times-circle text-danger{%endif%}"></span>
+						</div>
+						<strong>Backup task ID:</strong>
+						<p>{{ task['id']}}</p>
+						<strong>Backup task status:</strong>
+						<p>{% if task['status'] == 0 %}Success{% elif task['status'] == -1 %}In progress{% elif task['status'] == 1 %}Backup partially failed{% else %}Backup failed{%endif%}</p>
+						<strong>System:</strong>
+						<p><a href="{{url_for('system',name=system['name'])}}">{{system['name']}}</a></p>
+						<strong>Task start:</strong>
+						<p>{{task.start|ut2str}}</p>
+						<strong>Task end:</strong>
+						<p>{{task.end|ut2str}}</p>
+					</div>
+				</div>
+			</div>
+			<div class="col-xs-8 col-sm-8 col-md-8">
+				<div class="card-pf">
+					<div class="card-pf-heading">
+						<h2 class="card-pf-title">rsync log</h2>
+					</div>
+					<div class="card-pf-body">
+						<pre>{{task.result or 'N/A'}}</pre>
+					</div>
+				</div>
+			</div>
+		</div>
+{% endblock %}

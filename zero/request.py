@@ -24,6 +24,8 @@ def before_request():
 def jinja_filter_ut2str(ut):
 	if type(ut) is int:
 		return datetime.datetime.fromtimestamp(int(ut)).strftime('%Y-%m-%d %H:%M:%S %Z')
+	elif ut is None:
+		return ""
 	elif type(ut) is datetime.datetime:
 		return ut.strftime('%Y-%m-%d %H:%M:%S %Z')
 	else:
@@ -35,6 +37,8 @@ def jinja_filter_ut2str(ut):
 def jinja_filter_dt2uts(dt):
 	if type(dt) is int:
 		return str(dt)
+	elif dt is None:
+		return ""
 	elif type(dt) is datetime.datetime:
 		return str(int((dt - datetime.datetime(1970,1,1)).total_seconds()))
 	else:

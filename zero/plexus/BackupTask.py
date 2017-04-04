@@ -80,8 +80,10 @@ class BackupTask(object):
 			backup_port = result['port']
 
 			procenv = {'RSYNC_PASSWORD': self.system['backup_key']}
-			(code, output) = self.sysexec("""/usr/bin/rsync -av --delete rsync://backup@localhost:%s/home/ %s""" % (backup_port,os.path.join(sysbackupsdir,"home"),),shell=True,env=procenv)
+			(code, output) = self.sysexec("""/usr/bin/rsync -a --delete rsync://backup@localhost:%s/home/ %s""" % (backup_port,os.path.join(sysbackupsdir,"home"),),shell=True,env=procenv)
 
+			## we store the backup log in the database, but lets also store it on disk
+			## in case we want to see it later
 			try:
 				with open(os.path.join(logdir,"rsync.log"),"w") as fp:
 					fp.write(output)
@@ -90,16 +92,16 @@ class BackupTask(object):
 
 			if code == 0:
 				status = 0
-				result = "backup complete"
+				result = "backup OK"
 			elif code == 23 or code == 24:
 				status = 1
-				result = "partial backup, some files could not be backed up"
+				result = "partial failure"
 			else:
 				status = 2
-				result = "backup failed"
+				result = "backup failure"
 
 			syslog.syslog('backup-task ' + str(self.task_id) + " finished for " + self.system['name'] + " result: " + result)
-			self._end_task(status=status,result=result)
+			self._end_task(status=status,result=output)
 		except Exception as ex:
 			syslog.syslog('backup task ' + str(self.task_id) + " failed due to an internal error: " + str(type(ex)) + " " + str(ex))
 			self._end_task(status=3,result="Internal error: " + str(type(ex)) + " " + str(ex))
@@ -117,4 +119,4 @@ class BackupTask(object):
 			self.curd.execute("UPDATE `systems` SET `last_seen_date` = NOW() WHERE `id` = %s", (self.system['id'],))
 			self.db.commit()
 		except Exception as ex:
-			syslog.syslog('backup task ' + str(self.task_id) + " could not mark itself finished: " + str(type(ex)) + " " + str(ex))			
+			syslog.syslog('backup task ' + str(self.task_id) + " could not mark itself finished: " + str(type(ex)) + " " + str(ex))
