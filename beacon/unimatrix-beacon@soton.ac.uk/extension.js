@@ -90,7 +90,7 @@ const TrayMenuButton = new Lang.Class({
 	}
         
         // check the backup status and act accordingly
-	if (objBackup.code == 0) {
+	if (objBackup.code === 0) {
 		puppetMenuItem = new PopupMenu.PopupMenuItem(_('Backup complete.'));
 		BACKUPSTATUS = 'ok';
 	} else if (objBackup.code == -1) {
@@ -161,14 +161,14 @@ const TrayMenuButton = new Lang.Class({
         }
     }
     
-})
+});
 
 // actually make the trayMenu object
 let trayMenu;
 
 function init() {
 	// yep
-	trayMenu = new TrayMenuButton;
+	trayMenu = new TrayMenuButton();
 }
 
 function enable() {
