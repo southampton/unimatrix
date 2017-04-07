@@ -64,7 +64,7 @@
 		<tbody>
 			{% for system in systems %}
 			<tr>
-				<td class="table-view-pf-actions"><a href="{{url_for('system',name=system.name)}}" class="btn btn-lg btn-default" style="text-align: left">{{system.name}}</a></td>
+				<td class="table-view-pf-actions"><a href="{{url_for('system',name=system.name)}}" class="btn btn-lg btn-default" style="text-align: left"><span class="fa fa-fw fa-search"></span> {{system.name}}</a></td>
 				<td>{{system.metadata.hwinfo.sys}}</td>
 				<td>{{system.metadata.hwinfo.cpu}}</td>
 				<td>{{system.metadata.hwinfo.mem}}</td>

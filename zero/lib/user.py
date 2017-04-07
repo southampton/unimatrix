@@ -9,6 +9,7 @@ import pwd
 import MySQLdb as mysql
 from functools import wraps
 from werkzeug.urls import url_encode
+import grp
 
 ################################################################################
 
@@ -49,12 +50,37 @@ def clear_session():
 
 ################################################################################
 
-def logon_ok(): 
+def is_user_authorised(username):
+	linuxsys = []
+	linuxadm = []
+	try:
+		linuxsys = grp.getgrnam("linuxsys").gr_mem 
+		linuxadm = grp.getgrnam("linuxadm").gr_mem
+	except Exception as ex:
+		pass 
+
+	if username in linuxsys or username in linuxadm:
+		return True
+
+	return False
+
+################################################################################
+
+def logon_ok(username): 
 	"""This function is called post-logon or post TOTP logon to complete the
 	logon sequence"""
 
+	## Store the username
+	session['username']  = username
+
 	# Mark as logged on
 	session['logged_in'] = True
+
+	# Cache user groups
+	try:
+		zero.lib.user.get_users_groups(username,from_cache=False)
+	except Exception as ex:
+		pass
 
 	# Log a successful login
 	app.logger.info('User "' + session['username'] + '" logged in from "' + request.remote_addr + '" using ' + request.user_agent.string)

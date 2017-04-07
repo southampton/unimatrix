@@ -1,0 +1,87 @@
+#!/usr/bin/python
+
+import os
+import imp
+import sys
+import MySQLdb as mysql
+import datetime
+import shutil
+import syslog
+
+CONFIG_FILE = '/etc/unimatrix/zero.conf'
+
+def load_config(): 
+	d = imp.new_module('config')
+	d.__file__ = CONFIG_FILE
+	try:
+		with open(CONFIG_FILE) as config_file:
+			exec(compile(config_file.read(), CONFIG_FILE, 'exec'), d.__dict__)
+	except IOError as e:
+		sys.stderr.write('Unable to load configuration file ' + CONFIG_FILE + ": " + str(type(e)) + " " + str(e) + "\n")
+		sys.exit(2)
+
+	config = {}
+
+	for key in dir(d):
+		if key.isupper():
+			config[key] = getattr(d, key)
+
+	## ensure we have required config options
+	for wkey in ['MYSQL_HOST','MYSQL_USER', 'MYSQL_PASS', 'MYSQL_NAME', 'MYSQL_PORT', 'BACKUP_ROOT_DIR']:
+		if not wkey in config.keys():
+			sys.stderr.write("Missing configuation option: " + wkey + "\n")
+			sys.exit(3)
+
+	return config
+
+if __name__ == "__main__":
+	# load unimatrix-zero config
+	config = load_config()
+
+	# Connect to the database
+	db   = mysql.connect(host=config['MYSQL_HOST'], port=config['MYSQL_PORT'], user=config['MYSQL_USER'], passwd=config['MYSQL_PASS'], db=config['MYSQL_NAME'])
+	curd = db.cursor(mysql.cursors.DictCursor)
+
+	# Logger
+	syslog.openlog("ldicleanup", syslog.LOG_PID)
+
+	# Delete all old events from over 28 days ago
+	curd.execute("DELETE FROM `systems_events` WHERE `when` < ADDDATE(NOW(), INTERVAL -28 DAY)")
+	db.commit()
+
+	# Delete all old backup tasks from over 28 days ago
+	curd.execute("DELETE FROM `tasks` WHERE `end` < ADDDATE(NOW(), INTERVAL -28 DAY)")
+	db.commit()
+
+	# Delete systems which we have not seen in over 1 year
+	curd.execute("DELETE FROM `systems` WHERE `last_seen_date` < ADDDATE(NOW(), INTERVAL -366 DAY)")
+	db.commit()
+
+	# Check each directory in the backup data folder
+	# if the system is deleted (not in the DB at all), delete the data
+	# if the system has not been seen in over 30 days, delete the data
+	entries = os.listdir(config['BACKUP_ROOT_DIR'])
+	for sysname in entries:
+		path = os.path.join(config['BACKUP_ROOT_DIR'],sysname)
+		if os.path.isdir(path):
+			delete = False
+
+			## Check the entry in the database for this name
+			curd.execute("SELECT * FROM `systems` WHERE `name` = %s",(sysname,))
+			system = curd.fetchone()
+
+			if system == None:
+				delete = True
+				reason = "system name not found in the database"
+
+			else:
+				if system['last_seen_date'] < (datetime.datetime.now() - datetime.timedelta(days=30)):
+					delete = True
+					reason = "system not seen in over 30 days"
+
+			if delete:
+					syslog.syslog('deleting path ' + path + " because " + reason)
+					try:
+						shutil.rmtree(path)
+					except Exception as ex:
+						syslog.syslog('error deleting path ' + path + ': ' + str(ex))

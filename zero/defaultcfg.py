@@ -72,3 +72,6 @@ PLEXUS_SOCKET_GID=0
 ## by staff in the zero web app). Plexus needs to know where to
 ## output this to
 PKGDB_PATH="/data/rsync/puppet/modules/deskctl/files/pkgdb.sqlite"
+
+## CAS support
+CAS_SERVER_URL="https://webauth.soton.ac.uk/idp/profile/cas/login"

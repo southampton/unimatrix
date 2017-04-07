@@ -12,3 +12,4 @@ import zero.views.main
 import zero.views.api
 import zero.views.pkgdb
 import zero.views.systems
+import zero.views.backups

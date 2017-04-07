@@ -5,8 +5,35 @@ import zero.lib.user
 from flask import Flask, request, session, redirect, url_for, flash, g, abort, render_template
 import re
 import grp
+import cas
 
 ################################################################################
+
+@app.route('/cas/redirect')
+def cas_login():
+	client = cas.CASClientV3(renew=False, extra_login_params=False, server_url=app.config['CAS_SERVER_URL'], service_url=url_for('cas_login_verify',_external=True))
+	return redirect(client.get_login_url())
+
+@app.route('/cas/login')
+def cas_login_verify():
+	client = cas.CASClientV3(renew=False, extra_login_params=False, server_url=app.config['CAS_SERVER_URL'], service_url=url_for('cas_login_verify',_external=True))
+	if 'ticket' in request.args:
+		(username, attributes, pgtiou) = client.verify_ticket(request.args['ticket'])
+
+		if username is None:
+			return redirect(client.get_login_url())
+		else:
+			username = username.lower()
+			if not zero.lib.user.is_user_authorised(username):
+				app.logger.info("User " + username + " tried to use the service, but they were not in linuxsys or linuxadm, rejecting")
+				flash("You are not authorised to use this service, sorry!","alert-danger")
+				return redirect(url_for('login'))
+
+			# Logon is OK to proceed
+			return zero.lib.user.logon_ok(username)
+
+	else:
+		abort(400)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -16,7 +43,7 @@ def login():
 	if zero.lib.user.is_logged_in():
 		return redirect(url_for('default'))
 	else:
-		# On GET requests, just render the login page
+		# On GET requests
 		if request.method == 'GET' or request.method == 'HEAD':
 			next = request.args.get('next', default=None)
 			return render_template('login.html', next=next)
@@ -32,29 +59,10 @@ def login():
 				flash('Incorrect username and/or password', 'alert-danger')
 				return redirect(url_for('login'))
 
-			## Check they are authorised to login
-			linuxsys = []
-			linuxadm = []
-			try:
-				linuxsys = grp.getgrnam("linuxsys").gr_mem 
-				linuxadm = grp.getgrnam("linuxadm").gr_mem
-			except Exception as ex:
-				pass 
-
-			app.logger.info(str(linuxsys))
-			app.logger.info(str(linuxadm))
-
-			authorised = False
-			if username in linuxsys or username in linuxadm:
-				authorised = True
-
-			if not authorised:
+			if not zero.lib.user.is_user_authorised(username):
 				app.logger.info("User " + username + " tried to use the service, but they were not in linuxsys or linuxadm, rejecting")
 				flash("You are not authorised to use this service, sorry!","alert-danger")
 				return redirect(url_for('login'))
-
-			# Set the username in the session
-			session['username']  = username 
 
 			# Permanent sessions
 			permanent = request.form.get('sec', default="")
@@ -65,14 +73,8 @@ def login():
 			else:
 				session.permanent = False
 
-			# Cache user groups
-			try:
-				zero.lib.user.get_users_groups(username,from_cache=False)
-			except Exception as ex:
-				pass
-
 			# Logon is OK to proceed
-			return zero.lib.user.logon_ok()
+			return zero.lib.user.logon_ok(username)
 
 ################################################################################
 
