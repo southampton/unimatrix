@@ -46,11 +46,11 @@ const TrayMenuButton = new Lang.Class({
         backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup status: "));
         // command stuff will go here
  
-	puppetMenuItem = new PopupMenu.PopupMenuItem(_("Puppet status: "));
+	//puppetMenuItem = new PopupMenu.PopupMenuItem(_("Puppet status: "));
         // command stuff will go here
         
         // chuck everything in the menu
-        this.menu.addMenuItem(puppetMenuItem);
+        //this.menu.addMenuItem(puppetMenuItem);
         this.menu.addMenuItem(backupMenuItem);
 
 	// all done. Run the main loop
@@ -66,83 +66,92 @@ const TrayMenuButton = new Lang.Class({
 	Lang.bind(this, this.refresh));
         
         // Default to Danger!
-        PUPPETSTATUS = 'danger';
+        //PUPPETSTATUS = 'danger';
         BACKUPSTATUS = 'danger';
         
         // get the contents of the status files
-	puppetStatus = String(GLib.file_get_contents(PUPPET_PATH)[1]);
+	//puppetStatus = String(GLib.file_get_contents(PUPPET_PATH)[1]);
 	backupStatus = String(GLib.file_get_contents(BACKUP_PATH)[1]);
 		
 	// do witchcraft to parse the strings into JSON objects
 	objBackup = JSON.parse(backupStatus);
-        objPuppet = JSON.parse(puppetStatus);
+        //objPuppet = JSON.parse(puppetStatus);
        
 	// bin everything in the menu so we can repopulate it
         this.menu.removeAll();
         
         // check the puppet status and act accordingly
-        if (objPuppet.code.toString() == '0' || objPuppet.code.toString() == '2') {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Puppet updated successfully."));
-		PUPPETSTATUS = 'ok';
-	} else {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Puppet update failed."));
-		PUPPETSTATUS = 'warning';
-	}
+        //if (objPuppet.code.toString() == '0' || objPuppet.code.toString() == '2') {
+	//	puppetMenuItem = new PopupMenu.PopupMenuItem(_("Puppet updated successfully."));
+	//	PUPPETSTATUS = 'ok';
+	//} else {
+	//	puppetMenuItem = new PopupMenu.PopupMenuItem(_("Puppet update failed."));
+	//	PUPPETSTATUS = 'warning';
+	//}
         
         // check the backup status and act accordingly
 	if (objBackup.code === 0) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_('Backup complete.'));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_('Backup complete.'));
 		BACKUPSTATUS = 'ok';
 	} else if (objBackup.code == -1) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_("A backup error occured when attempting to snapshot the disk."));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("A backup error occured when attempting to snapshot the disk."));
 		BACKUPSTATUS = 'danger';
 	} else if (objBackup.code == -2) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_("Backup aborted. Network reported as down."));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup aborted. Network reported as down."));
 		BACKUPSTATUS = 'warning';
 	} else if (objBackup.code == -3) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_("Backup in progress..."));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup in progress..."));
 		BACKUPSTATUS = 'sync';
 	} else if (objBackup.code == 1) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_("Backup completed but some files weren't backed up."));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup completed but some files weren't backed up."));
 		BACKUPSTATUS = 'warning';
 	} else if (objBackup.code == 2) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. The rsync command returned an error."));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. The rsync command returned an error."));
 		BACKUPSTATUS = 'danger';
 	} else if (objBackup.code == 3) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. A python exception was generated."));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. A python exception was generated."));
 		BACKUPSTATUS = 'danger';
 	} else if (objBackup.code == 100) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. Python raised an exception whilst requesting backup from Plexus daemon."));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. Python raised an exception whilst requesting backup from Plexus daemon."));
 		BACKUPSTATUS = 'danger';
 	} else if (objBackup.code == 101) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. Python raised an exception whilst waiting for Plexus task to finish."));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. Python raised an exception whilst waiting for Plexus task to finish."));
 		BACKUPSTATUS = 'danger';
 	} else if (objBackup.code == 102) {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. Python raised an exception whilst Plexus for the backup result."));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. Python raised an exception whilst Plexus for the backup result."));
 		BACKUPSTATUS = 'danger';
 	} else {
-		puppetMenuItem = new PopupMenu.PopupMenuItem(_('Backup status: Unknown failure state.'));
+		backupMenuItem = new PopupMenu.PopupMenuItem(_('Backup status: Unknown failure state.'));
 		BACKUPSTATUS = 'danger';
 	}
 		
 	// put everything in the menu
         this.menu.addMenuItem(backupMenuItem);
-        this.menu.addMenuItem(puppetMenuItem);
+        //this.menu.addMenuItem(puppetMenuItem);
         
         // update the icon accordingly        
-        if (PUPPETSTATUS == 'ok' && BACKUPSTATUS == 'ok') {
+        //if (PUPPETSTATUS == 'ok' && BACKUPSTATUS == 'ok') {
+	//	this.currentbutton.set_gicon(this.OKIcon);
+	//}
+	//if (PUPPETSTATUS == 'sync' || BACKUPSTATUS == 'sync') {
+	//	this.currentbutton.set_gicon(this.SyncIcon);
+	//}
+	//if (PUPPETSTATUS == 'warning' || BACKUPSTATUS == 'warning') {
+	//	this.currentbutton.set_gicon(this.WarningIcon);
+	//}
+	//if (PUPPETSTATUS == 'danger' || BACKUPSTATUS == 'danger') {
+	//	this.currentbutton.set_gicon(this.DangerIcon);
+	//}
+        
+
+	// update the icon accordingly        
+        if (BACKUPSTATUS != 'ok') {
+        	this.currentbutton.set_gicon(this.DangerIcon);
+        } else {
 		this.currentbutton.set_gicon(this.OKIcon);
 	}
-	if (PUPPETSTATUS == 'sync' || BACKUPSTATUS == 'sync') {
-		this.currentbutton.set_gicon(this.SyncIcon);
-	}
-	if (PUPPETSTATUS == 'warning' || BACKUPSTATUS == 'warning') {
-		this.currentbutton.set_gicon(this.WarningIcon);
-	}
-	if (PUPPETSTATUS == 'danger' || BACKUPSTATUS == 'danger') {
-		this.currentbutton.set_gicon(this.DangerIcon);
-	}
-        
+
+
         return true;
 
     },
