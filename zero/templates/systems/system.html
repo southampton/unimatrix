@@ -62,11 +62,11 @@
 							{% else %}Puppet run failed
 							{%endif%}
 							{% else %}
-							Unknown {{system['puppet_status'] }}
+							Unknown status
 							{% endif %}
 						</p>
 						<strong>Last Puppet run:</strong>
-						<p>{{system['puppet_status']['when']|ut2str}}</p>
+						<p>{{system['puppet_status']['when']|ut2str or "Unknown"}}</p>
 					</div>
 				</div>
 			</div>

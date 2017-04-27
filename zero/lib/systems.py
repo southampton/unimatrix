@@ -48,33 +48,38 @@ def get_system_by_name(name,extended=True):
 
 	## json load 
 	try:
-		system['facts'] = json.loads(system['facts'])
+		if system['facts'] is not None:
+			system['facts'] = json.loads(system['facts'])
 	except Exception as ex:
-		flash("System facts are corrupted in the database","alert-danger")
+		flash("System facts are corrupted in the database: " + str(ex),"alert-danger")
 		system['facts'] = None
 
 	try:
-		system['metadata'] = json.loads(system['metadata'])
+		if system['metadata'] is not None:
+			system['metadata'] = json.loads(system['metadata'])
 	except Exception as ex:
-		flash("System metadata is corrupted in the database","alert-danger")
+		flash("System metadata is corrupted in the database: " + str(ex),"alert-danger")
 		system['metadata'] = None
 
 	try:
-		system['backup_status'] = json.loads(system['backup_status'])
+		if system['backup_status'] is not None:
+			system['backup_status'] = json.loads(system['backup_status'])
 	except Exception as ex:
-		flash("System backup status is corrupted in the database","alert-danger")
+		flash("System backup status is corrupted in the database: " + str(ex),"alert-danger")
 		system['backup_status'] = None
 
 	try:
-		system['update_status'] = json.loads(system['update_status'])
+		if system['update_status'] is not None:
+			system['update_status'] = json.loads(system['update_status'])
 	except Exception as ex:
-		flash("System update status is corrupted in the database","alert-danger")
+		flash("System update status is corrupted in the database: " + str(ex),"alert-danger")
 		system['update_status'] = None
 
 	try:
-		system['puppet_status'] = json.loads(system['puppet_status'])
+		if system['puppet_status'] is not None:
+			system['puppet_status'] = json.loads(system['puppet_status'])
 	except Exception as ex:
-		flash("System puppet status is corrupted in the database","alert-danger")
+		flash("System puppet status is corrupted in the database: " + str(ex),"alert-danger")
 		system['puppet_status'] = None
 
 	time_one_day_ago    = datetime.now() - timedelta(days=1)
@@ -212,8 +217,10 @@ def get_system_by_name(name,extended=True):
 				if last_ping_delta.seconds > 14400:
 					system['seen_status'] = -1 # system is probably shut down / powered off
 
-		if 'code' in system['puppet_status']:
-			system['puppet_status']['code'] = int(system['puppet_status']['code'])
+		if 'puppet_status' in system:
+			if system['puppet_status'] is not None:
+				if 'code' in system['puppet_status']:
+					system['puppet_status']['code'] = int(system['puppet_status']['code'])
 
 		## update status
 		if system['update_status']:

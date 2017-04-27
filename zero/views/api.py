@@ -127,7 +127,7 @@ def api_v1_register():
 			app.logger.info("api_v1_register: Reusing existing allocated backup port number for " + hostname)
 
 	## create an event to say the system was registered
-	curd.execute("INSERT INTO `systems_events` (`sid`, `name`, `when`, `status`) VALUES (%s,'register',NOW(),0)", (sysid['id'],))
+	curd.execute("INSERT INTO `systems_events` (`sid`, `name`, `when`, `status`, `data`) VALUES (%s,'register',NOW(),0,%s)", (sysid['id'],username,))
 	g.db.commit()
 
 	app.logger.info("api_v1_register: registration complete for " + hostname + " using account " + username)
