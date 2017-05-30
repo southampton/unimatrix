@@ -54,6 +54,11 @@
 							<i class="fa fa-spin fa-cog" style="valign: middle"></i> The system is currently being backed up
 						</span>
 						<p class="text-muted">Backup started at: {{when}}</p>
+					{% elif code == -4 %}
+						<span style="font-size: 1.2vw" class="text-warning">
+							<i class="fa fa-exclamation-circle" style="valign: middle"></i> Backups are DISABLED on this system
+						</span>
+						<p>iSolutions offers <strong>no support</strong> for the integrity of your data, if you lose data, we cannot recover it.</p>
 					{% else %}
 						<span style="font-size: 1.2vw" class="text-danger">
 							<i class="fa fa-exclamation-circle" style="valign: middle"></i> The last backup attempt failed

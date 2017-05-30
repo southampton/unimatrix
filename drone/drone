@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-03-15-05"
+VERSION     = "2017-05-26-02"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -86,6 +86,7 @@ class DroneAgent:
 		self.config.set('backup','lv_source_name','home')
 		self.config.set('backup','lv_snap_name','homesnap')
 		self.config.set('backup','lv_snap_mount','/mnt/homesnap')
+		self.config.set('backup','enabled',"true")
 
 		self.config.set('puppet','user','puppet')
 		self.config.set('puppet','binary','/opt/puppetlabs/bin/puppet')
@@ -336,9 +337,15 @@ class DroneAgent:
 	def backup_now(self):
 		bLock = self.get_backup_lock()
 
+		if not self.config.getboolean("backup","enabled"):
+			self.print_verbose("backups are disabled on this system")
+			self.backup_save_state(bLock,-4,"Backup is disabled on this system")
+			return
+
 		if not self.is_network_up():
-			self.backup_save_state(bLock,-2,"The network is down, cannot run backup")
 			self.print_verbose("network is down, not running backup")
+			self.backup_save_state(bLock,-2,"The network is down, cannot run backup")
+			return
 
 		self.print_verbose("starting backup (this may take several minutes)")
 
@@ -468,7 +475,7 @@ class DroneAgent:
 			self.warnex("Could not unlock the backup status file",ex)
 
 		## we should tell the server the state, if we can
-		self.print_verbose("Sending the new backup status to the LDI server")
+		self.print_debug("Sending the backup status to the LDI server")
 
 		hostname = platform.node()
 		api_key = self.config.get('server','api_key')
@@ -488,9 +495,9 @@ class DroneAgent:
 		self.print_debug("return code " + str(r.status_code))
 
 		if r.status_code == 200:
-			self.print_verbose("LDI server accepted the backup status update")
+			self.print_debug("LDI server accepted the backup status update")
 		else:
-			self.print_verbose("Unable to update LDI server due to an unexpected HTTP return code from server: " + str(r.status_code))
+			self.print_debug("Unable to update LDI server due to an unexpected HTTP return code from server: " + str(r.status_code))
 
 	############################################################################
 
@@ -525,6 +532,13 @@ class DroneAgent:
 
 	def backup_get_state(self):
 
+		## mark if backups are enabled or disabled
+		if self.config.getboolean("backup","enabled"):
+			print "backups are enabled"
+		else:
+			print "backups are disabled"
+			return
+
 		(code,when,output) = self.backup_load_state()
 
 		if code is not None:
@@ -544,6 +558,7 @@ class DroneAgent:
 				print "the last backup failed"
 				if output is not None:
 					print output
+
 		else:
 			print "a backup has never been run on this system"
 
@@ -562,8 +577,37 @@ class DroneAgent:
 			if (datetime.datetime.utcnow() - last) > datetime.timedelta(hours=12):
 				self.print_verbose("backup is required, triggering backup")
 				self.backup_now()
+			elif (code != 0):
+				self.print_verbose("backup is required, triggering backup")
+				self.backup_now()
 			else:
 				self.print_verbose("backup is not required")
+
+	############################################################################
+
+	def backup_enable(self):
+		self.config.set("backup","enabled","yes")
+		self.print_debug("Saving the drone config file " + BASE_DIR + "/drone.conf")
+		try:
+			with open(BASE_DIR + '/drone.conf', 'w') as f:
+				self.config.write(f)
+		except Exception as ex:
+			self.fatalex("Failed to write to " + BASE_DIR + "/drone.conf",ex)
+
+		self.print_verbose("Backups set to enabled")
+
+	############################################################################
+
+	def backup_disable(self):
+		self.config.set("backup","enabled","no")
+		self.print_debug("Saving the drone config file " + BASE_DIR + "/drone.conf")
+		try:
+			with open(BASE_DIR + '/drone.conf', 'w') as f:
+				self.config.write(f)
+		except Exception as ex:
+			self.fatalex("Failed to write to " + BASE_DIR + "/drone.conf",ex)
+
+		self.print_verbose("Backups set to disabled")
 
 	############################################################################
 
@@ -576,6 +620,12 @@ class DroneAgent:
 
 		elif self.action == "ifneeded":
 			self.backup_ifneeded()
+
+		elif self.action == "enable":
+			self.backup_enable()
+
+		elif self.action == "disable":
+			self.backup_disable()
 
 		else:
 			print 'Unrecognised or missing action'
@@ -1326,6 +1376,8 @@ class DroneAgent:
     ifneeded  perform a backup of this system if the last backup attempt
               was over 12 hours ago. it is intended that you run this 
               when the system is finished starting up.
+    disable   disables backups on this system
+    enable    enables backups on this system (the default)
 
   update
     trigger   schedule an offline system update to occur at the next reboot

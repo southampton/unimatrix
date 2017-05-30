@@ -1,4 +1,4 @@
-.TH drone 1 "Feb 15, 2017" "version 2017-02-15-01" "DRONE WORKSTATION AGENT
+.TH drone 1 "May 30, 2017" "version 2017-05-26-02" "DRONE WORKSTATION AGENT
 .SH NAME
 drone - management agent for systems registered with the LDI system
 .SH SYNOPSIS
@@ -25,6 +25,8 @@ backup
   ifneeded  perform a backup of this system if the last backup attempt
             was over 12 hours ago. it is intended that you run this 
             when the system is finished starting up.
+  disable   disables backups on this system
+  enable    enables backups on this system (the default)
 
 update
   trigger   schedule an offline system update on the next reboot

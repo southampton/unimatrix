@@ -55,6 +55,7 @@ The value of 'code' can either be zero (the backup was a success), a negative in
 - **-1** An error occured when attempting to snapshot the disk before the backup is taken
 - **-2** Network manager reported the network was down so no backup attempt was made
 - **-3** A backup is currently in progress
+- **-4** Backups are disabled on this system
 - **1** The backup succeeded but some files were not backed up
 - **2** The backup failed, the rsync command on the server returned an error
 - **3** The backup failed, a python exception was generated in the server code
