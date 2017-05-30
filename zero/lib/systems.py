@@ -86,13 +86,14 @@ def get_system_by_name(name,extended=True):
 	time_three_days_ago = datetime.now() - timedelta(days=3)
 
 	if extended:
-		## ostatus
+		## ostatus (overall status)
 		## 0 - OK
 		## 1 - backup failed
 		## 2 - partial
 		## 3 - too old (backup was too long ago)
 		## 4 - no backups (error)
 		## 5 - backup in progress 
+		## 6 - backups disabled
 
 		# determine server backup status ('sstatus')
 		## 0 - success
@@ -148,13 +149,13 @@ def get_system_by_name(name,extended=True):
 
 				if int(system['backup_status']['code']) == 0:
 					pass # we dont change the overall status, as the backup server might have thought something was wrong
-				elif int(system['backup_status']['code']) == -3:
-					pass # -3 means backup already in progress, so we 
-					# dont want to show that the system 
+				elif int(system['backup_status']['code']) == -3: # -3 means backup already in progress
+					pass 
+				elif int(system['backup_status']['code']) == -4: # -4 means backups disabled on the client
+					system['backup_ostatus'] = 6
 				else:
 					if not backup_inprogress:
 						system['backup_ostatus'] = 1
-
 
 			if 'when' in system['backup_status']: 
 				## time, minus 3 days ago (before that, and we consider the backup status
