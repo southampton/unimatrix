@@ -1,9 +1,42 @@
 {% extends "layout.html" %}
+{% block modals %}
+<div class="modal" data-backdrop="false" tabindex="-1" role="dialog" id="legend">
+	<div class="modal-dialog modal-lg modal-dialog-left" role="document">
+		<div class="modal-content modal-content-left">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				<h4 class="modal-title">What do the icons mean?</h4>
+			</div>
+			<div class="modal-body modal-body-left" style="font-size: 1.2em">
+				<h2>Seen status</h2>
+				<table style="border-collapse: separate; border-spacing: 10px;">
+				<tr><td><span class="fa fa-fw fa-2x fa-check-circle text-success"></span></td><td> OK</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-power-off text-info"></span></td><td> Powered off</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-question-circle text-warning"></span></td><td> Last seen >3 days ago</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-exclamation-circle text-warning"></span></td><td> Last seen >7 days ago</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-exclamation-triangle text-danger"></span></td><td> Last seen >28 days ago</td></tr>
+				</table>
+				<p>&nbsp;</p>
+				<h2>Backup status</h2>
+				<table style="border-collapse: separate; border-spacing: 10px;">
+				<tr><td><span class="fa fa-fw fa-2x fa-check-circle text-success"></td><td> OK</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-times-circle text-danger"></td><td> Failed</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-exclamation-circle text-warning"></td><td> Partial failure</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-calendar-times-o text-warning"></td><td> Out of date</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-exclamation-triangle text-danger"></td><td> No backup ever taken</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-cog fa-spin text-info"></td><td> In progress</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-pause-circle text-primary"></td><td> Disabled</td></tr>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
 {% block body %}
-
 <div class="row row-cards-pf">
 	<div class="col-xs-12 col-sm-12 col-md-12">
 		<div class="card-pf card-pf-accented">
+			<div class="title-bar-right"><button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#legend" style="margin-top: 5px">What do the icons mean?</button></div>
 			<h1 style="padding-bottom: 20px"><span class="fa fa-fw fa-desktop"></span> Systems</h1>
 		</div>
 	</div>
@@ -57,6 +90,7 @@
 			<th>GPU</th>
 			<th>Last seen</th>
 			<th>Last seen</th>
+			<th>Last backup</th>
 			<th>Last address</th>
 		</tr>
 	  </thead>
@@ -69,8 +103,9 @@
 				<td>{{system.metadata.hwinfo.cpu}}</td>
 				<td>{{system.metadata.hwinfo.mem}}</td>
 				<td>{{system.metadata.hwinfo.gpu}}</td>
-				<td>{{system.last_seen_date}}</td>
+				<td><span class="fa fa-fw fa-lg {% if system['seen_status'] == 0 %}fa-check-circle text-success" title="System seen recently"{% elif system['seen_status'] == -1 %}fa-power-off text-info" title="System powered off"{% elif system['seen_status'] == 1 %}fa-question-circle text-warning" title="Last seen over 3 days ago"{% elif system['seen_status'] == 2 %}fa-exclamation-circle text-warning" title="Last seen over 7 days ago"{% else %}fa-exclamation-triangle text-danger" title="Last seen over a month ago"{%endif%}></span> {{system.last_seen_date}}</td>
 				<td>{{system.last_seen_date|dt2uts}}</td>
+				<td><span class="fa fa-fw fa-lg {% if system['backup_ostatus'] == 0 %}fa-check-circle text-success" title="Backup OK"{% elif system['backup_ostatus'] == 1 %}fa-times-circle text-danger" title="Last backup failed"{% elif system['backup_ostatus'] == 2 %}fa-exclamation-circle text-warning" title="Partial backup failure"{% elif system['backup_ostatus'] == 3 %}fa-calendar-times-o text-warning" title="Last backup over 3 days ago"{% elif system['backup_ostatus'] == 4 %}fa-exclamation-triangle text-danger" title="No backup ever taken"{% elif system['backup_ostatus'] == 5 %}fa-cog fa-spin text-info" title="Backup in progress"{% elif system['backup_ostatus'] == 6 %}fa-pause-circle text-primary" title="Backups disabled"{%endif%}></span> {{system.backup_swhen or 'Unknown'}}</td>
 				<td>{{system.last_seen_addr}}</td>
 			</tr>
 			{% endfor %}

@@ -62,12 +62,12 @@
 {% if is_logged_in() %}
 <div class="nav-pf-vertical nav-pf-vertical-with-sub-menus">
   <ul class="list-group">
-    <li class="list-group-item{% if active == 'default' %} active{%endif%}">
+   <!-- <li class="list-group-item{% if active == 'default' %} active{%endif%}">
       <a href="{{ url_for('default') }}">
         <span class="fa fa-tachometer" data-toggle="tooltip" title="Dashboard"></span>
         <span class="list-group-item-value">Dashboard</span>
       </a>
-    </li>
+    </li>-->
     <li class="list-group-item{% if active == 'systems' %} active{%endif%}">
       <a href="{{ url_for('systems') }}">
         <span class="fa fa-desktop" data-toggle="tooltip" title="Systems"></span>

@@ -15,35 +15,12 @@ def systems():
 	"""Renders the list of systems"""
 
 	curd = g.db.cursor(mysql.cursors.DictCursor)
-	curd.execute("""SELECT 
-       `systems`.`id` AS `id`, 
-       `systems`.`name` AS `name`, 
-       `systems`.`create_date` AS `create_date`,
-       `systems`.`register_date` AS `register_date`,
-       `systems`.`last_seen_date` AS `last_seen_date`,
-       `systems`.`last_seen_addr` AS `last_seen_addr`,
-       `systems_data`.`facts` AS `facts`,
-       `systems_data`.`metadata` AS `metadata`,
-       `systems_data`.`backup_status` AS `backup_status`,
-       `systems_data`.`update_status` AS `update_status`,
-       `systems_data`.`puppet_status` AS `puppet_status`
-       FROM `systems` 
-       LEFT JOIN `systems_data` 
-       ON `systems`.`id` = `systems_data`.`sid`""")
+	curd.execute("""SELECT `name` FROM `systems`""")
+	system_names = curd.fetchall()
+	systems = []
 
-	systems = curd.fetchall()
-
-	## decode json
-	for system in systems:
-		try:
-			system['facts'] = json.loads(system['facts'])
-		except Exception as ex:
-			system['facts'] = None
-
-		try:
-			system['metadata'] = json.loads(system['metadata'])
-		except Exception as ex:
-			system['metadata'] = None
+	for sysname in system_names:
+		system = get_system_by_name(sysname['name'])
 
 		if system['metadata'] is None:
 			system['metadata'] = {
@@ -88,22 +65,10 @@ def systems():
 					if 'VMware' in system['metadata']['hwinfo']['sys']:
 						system['metadata']['hwinfo']['sys'] = "VMware"
 
+					system['metadata']['hwinfo']['sys'] = system['metadata']['hwinfo']['sys'].replace('Dell Inc.','Dell')
 					system['metadata']['hwinfo']['sys'] = system['metadata']['hwinfo']['sys'].replace('Intel Corporation','Intel')
 
-		try:
-			system['backup_status'] = json.loads(system['backup_status'])
-		except Exception as ex:
-			system['backup_status'] = None
-
-		try:
-			system['update_status'] = json.loads(system['update_status'])
-		except Exception as ex:
-			system['update_status'] = None
-
-		try:
-			system['puppet_status'] = json.loads(system['puppet_status'])
-		except Exception as ex:
-			system['puppet_status'] = None
+		systems.append(system)
 
 	return render_template('systems/systems.html',active="systems",systems=systems)
 

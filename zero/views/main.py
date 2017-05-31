@@ -16,6 +16,7 @@ def default():
 	"""Renders the about page"""
 
 	if is_logged_in():
-		return render_template('default.html',active="default")
+		#return render_template('default.html',active="default")
+		return redirect(url_for('systems'))
 	else:
 		return redirect(url_for('login'))

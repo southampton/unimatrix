@@ -110,22 +110,23 @@ def get_system_by_name(name,extended=True):
 		for task in tasks:
 			if task['sid'] == system['id'] and task['name'] == 'backup':
 				backup_inprogress = True
+				system['backup_ostatus'] = 5
+				system['backup_sstatus'] = 5
 
-		if backup_inprogress:
-			system['backup_ostatus'] = 5
-			system['backup_sstatus'] = 5
-		else:
-			## determine status from the last backup job
-			curd.execute("""SELECT * FROM `tasks` WHERE `name` = 'backup' AND `sid` = %s AND `end` IS NOT NULL ORDER BY `id` DESC LIMIT 0,1""",(system['id'],))
-			last_backup = curd.fetchone()
+		## determine status from the last backup job
+		curd.execute("""SELECT * FROM `tasks` WHERE `name` = 'backup' AND `sid` = %s AND `end` IS NOT NULL ORDER BY `id` DESC LIMIT 0,1""",(system['id'],))
+		last_backup = curd.fetchone()
 
-			if last_backup == None:
+		if last_backup == None:
+			if not backup_inprogress:
 				system['backup_sstatus'] = 4
 				system['backup_ostatus'] = 4
-				system['backup_swhen'] = None
-			else:
-				system['backup_swhen'] = last_backup['end']
+			system['backup_swhen'] = None
 
+		else:
+			system['backup_swhen'] = last_backup['end']
+
+			if not backup_inprogress:
 				if int(last_backup['status']) == 0:
 					system['backup_sstatus'] = 0
 					system['backup_ostatus'] = 0
@@ -152,7 +153,8 @@ def get_system_by_name(name,extended=True):
 				elif int(system['backup_status']['code']) == -3: # -3 means backup already in progress
 					pass 
 				elif int(system['backup_status']['code']) == -4: # -4 means backups disabled on the client
-					system['backup_ostatus'] = 6
+					if not system['backup_ostatus'] == 5:
+						system['backup_ostatus'] = 6
 				else:
 					if not backup_inprogress:
 						system['backup_ostatus'] = 1

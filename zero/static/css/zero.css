@@ -136,3 +136,31 @@
         margin-left: -1px
     }
 }
+
+.title-bar-right
+{
+ 	margin-top: 12px;
+	float: right !important;
+}
+
+/******************************************************************************/
+
+.modal-dialog-left {
+	position: fixed;
+	margin: 0px;
+	width: 400px;
+	height: 100%;
+	-webkit-transform: translate3d(0%, 0, 0);
+	    -ms-transform: translate3d(0%, 0, 0);
+	     -o-transform: translate3d(0%, 0, 0);
+	        transform: translate3d(0%, 0, 0);
+}
+
+.modal-content-left {
+	height: 100%;
+	overflow-y: auto;
+}
+
+.modal-body-left {
+	padding: 15px 15px 80px;
+}
