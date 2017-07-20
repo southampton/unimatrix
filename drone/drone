@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-05-26-02"
+VERSION     = "2017-06-07-01"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -1177,6 +1177,8 @@ class DroneAgent:
 					puppet_status = fp.read()
 			except Exception as ex:
 				self.fatalex("Could not read from puppet status file " + status_file,ex)
+		else:
+			self.fatal("Could not read puppet status file: file does not exist")
 
 		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
 		try:

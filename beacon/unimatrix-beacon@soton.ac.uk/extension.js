@@ -10,183 +10,103 @@ const GLib = imports.gi.GLib;
 const Mainloop = imports.mainloop;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Util = imports.misc.util;
+const Gtk      = imports.gi.Gtk;
 
-const BACKUP_PATH = '/etc/soton/state/backup';
-const PUPPET_PATH = '/etc/soton/state/puppet';
+const BACKUP_PATH      = '/etc/soton/state/backup';
+const REFRESH_INTERVAL = 30;
 
-const TrayMenuButton = new Lang.Class({
-    Name: 'TrayMenuButton',
-    Extends: PanelMenu.Button,
-
-    _init: function() {
-	// set up all the stuff
-		
-        this.parent(0.0, 'Status Indicator', false);
-
-	// load the icons
-	this.OKIcon=Gio.icon_new_for_string(Me.path + "/icons/ok.png");
-	this.DangerIcon=Gio.icon_new_for_string(Me.path + "/icons/error.png");
-	this.WarningIcon=Gio.icon_new_for_string(Me.path + "/icons/warning.png");
-	this.SyncIcon=Gio.icon_new_for_string(Me.path + "/icons/sync.png");
-		
-	// make buttons and assign them the icons
-	this.OKbutton = new St.Icon({ gicon: this.OKIcon, style_class: 'system-status-icon'});
-	this.Dangerbutton = new St.Icon({ gicon: this.DangerIcon, style_class: 'system-status-icon'});
-	this.Warningbutton = new St.Icon({ gicon: this.WarningIcon, style_class: 'system-status-icon'});
-	this.Syncbutton = new St.Icon({ gicon: this.SyncIcon, style_class: 'system-status-icon'});
-		
-	// default to Danger. If it doesn't get updated then
-	// something went horribly wrong anyway.
-	this.currentbutton = this.Dangerbutton;
-
-	// chuck the button on the menu bar
-	this.actor.add_actor(this.currentbutton);
-		
-	// default text for the menu items
-        backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup status: "));
-        // command stuff will go here
- 
-	//puppetMenuItem = new PopupMenu.PopupMenuItem(_("Puppet status: "));
-        // command stuff will go here
-        
-        // chuck everything in the menu
-        //this.menu.addMenuItem(puppetMenuItem);
-        this.menu.addMenuItem(backupMenuItem);
-
-	// all done. Run the main loop
-        this.refresh();
-    },
-    
-    refresh: function() {
-	// essentially the main program loop
-		
-	// The timer. Once/second is the default time
-        this.removeTimeout();
-        this.timeout = Mainloop.timeout_add_seconds(this.refreshInterval,
-	Lang.bind(this, this.refresh));
-        
-        // Default to Danger!
-        //PUPPETSTATUS = 'danger';
-        BACKUPSTATUS = 'danger';
-        
-        // get the contents of the status files
-	//puppetStatus = String(GLib.file_get_contents(PUPPET_PATH)[1]);
-	backupStatus = String(GLib.file_get_contents(BACKUP_PATH)[1]);
-		
-	// do witchcraft to parse the strings into JSON objects
-	objBackup = JSON.parse(backupStatus);
-        //objPuppet = JSON.parse(puppetStatus);
-       
-	// bin everything in the menu so we can repopulate it
-        this.menu.removeAll();
-        
-        // check the puppet status and act accordingly
-        //if (objPuppet.code.toString() == '0' || objPuppet.code.toString() == '2') {
-	//	puppetMenuItem = new PopupMenu.PopupMenuItem(_("Puppet updated successfully."));
-	//	PUPPETSTATUS = 'ok';
-	//} else {
-	//	puppetMenuItem = new PopupMenu.PopupMenuItem(_("Puppet update failed."));
-	//	PUPPETSTATUS = 'warning';
-	//}
-        
-        // check the backup status and act accordingly
-	if (objBackup.code === 0) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_('Backup complete.'));
-		BACKUPSTATUS = 'ok';
-	} else if (objBackup.code == -1) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("A backup error occured when attempting to snapshot the disk."));
-		BACKUPSTATUS = 'danger';
-	} else if (objBackup.code == -2) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup aborted. Network reported as down."));
-		BACKUPSTATUS = 'warning';
-	} else if (objBackup.code == -3) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup in progress..."));
-		BACKUPSTATUS = 'sync';
-	} else if (objBackup.code == 1) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup completed but some files weren't backed up."));
-		BACKUPSTATUS = 'warning';
-	} else if (objBackup.code == 2) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. The rsync command returned an error."));
-		BACKUPSTATUS = 'danger';
-	} else if (objBackup.code == 3) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. A python exception was generated."));
-		BACKUPSTATUS = 'danger';
-	} else if (objBackup.code == 100) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. Python raised an exception whilst requesting backup from Plexus daemon."));
-		BACKUPSTATUS = 'danger';
-	} else if (objBackup.code == 101) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. Python raised an exception whilst waiting for Plexus task to finish."));
-		BACKUPSTATUS = 'danger';
-	} else if (objBackup.code == 102) {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup failed. Python raised an exception whilst Plexus for the backup result."));
-		BACKUPSTATUS = 'danger';
-	} else {
-		backupMenuItem = new PopupMenu.PopupMenuItem(_('Backup status: Unknown failure state.'));
-		BACKUPSTATUS = 'danger';
-	}
-		
-	// put everything in the menu
-        this.menu.addMenuItem(backupMenuItem);
-        //this.menu.addMenuItem(puppetMenuItem);
-        
-        // update the icon accordingly        
-        //if (PUPPETSTATUS == 'ok' && BACKUPSTATUS == 'ok') {
-	//	this.currentbutton.set_gicon(this.OKIcon);
-	//}
-	//if (PUPPETSTATUS == 'sync' || BACKUPSTATUS == 'sync') {
-	//	this.currentbutton.set_gicon(this.SyncIcon);
-	//}
-	//if (PUPPETSTATUS == 'warning' || BACKUPSTATUS == 'warning') {
-	//	this.currentbutton.set_gicon(this.WarningIcon);
-	//}
-	//if (PUPPETSTATUS == 'danger' || BACKUPSTATUS == 'danger') {
-	//	this.currentbutton.set_gicon(this.DangerIcon);
-	//}
-        
-
-	// update the icon accordingly        
-        if (BACKUPSTATUS != 'ok') {
-        	this.currentbutton.set_gicon(this.DangerIcon);
-        } else {
-		this.currentbutton.set_gicon(this.OKIcon);
-	}
-
-
-        return true;
-
-    },
-    
-    get refreshInterval() {
-	// Default refresh is 1 second
-        return 1;
-
-    },
-    
-    removeTimeout: function() {
-	// It...It needs this to work
-        if (this.timeout !== undefined) {
-            Mainloop.source_remove(this.timeout);
-            this.timeout = undefined;
-        }
-    }
-    
+const SeparatorMenuItem = new Lang.Class({
+	Name: 'SeparatorMenuItem',
+	Extends: PopupMenu.PopupBaseMenuItem,
+	_init: function (text) {
+		this.parent({ reactive: false, can_focus: false});
+		this._separator = new St.Widget({ style_class: 'popup-separator-menu-item', y_expand: true, y_align: Clutter.ActorAlign.CENTER });
+		this.actor.add(this._separator, { expand: true });
+	},
 });
 
-// actually make the trayMenu object
-let trayMenu;
+const TrayMenuButton = new Lang.Class(
+{
+	Name: 'TrayMenuButton',
+	Extends: PanelMenu.Button,
 
-function init() {
-	// yep
+	_init: function()
+	{
+		this.parent(0.0, 'Status Indicator', false);
+		this.icon = new St.Icon({ icon_name: 'emblem-synchronizing-symbolic', style_class: 'system-status-icon' });
+		this.actor.add_actor(this.icon);
+		backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup status: "));
+		this.menu.addMenuItem(backupMenuItem);
+		this.refresh();
+	},
+
+	refresh: function()
+	{
+		this.removeTimeout();
+		this.timeout = Mainloop.timeout_add_seconds(REFRESH_INTERVAL, Lang.bind(this, this.refresh));
+
+		backupStatus = String(GLib.file_get_contents(BACKUP_PATH)[1]);
+		objBackup = JSON.parse(backupStatus);
+	
+		// check the backup status and act accordingly
+		if (objBackup.code === 0)
+		{
+			backupMenuItem = new PopupMenu.PopupMenuItem(_('Last backup succeeded'));
+			this.icon.set_icon_name('emblem-default-symbolic');
+		}
+		else if (objBackup.code == -2)
+		{
+			backupMenuItem = new PopupMenu.PopupMenuItem(_("Network unavailable, cannot run backup"));
+			this.icon.set_icon_name('network-wired-no-route-symbolic');
+		}
+		else if (objBackup.code == -3)
+		{
+			backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup in progress"));
+			this.icon.set_icon_name('emblem-synchronizing-symbolic');
+		}
+		else if (objBackup.code == 1)
+		{
+			backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup complete, but some files could not be backed up"));
+			this.icon.set_icon_name('dialog-warning-symbolic');
+		}
+		else
+		{
+			backupMenuItem = new PopupMenu.PopupMenuItem(_('The last backup failed'));
+			this.icon.set_icon_name('dialog-error-symbolic');
+		}
+
+		this.menu.removeAll();
+		this.menu.addMenuItem(backupMenuItem);
+		this.spacer = new SeparatorMenuItem();
+		this.menu.addMenuItem(this.spacer);
+		let settingsMenuItem = new PopupMenu.PopupMenuItem(_('Open Desktop Manager'));
+		this.menu.addMenuItem(settingsMenuItem);
+		settingsMenuItem.connect('activate', function() { Gtk.show_uri(null, 'https://deskctl/backup', Gtk.get_current_event_time()); });
+		let refreshMenuItem = new PopupMenu.PopupMenuItem(_('Refresh status'));
+		this.menu.addMenuItem(refreshMenuItem);
+		refreshMenuItem.connect('activate', Lang.bind(this, this.refresh));
+
+		//return true;
+	},
+
+	removeTimeout: function()
+	{
+		if (this.timeout !== undefined)
+		{
+			Mainloop.source_remove(this.timeout);
+			this.timeout = undefined;
+		}
+	}
+
+});
+
+function enable()
+{
 	trayMenu = new TrayMenuButton();
-}
-
-function enable() {
-	// add the extension
 	Main.panel.addToStatusArea('status-indicator', trayMenu);
 }
 
-function disable() {
-	// kill off the extension
-	trayMenu.stop();
+function disable()
+{
 	trayMenu.destroy();
 }
