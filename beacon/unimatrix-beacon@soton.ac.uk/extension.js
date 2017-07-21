@@ -64,6 +64,11 @@ const TrayMenuButton = new Lang.Class(
 			backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup in progress"));
 			this.icon.set_icon_name('emblem-synchronizing-symbolic');
 		}
+		else if (objBackup.code == -4)
+		{
+			backupMenuItem = new PopupMenu.PopupMenuItem(_("Backups are disabled"));
+			this.icon.set_icon_name('action-unavailable-symbolic');
+		}
 		else if (objBackup.code == 1)
 		{
 			backupMenuItem = new PopupMenu.PopupMenuItem(_("Backup complete, but some files could not be backed up"));
