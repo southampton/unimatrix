@@ -54,12 +54,40 @@ def get_system_by_name(name,extended=True):
 		flash("System facts are corrupted in the database: " + str(ex),"alert-danger")
 		system['facts'] = None
 
+	system['os']     = 'Unknown'
+	system['uptime'] = 'Unknown'
+	if system['facts'] is not None:
+		if 'values' in system['facts']:
+			if 'lsbdistdescription' in system['facts']['values']:
+				system['os'] = system['facts']['values']['lsbdistdescription']
+			if 'uptime' in system['facts']['values']:
+				system['uptime'] = system['facts']['values']['uptime']
+
 	try:
 		if system['metadata'] is not None:
 			system['metadata'] = json.loads(system['metadata'])
 	except Exception as ex:
 		flash("System metadata is corrupted in the database: " + str(ex),"alert-danger")
 		system['metadata'] = None
+
+	system['sys'] = 'Unknown'
+	system['cpu'] = 'Unknown'
+	system['mem'] = 'Unknown'
+	system['gpu'] = 'Unknown'
+	system['drone_version'] = 'Unknown'
+	if system['metadata'] is not None:
+		if 'hwinfo' in system['metadata']:
+			if 'sys' in system['metadata']['hwinfo']:
+				system['sys'] = system['metadata']['hwinfo']['sys']
+			if 'cpu' in system['metadata']['hwinfo']:
+				system['cpu'] = system['metadata']['hwinfo']['cpu']
+			if 'mem' in system['metadata']['hwinfo']:
+				system['mem'] = system['metadata']['hwinfo']['mem']
+			if 'gpu' in system['metadata']['hwinfo']:
+				system['gpu'] = system['metadata']['hwinfo']['gpu']
+		if 'drone' in system['metadata']:
+			if 'version' in system['metadata']['drone']:
+				system['drone_version'] = system['metadata']['drone']['version']
 
 	try:
 		if system['backup_status'] is not None:
@@ -166,7 +194,6 @@ def get_system_by_name(name,extended=True):
 				if time_last_client_backup < time_three_days_ago:
 					system['backup_cstatus'] = 3
 		else:
-			app.logger.info(str(type(system['backup_status'])))
 			system['backup_cstatus'] = 4
 			if not backup_inprogress:
 				system['backup_ostatus'] = 4

@@ -148,23 +148,23 @@
 					</div>
 					<div class="card-pf-body">
 						<strong>Operating system:</strong>
-						<p>{{system['facts']['values']['lsbdistdescription']}}</p>
+						<p>{{system['os']}}</p>
 						<strong>Hardware:</strong>
-						<p>{{system['metadata']['hwinfo']['sys']}}</p>
+						<p>{{system['sys']}}</p>
 						<strong>CPU:</strong>
-						<p>{{system['metadata']['hwinfo']['cpu']}}</p>
+						<p>{{system['cpu']}}</p>
 						<strong>RAM:</strong>
-						<p>{{system['metadata']['hwinfo']['mem']}}</p>
+						<p>{{system['mem']}}</p>
 						<strong>GPU:</strong>
-						<p>{{system['metadata']['hwinfo']['gpu']}}</p>
+						<p>{{system['gpu']}}</p>
 						<strong>First registered on:</strong>
 						<p>{{system['create_date']|ut2str}}</p>
 						<strong>Registered on:</strong>
 						<p>{{system['register_date']|ut2str}}</p>
 						<strong>Uptime:</strong>
-						<p>{{system['facts']['values']['uptime']}}</p>
+						<p>{{system['uptime']}}</p>
 						<strong>Drone version:</strong>
-						<p>{{system['metadata']['drone']['version']}}</p>
+						<p>{{system['drone_version']}}</p>
 					</div>
 				</div>
 			</div>

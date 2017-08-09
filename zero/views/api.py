@@ -91,7 +91,7 @@ def api_v1_register():
 	if sysid is None:
 		## System does not exist, create a new one
 		try:
-			curd.execute("INSERT INTO `systems` (`name`, `create_date`, `register_date`, `last_seen_date`, `ssh_public_key`, `backup_key`, `api_key`) VALUES (%s, NOW(), NOW(), NOW(), %s, %s, %s)", (hostname, public_key_str, backup_key, enc_api_key,))
+			curd.execute("INSERT INTO `systems` (`name`, `create_date`, `register_date`, `last_seen_date`, `last_seen_addr`, `ssh_public_key`, `backup_key`, `api_key`) VALUES (%s, NOW(), NOW(), NOW(), %s, %s, %s, %s)", (hostname, request.remote_addr, public_key_str, backup_key, enc_api_key,))
 			g.db.commit()
 		except Exception as ex:
 			app.logger.debug("api_v1_register: failed to create system record " + str(type(ex)) + " - " + str(ex))
