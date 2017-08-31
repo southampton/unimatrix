@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-06-07-01"
+VERSION     = "2017-08-31-01"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -91,6 +91,7 @@ class DroneAgent:
 		self.config.set('puppet','user','puppet')
 		self.config.set('puppet','binary','/opt/puppetlabs/bin/puppet')
 		self.config.set('puppet','server','localhost')
+		self.config.set('puppet','manifest','site')
 
 		self.config.set('reskit','pkgdir','/etc/reskit/packages/')
 		self.config.set('reskit','server','localhost')
@@ -177,7 +178,7 @@ class DroneAgent:
 	def puppet_apply(self):
 		self.print_verbose("starting puppet apply")
 
-		(code, output) = self.sysexec("""%s apply --detailed-exitcodes --modulepath %s/puppet/modules/ %s/puppet/manifests/site.pp""" % (self.config.get('puppet','binary'),BASE_DIR,BASE_DIR),shell=True)
+		(code, output) = self.sysexec("""%s apply --detailed-exitcodes --modulepath %s/puppet/modules/ %s/puppet/manifests/%s.pp""" % (self.config.get('puppet','binary'),BASE_DIR,BASE_DIR,self.config.get('puppet','manifest')),shell=True)
 
 		uts = int(time.time())
 		when = "puppet apply last ran at " + self.strtime() + "\n"
