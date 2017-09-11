@@ -62,6 +62,10 @@ def get_system_by_name(name,extended=True):
 				system['os'] = system['facts']['values']['lsbdistdescription']
 			if 'uptime' in system['facts']['values']:
 				system['uptime'] = system['facts']['values']['uptime']
+			try:
+				system['drone_manifest'] = system['facts']['values']['drone_manifest']
+			except KeyError:
+				pass
 
 	try:
 		if system['metadata'] is not None:

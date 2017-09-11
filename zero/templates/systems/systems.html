@@ -57,10 +57,11 @@
 						<ul class="dropdown-menu">
 							<li><a href="#" id="filter1">Name</a></li>
 							<li><a href="#" id="filter2">SYS</a></li>
-							<li><a href="#" id="filter3">CPU</a></li>
-							<li><a href="#" id="filter4">RAM</a></li>
-							<li><a href="#" id="filter5">GPU</a></li>
-							<li><a href="#" id="filter6">Last address</a></li>
+							<li><a href="#" id="filter3">Build</a></li>
+							<li><a href="#" id="filter4">CPU</a></li>
+							<li><a href="#" id="filter5">RAM</a></li>
+							<li><a href="#" id="filter6">GPU</a></li>
+							<li><a href="#" id="filter7">Last address</a></li>
 						</ul>
 					</div>
 					<input type="text" class="form-control" placeholder="Filter By Name..." autocomplete="off" id="filterInput">
@@ -85,6 +86,7 @@
 		<tr>
 			<th></th>
 			<th>SYS</th>
+			<th>Build</th>
 			<th>CPU</th>
 			<th>RAM</th>
 			<th>GPU</th>
@@ -100,6 +102,7 @@
 			<tr>
 				<td class="table-view-pf-actions"><a href="{{url_for('system',name=system.name)}}" class="btn btn-lg btn-default" style="text-align: left"><span class="fa fa-fw fa-search"></span> {{system.name}}</a></td>
 				<td>{{system.metadata.hwinfo.sys}}</td>
+				<td>{{system.drone_manifest or 'site'}}</td>
 				<td>{{system.metadata.hwinfo.cpu}}</td>
 				<td>{{system.metadata.hwinfo.mem}}</td>
 				<td>{{system.metadata.hwinfo.gpu}}</td>
@@ -163,11 +166,11 @@ $(document).ready(function()
 		"columnDefs":
 		[
 			{ 
-				"targets": [ 5 ],
-				"orderData":[ 6 ],
+				"targets": [ 6 ],
+				"orderData":[ 7 ],
 			},
 			{
-				"targets": [ 6 ],
+				"targets": [ 7 ],
 				"visible": false,
 				"searchable": false
 			},
@@ -177,7 +180,7 @@ $(document).ready(function()
 		language: {
 			zeroRecords: "No records found"
 		},
-		order: [[ 5, 'desc' ]],
+		order: [[ 6, 'desc' ]],
 		pfConfig:
 		{
 			emptyStateSelector: "#emptyState1",
@@ -194,15 +197,18 @@ $(document).ready(function()
 			placeholder: "Filter By SYS..."
 			}, {
 			optionSelector: "#filter3",
-			placeholder: "Filter By CPU..."
+			placeholder: "Filter By Build..."
 			}, {
 			optionSelector: "#filter4",
-			placeholder: "Filter By RAM..."
+			placeholder: "Filter By CPU..."
 			}, {
 			optionSelector: "#filter5",
+			placeholder: "Filter By RAM..."
+			}, {
+			optionSelector: "#filter6",
 			placeholder: "Filter By GPU..."
 			}, null, {
-			optionSelector: "#filter6",
+			optionSelector: "#filter7",
 			placeholder: "Filter By Last address..."
 			}],
 			paginationSelector: "#pagination1",
