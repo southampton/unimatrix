@@ -17,6 +17,14 @@
 				<tr><td><span class="fa fa-fw fa-2x fa-exclamation-triangle text-danger"></span></td><td> Last seen >28 days ago</td></tr>
 				</table>
 				<p>&nbsp;</p>
+				<h2>Pending Updates</h2>
+				<table style="border-collapse: separate; border-spacing: 10px;">
+				<tr><td><span class="fa fa-fw fa-2x fa-check-circle text-success"></td><td> No pending updates</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-exclamation-circle text-warning"></td><td> 1-10 pending updates</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-exclamation-triangle text-danger"></td><td> Over 10 pending updates</td></tr>
+				<tr><td><span class="fa fa-fw fa-2x fa-question-circle text-warning"></td><td> State unknown</td></tr>
+				</table>
+				<p>&nbsp;</p>
 				<h2>Backup status</h2>
 				<table style="border-collapse: separate; border-spacing: 10px;">
 				<tr><td><span class="fa fa-fw fa-2x fa-check-circle text-success"></td><td> OK</td></tr>
@@ -110,7 +118,7 @@
 				<td>{{system.metadata.hwinfo.gpu}}</td>
 				<td><span class="fa fa-fw fa-lg {% if system['seen_status'] == 0 %}fa-check-circle text-success" title="System seen recently"{% elif system['seen_status'] == -1 %}fa-power-off text-info" title="System powered off"{% elif system['seen_status'] == 1 %}fa-question-circle text-warning" title="Last seen over 3 days ago"{% elif system['seen_status'] == 2 %}fa-exclamation-circle text-warning" title="Last seen over 7 days ago"{% else %}fa-exclamation-triangle text-danger" title="Last seen over a month ago"{%endif%}></span> {{system.last_seen_date}}</td>
 				<td>{{system.last_seen_date|dt2uts}}</td>
-				<td>{% if system['update_status']['yum_updates'] is defined %}<span class="fa fa-fw fa-lg {% if system.update_status.yum_updates == 0 %}fa-check-circle text-success{% elif system.update_status.yum_updates <= 10 %}fa-question-circle text-warning{% else %}fa-exclamation-triangle text-danger{% endif %}"></span>{{system.update_status.yum_updates}}{% else %}Unknown{% endif %}</td>
+				<td>{% if system['update_status']['yum_updates'] is defined %}<span class="fa fa-fw fa-lg {% if system.update_status.yum_updates == 0 %}fa-check-circle text-success{% elif system.update_status.yum_updates <= 10 %}fa-exclamation-circle text-warning{% else %}fa-exclamation-triangle text-danger{% endif %}"></span>{{system.update_status.yum_updates}}{% else %}<span class="fa fa-fw fa-lg fa-question-circle text-warning"></span> Unknown{% endif %}</td>
 				<td>{% if system['update_status']['yum_updates'] is defined %}{{system.update_status.yum_updates}}{% else %}-1{% endif %}</td>
 				<td><span class="fa fa-fw fa-lg {% if system['backup_ostatus'] == 0 %}fa-check-circle text-success" title="Backup OK"{% elif system['backup_ostatus'] == 1 %}fa-times-circle text-danger" title="Last backup failed"{% elif system['backup_ostatus'] == 2 %}fa-exclamation-circle text-warning" title="Partial backup failure"{% elif system['backup_ostatus'] == 3 %}fa-calendar-times-o text-warning" title="Last backup over 3 days ago"{% elif system['backup_ostatus'] == 4 %}fa-exclamation-triangle text-danger" title="No backup ever taken"{% elif system['backup_ostatus'] == 5 %}fa-cog fa-spin text-info" title="Backup in progress"{% elif system['backup_ostatus'] == 6 %}fa-pause-circle text-primary" title="Backups disabled"{%endif%}></span> {% if system['backup_ostatus'] != 6 %} {{system.backup_swhen or 'Unknown'}} {% else %} <span class="text-muted">Backups disabled</span>{%endif%}</td>
 				<td>{{system.last_seen_addr}}</td>

@@ -277,6 +277,10 @@ def get_system_by_name(name,extended=True):
 		else:
 			system['update_status_code'] = -1 # unknown
 
+		#installed packages
+		curd.execute('''SELECT `package` FROM `systems_packages` WHERE `sid`=%s''', (system['id'],))
+		system['packages'] = [row['package'] for row in curd.fetchall()]
+
 	return system
 
 ################################################################################

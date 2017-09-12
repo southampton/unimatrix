@@ -147,18 +147,19 @@ def api_v1_update_metadata():
 
 	## check what we're given is actually valid JSON
 	try:
-		metadata = json.loads(metadata)
+		metadata_load = json.loads(metadata)
 	except Exception as ex:
 		app.logger.info("api_v1_update_metadata: Authenticated machine " + system['name'] + " presented invalid JSON")
 		app.logger.debug(metadata)
 		return stderr("Invalid JSON data","The 'data' parameter must be valid JSON",code=400)
 
 	else:
-		## try to extract the package list and reflatten the struct
+		## try to extract the package list
 		try:
-			packages = metadata['packages']
-			del(metadata['packages'])
-			metadata = json.dumps(metadata)
+			packages = metadata_load['packages']
+			del(metadata_load['packages'])
+			#reflatten the struct
+			metadata = json.dumps(metadata_load)
 		except KeyError:
 			packages = None
 			pass

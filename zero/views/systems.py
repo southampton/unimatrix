@@ -110,6 +110,18 @@ def system_events(name):
 		events = get_system_events(system['id'])
 		return render_template("systems/events.html",active="systems",system=system,events=events)
 
+@app.route('/sys/<name>/packages')
+@zero.lib.user.login_required
+def system_packages(name):
+	"""Shows packages for a registered system"""
+
+	system = get_system_by_name(name)
+
+	if system is None:
+		abort(404)
+	else:
+		return render_template("systems/packages.html",active="systems",system=system)
+
 @app.route('/sys/<name>/backups')
 @zero.lib.user.login_required
 def system_backups(name):
