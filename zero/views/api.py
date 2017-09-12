@@ -147,15 +147,30 @@ def api_v1_update_metadata():
 
 	## check what we're given is actually valid JSON
 	try:
-		json.loads(metadata)
+		metadata = json.loads(metadata)
 	except Exception as ex:
 		app.logger.info("api_v1_update_metadata: Authenticated machine " + system['name'] + " presented invalid JSON")
 		app.logger.debug(metadata)
 		return stderr("Invalid JSON data","The 'data' parameter must be valid JSON",code=400)
 
+	else:
+		## try to extract the package list and reflatten the struct
+		try:
+			packages = metadata['packages']
+			del(metadata['packages'])
+			metadata = json.dumps(metadata)
+		except KeyError:
+			packages = None
+			pass
+
 	## update the database
 	curd = g.db.cursor(mysql.cursors.DictCursor)
 	curd.execute('INSERT INTO `systems_data` (`sid`, `metadata`) VALUES (%s,%s) ON DUPLICATE KEY UPDATE `metadata` = %s', (system['id'],metadata,metadata,))
+	## update the system packages
+	if packages is not None:
+		curd.execute('DELETE FROM `systems_packages` WHERE `sid` = %s', (system['id'],))
+		for package in packages:
+			curd.execute('INSERT INTO `systems_packages` (`sid`, `package`) VALUES (%s,%s)', (system['id'], package))
 
 	## create an event to say the system updated it metadata
 	curd.execute("INSERT INTO `systems_events` (`sid`, `name`, `when`, `status`) VALUES (%s,'update_metadata',NOW(),0)", (system['id'],))

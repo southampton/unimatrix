@@ -372,6 +372,13 @@ Username:             %s
 		  CONSTRAINT `pkg_entry_actions_ibfk_1` FOREIGN KEY (`pkg_entry_id`) REFERENCES `pkg_entries` (`id`) ON DELETE CASCADE
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
 
+		cursor.execute("""CREATE TABLE IF NOT EXISTS `systems_packages` (
+                    `sid` mediumint(11) NOT NULL,
+                    `package` varchar(255),
+                    PRIMARY KEY (`sid`, `package`),
+                    CONSTRAINT `system_packages_ibfk_1` FOREIGN KEY (`sid`) REFERENCES `systems` (`id`) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;""")
+
 		## Close database connection
 		temp_db.close()
 
