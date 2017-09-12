@@ -86,6 +86,12 @@
         <span class="list-group-item-value">Packages</span>
       </a>
     </li>
+    <li class="list-group-item{% if active == 'lookup' %} active{%endif%}">
+      <a href="{{ url_for('lookup') }}">
+        <span class="fa fa-search" data-toggle="tooltip" title="Package Lookup"></span>
+        <span class="list-group-item-value">Package Lookup</span>
+      </a>
+    </li>
   </ul>
 </div>
 {% endif %}
