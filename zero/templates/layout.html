@@ -17,10 +17,15 @@
 		<script src="{{url_for('static',filename='dt/jquery.dataTables.min.js')}}"></script>
 		<script src="{{url_for('static',filename='patternfly/js/patternfly.min.js')}}"></script>
 		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.pfEmpty.min.js')}}"></script>
+		{% if active == 'lookup' %}
+		<script src="{{url_for('static',filename='js/serverside.patternfly.dataTables.pfFilter.js')}}"></script>
+		<script src="{{url_for('static',filename='js/patternfly.dataTables.pfEmpty.js')}}"></script>
+		{% else %}
+		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.pfEmpty.min.js')}}"></script>
 		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.pfFilter.min.js')}}"></script>
+		{% endif %}
 		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.pfPagination.min.js')}}"></script>
-		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.resize.min.js')}}"></script>
-		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.select.min.js')}}"></script>
+		<script src="{{url_for('static',filename='patternfly/js/patternfly.dataTables.pfResize.min.js')}}"></script>
 		{%- block head %}{% endblock %}
 	</head>
 	<body class="cards-pf">

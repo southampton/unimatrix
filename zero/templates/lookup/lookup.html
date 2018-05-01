@@ -1,0 +1,157 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<div class="clearfix row" id="content">
+	<div id="main" class="col-md-12 clearfix" role="main">
+		<div class="page-tabs-header">
+			<div class="row">
+				<div class="col-sm-12 col-md-6 cols-nopad-right">
+					<h1><span class="fa fa-fw fa-desktop"></span> Package Lookup</h1>
+				</div>
+			</div>
+		</div>
+
+		<div class="row row-cards-pf">
+			<div class="col-xs-12 col-sm-12 col-md-12">
+				<div class="card-pf" style="padding: 0px; border-top: none;">
+
+<div class="row toolbar-pf table-view-pf-toolbar" id="toolbar1">
+	<div class="col-sm-12">
+		<form class="toolbar-pf-actions">
+			<div class="form-group toolbar-pf-filter">
+				<label class="sr-only" for="filter">Package Name</label>
+				<div class="input-group">
+					<div class="input-group-btn">
+						<button type="button" class="btn btn-default dropdown-toggle" id="filter" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Package Name <span class="caret"></span></button>
+						<ul class="dropdown-menu">
+							<li><a href="#" id="filter1">Package Name</a></li>
+							<li><a href="#" id="filter2">System Name</a></li>
+						</ul>
+					</div>
+					<input type="text" class="form-control" placeholder="Filter By Package Name..." autocomplete="off" id="filterInput">
+				</div>
+			</div>
+		</form>
+		<div class="row toolbar-pf-results">
+			<div class="col-sm-9">
+				<div class="hidden">
+					<h5>0 Results</h5>
+					<p>Active filters:</p>
+					<ul class="list-inline"></ul>
+					<p><a href="#">Clear All Filters</a></p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+	<table class="table table-striped table-bordered table-hover" id="table1">
+		<thead>
+			<tr>
+				<th>System Name</th>
+				<th>Package Name</th>
+			</tr>
+		</thead>
+	</table>
+
+	<form class="content-view-pf-pagination table-view-pf-pagination clearfix" id="pagination1">
+	  <div class="form-group">
+		<select class="selectpicker pagination-pf-pagesize">
+		  <option value="5">5</option>
+		  <option value="10" >10</option>
+		  <option value="15" selected="selected">15</option>
+		  <option value="25">25</option>
+		  <option value="50">50</option>
+		</select>
+		<span>per page</span>
+	  </div>
+	  <div class="form-group">
+		<span><span class="pagination-pf-items-current">1-25</span> of <span class="pagination-pf-items-total">75</span></span>
+		<ul class="pagination pagination-pf-back">
+		  <li class="disabled"><a href="#" title="First Page"><span class="i fa fa-angle-double-left"></span></a></li>
+		  <li class="disabled"><a href="#" title="Previous Page"><span class="i fa fa-angle-left"></span></a></li>
+		</ul>
+		<label for="pagination1-page" class="sr-only">Current Page</label>
+		<input class="pagination-pf-page" type="text" value="1" id="pagination1-page"/>
+		<span>of <span class="pagination-pf-pages">5</span></span>
+		<ul class="pagination pagination-pf-forward">
+		  <li><a href="#" title="Next Page"><span class="i fa fa-angle-right"></span></a></li>
+		  <li><a href="#" title="Last Page"><span class="i fa fa-angle-double-right"></span></a></li>
+		</ul>
+	  </div>
+	</form>
+
+	<!-- Blank Slate HTML -->
+	<div class="blank-slate-pf table-view-pf-empty hidden" id="emptyState1">
+	  <div class="blank-slate-pf-icon">
+		<span class="fa fa-fw fa-exclamation-triangle"></span>
+	  </div>
+	  <h1>
+		No Packages
+	  </h1>
+	  <p>
+		No packages recorded
+	  </p>
+	</div>
+	
+		</div>
+	</div>
+</div>
+
+<script>
+$(document).ready(function()
+{
+	$("#table1").DataTable(
+	{
+		processing: true,
+		serverSide: true,
+		ajax: "{{url_for('lookup_json')}}",
+		pageLength: 15,
+		columns: [
+			{
+				name: 'name',
+			 	data: 'name' 
+			},
+			{
+				name: 'package',
+				data: 'package'
+			}
+		],
+		dom: "t",
+		language: {
+			zeroRecords: "No records found"
+		},
+		order: [[ 0, 'asc' ]],
+		pfConfig:
+		{
+			emptyStateSelector: "#emptyState1",
+			paginationSelector: "#pagination1",
+			pageSize: 15,
+			filterCaseInsensitive: true,
+			filterCols: [
+				{
+				default: false,
+				optionSelector: "#filter2",
+				placeholder: "Filter By System..."
+				},
+				{
+				default: true,
+				optionSelector: "#filter1",
+				placeholder: "Filter By Package..."
+				}
+			],
+			paginationSelector: "#pagination1",
+			toolbarSelector: "#toolbar1",
+		}
+	});
+	$('.datatable').dataTable();
+});
+</script>
+
+
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

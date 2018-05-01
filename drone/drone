@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-08-31-01"
+VERSION     = "2017-09-13-01"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -1280,6 +1280,11 @@ class DroneAgent:
 			'sys': self.system_get_sys(),
 		}
 		metadata['drone'] = {'version': VERSION}
+		try:
+			metadata['packages'] = str(subprocess.check_output(['rpm', '-qa'])).splitlines()
+		except subprocess.CalledProcessError:
+			pass
+
 		metadata = json.dumps(metadata)
 
 		self.print_debug("POSTing to " + server_url + " with hostname " + hostname)
