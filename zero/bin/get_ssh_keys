@@ -57,7 +57,7 @@ def load_config():
 if __name__ == "__main__":
 	if len(sys.argv) != 2:
 		sys.stderr.write("Invalid number of arguments. Usage: get_ssh_keys <username>\n")
-		sys.exit(1)
+		sys.exit(5)
 
 	username = sys.argv[1]
 
@@ -80,9 +80,15 @@ if __name__ == "__main__":
 		sys.stderr.write('Error when communicating with the database: ' + str(type(ex)) + " " + str(ex) + "\n")
 		sys.exit(4)
 
-	for system in systems:
-		if username == config['SSH_USERNAME_PUPPET']:
-			print """command="/bin/rrsync -ro puppet",no-agent-forwarding,no-port-forwarding,no-user-rc,no-X11-forwarding %s""" % (system['ssh_public_key'],)
-		elif username == config['SSH_USERNAME_BACKUP']:
-			print """command="/bin/request-backup %s",no-agent-forwarding,no-X11-forwarding,no-user-rc %s""" % (system['name'],system['ssh_public_key'],)
+	# We wrap this in a try, catching IOError because sshd pre-emptively closes 
+	# the pipe for stdout when it finds the SSH key, despite the fact that we're
+	# still writing to it
+	try:
+		for system in systems:
+			if username == config['SSH_USERNAME_PUPPET']:
+				print """command="/bin/rrsync -ro puppet",no-agent-forwarding,no-port-forwarding,no-user-rc,no-X11-forwarding %s""" % (system['ssh_public_key'],)
+			elif username == config['SSH_USERNAME_BACKUP']:
+				print """command="/bin/request-backup %s",no-agent-forwarding,no-X11-forwarding,no-user-rc %s""" % (system['name'],system['ssh_public_key'],)
+	except IOError as e:
+		pass
 
