@@ -25,6 +25,14 @@ def get_system_events(sid):
 	
 ################################################################################
 
+def delete_system_by_name(name):
+
+	curd = g.db.cursor(mysql.cursors.DictCursor)
+	curd.execute("""DELETE FROM `systems` WHERE `name` = %s LIMIT 1""",(name,))
+	g.db.commit()
+
+################################################################################
+
 def get_system_by_name(name,extended=True):
 
 	curd = g.db.cursor(mysql.cursors.DictCursor)
@@ -45,6 +53,8 @@ def get_system_by_name(name,extended=True):
        ON `systems`.`id` = `systems_data`.`sid` WHERE `systems`.`name` = %s""",(name,))
 
 	system = curd.fetchone()
+	if system is None:
+		return None
 
 	## json load 
 	try:
