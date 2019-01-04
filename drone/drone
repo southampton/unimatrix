@@ -2,7 +2,7 @@
 
 CONFIG_FILE = "/etc/soton/drone.conf"
 BASE_DIR    = "/etc/soton"
-VERSION     = "2017-09-13-01"
+VERSION     = "2019-01-04-01"
 ANSI_BOLD   = "\033[1m"
 ANSI_RESET  = "\033[0;0m"
 
@@ -86,7 +86,9 @@ class DroneAgent:
 		self.config.set('backup','lv_source_name','home')
 		self.config.set('backup','lv_snap_name','homesnap')
 		self.config.set('backup','lv_snap_mount','/mnt/homesnap')
-		self.config.set('backup','enabled',"true")
+		self.config.set('backup','enable_fallback','true')
+		self.config.set('backup','fallback_bind','/home')
+		self.config.set('backup','enabled','true')
 
 		self.config.set('puppet','user','puppet')
 		self.config.set('puppet','binary','/opt/puppetlabs/bin/puppet')
@@ -143,9 +145,9 @@ class DroneAgent:
 			print_debug("skipping network test because -i was specified")
 			return True
 
-		self.print_verbose("checking network status")
+		self.print_verbose('checking network status')
 
-		(code,output) = self.sysexec(["/usr/bin/nm-online","-q","--timeout=" + str(timeout)])
+		(code,output) = self.sysexec(['/usr/bin/nm-online', '-q', '--timeout=' + str(timeout)])
 	
 		if code == 0:
 			self.print_verbose("network manager reports the network is up")
@@ -164,9 +166,9 @@ class DroneAgent:
 	def puppet_sync(self):
 		self.is_network_up(exit_if_down=True)
 
-		self.print_verbose("starting sync")
+		self.print_verbose('starting sync')
 
-		(code, output) = self.sysexec("""/usr/bin/rsync -e "ssh -i %s/ssh_private_key -o PreferredAuthentications=publickey -oStrictHostKeyChecking=no" -av --delete %s@%s: %s/puppet/""" % (BASE_DIR, self.config.get('puppet','user'),self.config.get('puppet','server'),BASE_DIR),shell=True)
+		(code, output) = self.sysexec(['/usr/bin/rsync', '-e', 'ssh -i ' + str(BASE_DIR) + '/ssh_private_key -o PreferredAuthentications=publickey -oStrictHostKeyChecking=no', '-av', '--delete', self.config.get('puppet','user') + '@' + self.config.get('puppet','server') + ':', str(BASE_DIR) + '/puppet/'])
 
 		if code != 0:
 			self.fatal("sync failed: \n" + output)
@@ -176,9 +178,9 @@ class DroneAgent:
 	############################################################################
 
 	def puppet_apply(self):
-		self.print_verbose("starting puppet apply")
+		self.print_verbose('starting puppet apply')
 
-		(code, output) = self.sysexec("""%s apply --detailed-exitcodes --modulepath %s/puppet/modules/ %s/puppet/manifests/%s.pp""" % (self.config.get('puppet','binary'),BASE_DIR,BASE_DIR,self.config.get('puppet','manifest')),shell=True)
+		(code, output) = self.sysexec([self.config.get('puppet','binary'), 'apply', '--detailed-exitcodes', '--modulepath', str(BASE_DIR) + '/puppet/modules/', str(BASE_DIR) + '/puppet/manifests/' + self.config.get('puppet','manifest') + '.pp'])
 
 		uts = int(time.time())
 		when = "puppet apply last ran at " + self.strtime() + "\n"
@@ -250,7 +252,7 @@ class DroneAgent:
 
 	def puppet_facts(self):
 
-		(code, output) = self.sysexec("""%s facts find --modulepath %s/puppet/modules/""" % (self.config.get('puppet','binary'),BASE_DIR),shell=True)
+		(code, output) = self.sysexec([self.config.get('puppet','binary'), 'facts', 'find', '--modulepath', str(BASE_DIR) + '/puppet/modules/'])
 
 		if code == 0:
 			print output
@@ -372,7 +374,7 @@ class DroneAgent:
 
 		if mounted:
 			self.print_debug("unmounting existing mounted snapshot")
-			(code, output) = self.sysexec("""/bin/umount %s""" % (self.config.get('backup','lv_snap_mount'),),shell=True)
+			(code, output) = self.sysexec(['/bin/umount', self.config.get('backup','lv_snap_mount')])
 
 			if code == 0:
 				self.print_verbose("existing stale snapshot unmounted")
@@ -381,11 +383,11 @@ class DroneAgent:
 
 		## Check to see if the logical volume snapshot already exists, and if it is, delete it
 		self.print_debug("checking to see if the snapshot lv already exists")
-		(code, output) = self.sysexec("""lvdisplay %s/%s""" % (self.config.get('backup','vgname'),self.config.get('backup','lv_snap_name')),shell=True)
+		(code, output) = self.sysexec(['/sbin/lvdisplay', '%s/%s' % (self.config.get('backup','vgname'),self.config.get('backup','lv_snap_name'))])
 
 		if code == 0:
 			self.print_debug("deleting stale lv snapshot")
-			(code, output) = self.sysexec("""/sbin/lvremove -f %s/%s""" % (self.config.get('backup','vgname'), self.config.get('backup','lv_snap_name'),),shell=True)
+			(code, output) = self.sysexec(['/sbin/lvremove', '-f', '%s/%s' % (self.config.get('backup','vgname'), self.config.get('backup','lv_snap_name'))])
 
 			if code == 0:
 				self.print_verbose("existing stale snapshot removed")
@@ -394,26 +396,48 @@ class DroneAgent:
 
 		## Create the snapshot of home
 		self.print_debug("creating snapshot")
-		(code, output) = self.sysexec("""/sbin/lvcreate -n %s -kn -s %s/%s""" % (self.config.get('backup','lv_snap_name'), self.config.get('backup','vgname'), self.config.get('backup','lv_source_name'),),shell=True)
+		(code, output) = self.sysexec(['/sbin/lvcreate', '-n', self.config.get('backup','lv_snap_name'), '-kn', '-s', '%s/%s' % (self.config.get('backup','vgname'), self.config.get('backup','lv_source_name'))])
 
 		if code == 0:
 			self.print_verbose("snapshot created")
+			snapshot_failed = False
 		else:
-			self.backup_save_state(bLock,-1,"Could not create disk snapshot: \n" + output)
-			self.fatal("Could not create snapshot:\n" + output)
+			snapshot_failed = True
 
-		## Mount it
-		self.print_debug("mounting snapshot")
-		(code, output) = self.sysexec("""/bin/mount -o ro,nouuid /dev/mapper/%s-%s %s""" % (self.config.get('backup','vgname'), self.config.get('backup','lv_snap_name'), self.config.get('backup','lv_snap_mount'),),shell=True)
+		if snapshot_failed:
+			## If fallback is enabled, then attempt that, otherwise fail the backup
+			if self.config.getboolean('backup','enable_fallback'):
+				## In the event the snapshot fails, we fall back to bind mounting onto lv_snap_mount
+				## so that we can still perform a backup (even if some files will inevitably be locked or
+				## changed in flight)
+				self.warn("Could not create disk snapshot: \n" + output)
+				self.warn("Falling back to bind mount")
 
-		if code == 0:
-			self.print_verbose("snapshot mounted")
+				## Mount /home as a bind mount on to our lv_snap_mount path
+				self.print_debug("bind mounting %s" % (self.config.get('backup','fallback_bind'),))
+				(code, output) = self.sysexec(['/bin/mount', '-o', 'ro', '--bind', self.config.get('backup','fallback_bind'), self.config.get('backup','lv_snap_mount')])
+
+				if code == 0:
+					self.print_verbose("bind mount successful")
+				else:
+					self.backup_save_state(bLock,-1,"Could not do bind mount: \n" + output)
+					self.fatal("Could not do bind mount:\n" + output)
+			else:
+				self.backup_save_state(bLock,-1,"Could not create disk snapshot: \n" + output)
+				self.fatal("Could not create snapshot:\n" + output)
 		else:
-			self.backup_save_state(bLock,-1,"Could not mount disk snapshot: \n" + output)
-			self.fatal("Could not mount snapshot:\n" + output)
+			## Snapshot created successfully, mount it
+			self.print_debug("mounting snapshot")
+			(code, output) = self.sysexec(['/bin/mount', '-o', 'ro,nouuid', '/dev/mapper/%s-%s' % (self.config.get('backup','vgname'), self.config.get('backup','lv_snap_name')), self.config.get('backup','lv_snap_mount')])
+	
+			if code == 0:
+				self.print_verbose("snapshot mounted")
+			else:
+				self.backup_save_state(bLock,-1,"Could not mount disk snapshot: \n" + output)
+				self.fatal("Could not mount snapshot:\n" + output)
 
 		## k we're ready! start the backup!
-		(code, output) = self.sysexec("""%s %s@%s -i %s/ssh_private_key -o "ExitOnForwardFailure yes" -R %s:localhost:%s """ % (self.config.get('ssh','binary'), self.config.get('backup','user'), self.config.get('backup','server'), BASE_DIR, self.config.get('backup','port'),self.config.get('backup','rsyncd_port'),),shell=True)
+		(code, output) = self.sysexec([self.config.get('ssh','binary'), '%s@%s' % (self.config.get('backup','user'), self.config.get('backup','server')), '-i', str(BASE_DIR) + '/ssh_private_key', '-o', 'ExitOnForwardFailure yes', '-R', '%s:localhost:%s' % (self.config.get('backup','port'),self.config.get('backup','rsyncd_port'))])
 
 		fail = False
 		backup_code = code
@@ -430,23 +454,24 @@ class DroneAgent:
 
 		self.print_verbose(status)
 
-		self.print_debug("unmounting snapshot")
+		self.print_debug("unmounting backup source")
 		## Now we umount the snapshot and delete it as we don't need it anymore
-		(code, output) = self.sysexec("""/bin/umount %s""" % (self.config.get('backup','lv_snap_mount'),),shell=True)
+		(code, output) = self.sysexec(['/bin/umount', self.config.get('backup','lv_snap_mount')])
 
 		if code == 0:
-			self.print_verbose("snapshot unmounted")
+			self.print_verbose("backup source unmounted")
 		else:
-			self.warn("Could not unmount snapshot:\n" + output)
+			self.warn("Could not unmount backup source:\n" + output)
 
-		## Create the snapshot of home
-		self.print_debug("removing snapshot")
-		(code, output) = self.sysexec("""/sbin/lvremove -f %s/%s""" % (self.config.get('backup','vgname'), self.config.get('backup','lv_snap_name'),),shell=True)
+		## Delete the snapshot of home
+		if not snapshot_failed:
+			self.print_debug("removing snapshot")
+			(code, output) = self.sysexec(['/sbin/lvremove', '-f', '%s/%s' % (self.config.get('backup','vgname'), self.config.get('backup','lv_snap_name'))])
 
-		if code == 0:
-			self.print_verbose("snapshot removed")
-		else:
-			self.warn("Could not delete snapshot:\n" + output)
+			if code == 0:
+				self.print_verbose("snapshot removed")
+			else:
+				self.warn("Could not delete snapshot:\n" + output)
 
 		## Save the final state, and unlock the lock
 		self.backup_save_state(bLock,backup_code,backup_output)
@@ -724,11 +749,14 @@ class DroneAgent:
 			return
 
 		if package_delete:
-			cmd = "/usr/bin/rsync -av --delete"
+			cmd = ['/usr/bin/rsync', '-av', '--delete']
 		else:
-			cmd = "/usr/bin/rsync -av"
+			cmd = ['/usr/bin/rsync', '-av']
 
-		(code, output) = self.sysexec("""%s rsync://%s/%s/%s %s""" % (cmd, reskit_server, reskit_share, package_source, package_dest,),shell=True)
+		cmd.append('rsync://%s/%s/%s' % (reskit_server, reskit_share, package_source))
+		cmd.append(package_dest)
+
+		(code, output) = self.sysexec(cmd)
 
 		if code != 0:
 			self.print_verbose("reskit update of '" + package + "' failed: \n" + output)
@@ -1306,7 +1334,7 @@ class DroneAgent:
 	def ldi_facts(self,hostname,api_key,server_url):
 		server_url = server_url + "api/v1/update/facts"
 
-		(code, output) = self.sysexec("""%s facts find --render-as json --modulepath %s/puppet/modules/""" % (self.config.get('puppet','binary'),BASE_DIR),shell=True)
+		(code, output) = self.sysexec([self.config.get('puppet','binary'), 'facts', 'find', '--render-as', 'json', '--modulepath', str(BASE_DIR) + '/puppet/modules/'])
 
 		if code != 0:
 			self.fatal("Could not retrieve facts: \n" + output)

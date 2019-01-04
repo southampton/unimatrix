@@ -1,4 +1,4 @@
-.TH drone 1 "May 30, 2017" "version 2017-05-26-02" "DRONE WORKSTATION AGENT
+.TH drone 1 "Jan 04, 2019" "version 2019-01-04-01" "DRONE WORKSTATION AGENT
 .SH NAME
 drone - management agent for systems registered with the LDI system
 .SH SYNOPSIS
@@ -61,7 +61,7 @@ version     shows the version of the drone agent
                         the network
 
 .SH AUTHOR  
-David Bell, d.bell@soton.ac.uk
+David Bell <d.bell@soton.ac.uk>, Clayton Peters <c.l.peters@soton.ac.uk>
 
 .SH COPYRIGHT  
-Copyright (c) 2017 University of Southampton
+Copyright (c) 2019 University of Southampton
